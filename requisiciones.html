@@ -47,34 +47,54 @@ async function idbSetMeta(key,val){const db=await openIDB();return new Promise((
 
 const USE_SB=()=>window.SB?.configured===true;
 
-// ─── Capa de datos – Supabase con fallback automático a IndexedDB ─────────────
-
+// ─── Capa de datos – Requisiciones ───────────────────────────────────────────
 async function dbGetAll(){
   if(!USE_SB()){const rows=await idbGetAll();return rows.sort((a,b)=>b.createdAt-a.createdAt);}
   const rows=await window.SB.getAll('requisiciones','?order=created_at.desc');
   return(rows||[]).map(r=>({folio:r.folio,requester:r.requester,company:r.company,isInternal:r.is_internal,approver:r.approver,delivery:r.delivery,observations:r.observations,date:r.date,items:r.items||[],createdAt:new Date(r.created_at).getTime()}));
 }
-
 async function dbPut(obj){
   if(!USE_SB())return idbPut(obj);
   await window.SB.upsert('requisiciones',[{folio:obj.folio,requester:obj.requester,company:obj.company||'',is_internal:obj.isInternal||false,approver:obj.approver,delivery:obj.delivery,observations:obj.observations||'',date:obj.date,items:obj.items}],'folio');
 }
-
 async function dbDel(folio){
   if(!USE_SB())return idbDel(folio);
   await window.SB.delete('requisiciones',{folio});
 }
 
-async function dbGetMeta(key,fb){
-  if(!USE_SB())return idbGetMeta(key,fb);
-  if(key==='companies'){try{const rows=await window.SB.getAll('empresas','?order=nombre.asc');return rows&&rows.length?rows.map(r=>r.nombre):fb;}catch{return fb;}}
-  return window.SB.getMeta(key,fb);
+// ─── Capa de datos – Clientes ────────────────────────────────────────────────
+async function dbGetClientes(){
+  if(!USE_SB()){
+    const names=await idbGetMeta('companies',[]);
+    return Array.isArray(names)?names.map(n=>({nombre:n})):[];
+  }
+  try{return(await window.SB.getAll('clientes','?order=nombre.asc'))||[];}catch{return[];}
+}
+async function dbUpsertCliente(data){
+  if(!USE_SB()){
+    const names=await idbGetMeta('companies',[]);
+    if(!names.includes(data.nombre))await idbSetMeta('companies',[...names,data.nombre].sort());
+    return;
+  }
+  await window.SB.upsert('clientes',[data],'nombre');
+}
+async function dbDelCliente(nombre){
+  if(!USE_SB()){
+    const names=await idbGetMeta('companies',[]);
+    await idbSetMeta('companies',names.filter(n=>n!==nombre));
+    return;
+  }
+  await window.SB.delete('clientes',{nombre});
 }
 
-async function dbSetMeta(key,val){
-  if(!USE_SB())return idbSetMeta(key,val);
-  if(key==='companies'){await window.SB.upsert('empresas',val.map(nombre=>({nombre})),'nombre');return;}
-  await window.SB.setMeta(key,val);
+// ─── Metadatos (contador de folios) ─────────────────────────────────────────
+async function dbGetCounter(){
+  if(!USE_SB())return+(await idbGetMeta('counter',0))||0;
+  return+(await window.SB.getMeta('req_counter',0))||0;
+}
+async function dbSetCounter(n){
+  if(!USE_SB())return idbSetMeta('counter',n);
+  await window.SB.setMeta('req_counter',String(n));
 }
 
 // ─── Utilidades ───────────────────────────────────────────────────────────────
@@ -86,112 +106,59 @@ function fmtDate(iso){if(!iso)return'–';const[y,m,d]=iso.split('-');return d+'
 function downloadPDF(req){
   const{jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'letter'});
-  const PW=doc.internal.pageSize.getWidth(), PH=doc.internal.pageSize.getHeight();
-  const ML=12, RED=[200,16,46], DARK=[30,30,38], GRAY=[150,150,160], LGRAY=[220,220,225];
-
-  // Franja roja delgada en la parte superior
-  doc.setFillColor(...RED); doc.rect(0,0,PW,1.5,'F');
-
-  // Logo
+  const PW=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight();
+  const ML=12,RED=[200,16,46],DARK=[30,30,38],GRAY=[150,150,160],LGRAY=[220,220,225];
+  doc.setFillColor(...RED);doc.rect(0,0,PW,1.5,'F');
   const logo=window.LOGO_GD||null;
-  const LOGO_W=36, LOGO_H=14;
-  if(logo){ try{ doc.addImage(logo,'PNG',ML,4,LOGO_W,LOGO_H); }catch(e){} }
-
-  // Título a la derecha del logo
-  const tx=ML+LOGO_W+8;
-  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...DARK);
-  doc.text('Solicitud de Requisición', tx, 10);
-  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text('Departamento de Ingeniería  ·  Gardner Denver México', tx, 15.5);
-
-  // Folio y fecha (derecha)
-  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
-  doc.text(req.folio, PW-ML, 10, {align:'right'});
-  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text('Fecha: '+fmtDate(req.date), PW-ML, 15.5, {align:'right'});
-
-  // Línea separadora
+  if(logo){try{doc.addImage(logo,'PNG',ML,4,36,14);}catch(e){}}
+  const tx=ML+36+8;
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...DARK);
+  doc.text('Solicitud de Requisición',tx,10);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...GRAY);
+  doc.text('Departamento de Ingeniería  ·  Gardner Denver México',tx,15.5);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...DARK);
+  doc.text(req.folio,PW-ML,10,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...GRAY);
+  doc.text('Fecha: '+fmtDate(req.date),PW-ML,15.5,{align:'right'});
   let y=22;
-  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3); doc.line(ML,y,PW-ML,y); y+=8;
-
-  // Título de sección
-  function secTitle(txt,yy){
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...RED);
-    doc.text(txt, ML, yy);
-    doc.setDrawColor(...RED); doc.setLineWidth(0.4); doc.line(ML,yy+1,PW-ML,yy+1);
-    return yy+6;
-  }
-
-  // Campo etiqueta + valor
+  doc.setDrawColor(...LGRAY);doc.setLineWidth(0.3);doc.line(ML,y,PW-ML,y);y+=8;
+  function secTitle(txt,yy){doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...RED);doc.text(txt,ML,yy);doc.setDrawColor(...RED);doc.setLineWidth(0.4);doc.line(ML,yy+1,PW-ML,yy+1);return yy+6;}
   const CW=(PW-ML*2)/2;
-  function field(lbl,val,x,yy){
-    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-    doc.text(lbl, x, yy);
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
-    const lines=doc.splitTextToSize(String(val||'–'), CW-4);
-    doc.text(lines, x, yy+5);
-    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(x,yy+7.5,x+CW-4,yy+7.5);
-    return yy+13;
-  }
-
-  // Datos generales
-  y=secTitle('DATOS GENERALES', y);
-  let yL=y, yR=y;
-  yL=field('SOLICITA (INGENIERO)', req.requester||'–', ML, yL);
-  yR=field('EMPRESA', req.isInternal?'Requisición interna – Equipo de Ingeniería':(req.company||'–'), ML+CW, yR);
-  yL=field('APRUEBA', req.approver, ML, yL);
-  yR=field('FORMATO DE ENTREGA', req.delivery, ML+CW, yR);
+  function field(lbl,val,x,yy){doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...GRAY);doc.text(lbl,x,yy);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...DARK);const lines=doc.splitTextToSize(String(val||'–'),CW-4);doc.text(lines,x,yy+5);doc.setDrawColor(...LGRAY);doc.setLineWidth(0.2);doc.line(x,yy+7.5,x+CW-4,yy+7.5);return yy+13;}
+  y=secTitle('DATOS GENERALES',y);
+  let yL=y,yR=y;
+  yL=field('SOLICITA (INGENIERO)',req.requester||'–',ML,yL);
+  yR=field('EMPRESA',req.isInternal?'Requisición interna – Equipo de Ingeniería':(req.company||'–'),ML+CW,yR);
+  yL=field('APRUEBA',req.approver,ML,yL);
+  yR=field('FORMATO DE ENTREGA',req.delivery,ML+CW,yR);
   y=Math.max(yL,yR)+3;
-
-  // Partes solicitadas
-  y=secTitle('PARTES SOLICITADAS', y);
+  y=secTitle('PARTES SOLICITADAS',y);
   const body=req.items.map((it,i)=>[String(i+1),String(it.qty),it.partNumber||'–',it.description]);
-  doc.autoTable({
-    startY:y, head:[['#','Cant.','No. de Parte','Descripción de Mercancía']],
-    body:body.length?body:[['–','–','–','Sin partes registradas']],
-    margin:{left:ML,right:ML}, theme:'plain',
-    styles:{font:'helvetica',fontSize:9,cellPadding:2.5,textColor:[40,40,40]},
-    headStyles:{fillColor:[45,45,55],textColor:[255,255,255],fontSize:8,fontStyle:'bold'},
-    alternateRowStyles:{fillColor:[248,248,250]},
-    columnStyles:{0:{halign:'center',cellWidth:10},1:{halign:'center',cellWidth:16},2:{cellWidth:40,font:'courier',fontSize:8.5}},
-  });
+  doc.autoTable({startY:y,head:[['#','Cant.','No. de Parte','Descripción de Mercancía']],body:body.length?body:[['–','–','–','Sin partes registradas']],margin:{left:ML,right:ML},theme:'plain',styles:{font:'helvetica',fontSize:9,cellPadding:2.5,textColor:[40,40,40]},headStyles:{fillColor:[45,45,55],textColor:[255,255,255],fontSize:8,fontStyle:'bold'},alternateRowStyles:{fillColor:[248,248,250]},columnStyles:{0:{halign:'center',cellWidth:10},1:{halign:'center',cellWidth:16},2:{cellWidth:40,font:'courier',fontSize:8.5}}});
   y=doc.lastAutoTable.finalY+8;
-
-  // Observaciones
-  y=secTitle('OBSERVACIONES', y);
+  y=secTitle('OBSERVACIONES',y);
   const obsText=req.observations||'Sin observaciones.';
-  const obsLines=doc.splitTextToSize(obsText, PW-ML*2-4);
+  const obsLines=doc.splitTextToSize(obsText,PW-ML*2-4);
   const obsH=Math.max(14,obsLines.length*4.5+6);
-  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.setFillColor(250,251,252);
+  doc.setDrawColor(...LGRAY);doc.setLineWidth(0.2);doc.setFillColor(250,251,252);
   doc.roundedRect(ML,y,PW-ML*2,obsH,1,1,'FD');
-  doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  doc.setTextColor(req.observations?40:160, req.observations?40:160, req.observations?40:160);
-  doc.text(obsLines, ML+3, y+5); y+=obsH+16;
-
-  // Firmas
+  doc.setFont('helvetica','normal');doc.setFontSize(9);
+  doc.setTextColor(req.observations?40:160,req.observations?40:160,req.observations?40:160);
+  doc.text(obsLines,ML+3,y+5);y+=obsH+16;
   const SW=(PW-ML*2-24)/2;
-  function sig(x,name,role){
-    doc.setDrawColor(...DARK); doc.setLineWidth(0.4); doc.line(x,y,x+SW,y);
-    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
-    doc.text(name||'________________', x+SW/2, y+5, {align:'center'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-    doc.text(role, x+SW/2, y+9, {align:'center'});
-  }
-  sig(ML, req.requester, 'SOLICITANTE');
-  sig(ML+SW+24, req.approver, 'GERENTE DE INGENIERÍA – APROBACIÓN');
-
-  // Pie de página
+  function sig(x,name,role){doc.setDrawColor(...DARK);doc.setLineWidth(0.4);doc.line(x,y,x+SW,y);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...DARK);doc.text(name||'________________',x+SW/2,y+5,{align:'center'});doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY);doc.text(role,x+SW/2,y+9,{align:'center'});}
+  sig(ML,req.requester,'SOLICITANTE');
+  sig(ML+SW+24,req.approver,'GERENTE DE INGENIERÍA – APROBACIÓN');
   const FY=PH-10;
-  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML,FY-3,PW-ML,FY-3);
-  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-  doc.text('Documento generado – uso interno  ·  Gardner Denver México', ML, FY);
-  doc.text(req.folio, PW-ML, FY, {align:'right'});
-
+  doc.setDrawColor(...LGRAY);doc.setLineWidth(0.2);doc.line(ML,FY-3,PW-ML,FY-3);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY);
+  doc.text('Documento generado – uso interno  ·  Gardner Denver México',ML,FY);
+  doc.text(req.folio,PW-ML,FY,{align:'right'});
   doc.save(req.folio+'.pdf');
 }
 
-// ─── Componentes básicos ──────────────────────────────────────────────────────
-const IS={width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:8,padding:'10px 12px',color:C.text,fontSize:14,fontFamily:"'Archivo',sans-serif",outline:'none',transition:'border-color 0.15s'};
+// ─── Componentes base ─────────────────────────────────────────────────────────
+const IS={width:'100%',background:'#0b0d11',border:'1px solid #262b35',borderRadius:8,padding:'10px 12px',color:'#e8eaed',fontSize:14,fontFamily:"'Archivo',sans-serif",outline:'none',transition:'border-color 0.15s'};
 function Field({label,hint,children}){return(<div style={{marginBottom:16}}><label style={{display:'block',fontSize:11,fontWeight:700,letterSpacing:'0.6px',textTransform:'uppercase',color:C.textDim,marginBottom:6}}>{label}{hint&&<span style={{color:C.textFaint,fontWeight:400,textTransform:'none',letterSpacing:0,marginLeft:6}}>{hint}</span>}</label>{children}</div>);}
 function TI({value,onChange,placeholder,disabled,mono}){return(<input className="req-input" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} disabled={disabled} style={{...IS,fontFamily:mono?"'Spline Sans Mono',monospace":"'Archivo',sans-serif",opacity:disabled?0.4:1,cursor:disabled?'not-allowed':'text'}} onFocus={e=>e.target.style.borderColor=C.accent} onBlur={e=>e.target.style.borderColor=C.border}/>);}
 
@@ -247,7 +214,7 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
             <span style={{color:C.textDim,fontSize:11}}>{ddOpen?'▲':'▼'}</span>
           </div>
           {ddOpen&&(<div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:8,padding:6,boxShadow:'0 12px 32px rgba(0,0,0,.5)',maxHeight:260,overflowY:'auto',animation:'fadeIn .12s ease'}}>
-            {!companies.length&&<div style={{padding:'8px 10px',fontSize:13,color:C.textFaint}}>No hay empresas guardadas</div>}
+            {!companies.length&&<div style={{padding:'8px 10px',fontSize:13,color:C.textFaint}}>No hay clientes guardados · Ve a la pestaña Clientes para agregar</div>}
             {companies.map(co=>(<div key={co} onClick={()=>{setCompany(co);setDdOpen(false);}} style={{padding:'8px 10px',fontSize:14,color:C.text,borderRadius:6,cursor:'pointer',background:co===company?C.bg:'transparent'}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background=co===company?C.bg:'transparent'}>{co}</div>))}
             <div style={{display:'flex',gap:6,padding:6,marginTop:4,borderTop:'1px solid '+C.border}}>
               <input className="req-input" value={newCo} onChange={e=>setNewCo(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCo()} placeholder="Nueva empresa…" style={{...IS,padding:'7px 10px',fontSize:13}}/>
@@ -338,42 +305,189 @@ function History({requisitions,companies,onDelete}){
   </div>);
 }
 
+// ─── Formulario de Cliente ────────────────────────────────────────────────────
+function ClienteForm({initial,onSave,onCancel,isNew}){
+  const[f,setF]=useState({nombre:'',contacto:'',telefono:'',email:'',rfc:'',ciudad:'',notas:'',...initial});
+  const[err,setErr]=useState('');
+  const upd=(k,v)=>setF(p=>({...p,[k]:v}));
+  function submit(){
+    if(!f.nombre.trim()){setErr('El nombre de la empresa es requerido.');return;}
+    onSave({...f,nombre:f.nombre.trim(),rfc:(f.rfc||'').toUpperCase().trim()});
+  }
+  return(<div style={{animation:'slideUp .3s ease both'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22,paddingBottom:16,borderBottom:'1px solid '+C.border}}>
+      <div><h2 style={{fontSize:20,fontWeight:800,color:C.text,letterSpacing:'-.3px'}}>{isNew?'Nuevo Cliente':'Editar Cliente'}</h2><p style={{fontSize:13,color:C.textDim,marginTop:2}}>{isNew?'Registra una nueva empresa cliente':'Actualiza la información del cliente'}</p></div>
+      <button onClick={onCancel} style={{background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:8,padding:'9px 16px',color:C.textDim,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>← Volver</button>
+    </div>
+    <Field label="Nombre de Empresa *"><TI value={f.nombre} onChange={v=>upd('nombre',v)} placeholder="Ej. Grupo Industrial Monterrey" disabled={!isNew}/></Field>
+    {!isNew&&<p style={{fontSize:12,color:C.textFaint,marginTop:-10,marginBottom:16}}>El nombre de empresa es la clave única y no puede modificarse.</p>}
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 24px'}}>
+      <Field label="Persona de Contacto"><TI value={f.contacto} onChange={v=>upd('contacto',v)} placeholder="Ej. Ing. Roberto Hernández"/></Field>
+      <Field label="Teléfono"><TI value={f.telefono} onChange={v=>upd('telefono',v)} placeholder="Ej. 55 1234 5678"/></Field>
+      <Field label="Correo Electrónico"><TI value={f.email} onChange={v=>upd('email',v)} placeholder="contacto@empresa.com"/></Field>
+      <Field label="RFC"><TI value={f.rfc} onChange={v=>upd('rfc',v.toUpperCase())} placeholder="Ej. GIM920101ABC" mono/></Field>
+      <Field label="Ciudad / Estado"><TI value={f.ciudad} onChange={v=>upd('ciudad',v)} placeholder="Ej. Monterrey, N.L."/></Field>
+    </div>
+    <Field label="Notas internas"><textarea className="req-input" value={f.notas} onChange={e=>upd('notas',e.target.value)} placeholder="Observaciones, condiciones de pago, proyectos activos…" rows={2} style={{...IS,resize:'vertical',lineHeight:1.5}}/></Field>
+    {err&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid '+C.red,borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:C.red}}>⚠ {err}</div>}
+    <div style={{display:'flex',gap:10}}>
+      <button onClick={submit} style={{flex:1,background:C.accent,border:'none',borderRadius:9,padding:'13px',color:C.bg,fontSize:14.5,fontWeight:800,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>{isNew?'+ Guardar cliente':'✓ Actualizar cliente'}</button>
+      <button onClick={onCancel} style={{background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:9,padding:'13px 20px',color:C.textDim,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>Cancelar</button>
+    </div>
+  </div>);
+}
+
+// ─── Módulo de Clientes ───────────────────────────────────────────────────────
+function Clientes({clientes,onUpsert,onDelete}){
+  const[editing,setEditing]=useState(null);
+  const[search,setSearch]=useState('');
+  if(editing!==null)return<ClienteForm initial={editing} onSave={data=>{onUpsert(data);setEditing(null);}} onCancel={()=>setEditing(null)} isNew={!editing.nombre}/>;
+  const filtered=search.trim()?clientes.filter(c=>
+    c.nombre.toLowerCase().includes(search.toLowerCase())||
+    (c.contacto||'').toLowerCase().includes(search.toLowerCase())||
+    (c.ciudad||'').toLowerCase().includes(search.toLowerCase())||
+    (c.email||'').toLowerCase().includes(search.toLowerCase())
+  ):clientes;
+  return(<div style={{animation:'slideUp .3s ease both'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,paddingBottom:16,borderBottom:'1px solid '+C.border}}>
+      <div><h2 style={{fontSize:20,fontWeight:800,color:C.text,letterSpacing:'-.3px'}}>Clientes</h2><p style={{fontSize:13,color:C.textDim,marginTop:2}}>{clientes.length} empresa{clientes.length===1?'':'s'} registrada{clientes.length===1?'':'s'}{search&&' · '+filtered.length+' coinciden'}</p></div>
+      <button onClick={()=>setEditing({})} style={{background:C.accent,border:'none',borderRadius:9,padding:'11px 20px',color:C.bg,fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>+ Nuevo cliente</button>
+    </div>
+    <div style={{marginBottom:16}}>
+      <input className="req-input" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por empresa, contacto, ciudad o email…" style={{...IS,padding:'10px 14px',fontSize:13}}/>
+    </div>
+    {!filtered.length?(<div style={{textAlign:'center',padding:'50px 20px',color:C.textFaint,border:'1px dashed '+C.border,borderRadius:10}}>
+      <div style={{fontSize:36,marginBottom:10,opacity:.35}}>🏢</div>
+      <p style={{fontSize:14,marginBottom:14}}>{!clientes.length?'Aún no tienes clientes registrados.':'Ningún cliente coincide con la búsqueda.'}</p>
+      {!clientes.length&&<button onClick={()=>setEditing({})} style={{background:C.accent,border:'none',borderRadius:9,padding:'11px 22px',color:C.bg,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>+ Agregar primer cliente</button>}
+    </div>):(
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {filtered.map(c=>(<div key={c.nombre} style={{border:'1px solid '+C.border,borderRadius:10,background:C.panel,padding:'14px 18px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:14}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:5}}>{c.nombre}</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'4px 18px',fontSize:12.5,color:C.textDim}}>
+            {c.contacto&&<span>👤 {c.contacto}</span>}
+            {c.ciudad&&<span>📍 {c.ciudad}</span>}
+            {c.telefono&&<span>📞 {c.telefono}</span>}
+            {c.email&&<span>✉ {c.email}</span>}
+            {c.rfc&&<span style={{fontFamily:"'Spline Sans Mono',monospace",fontSize:11.5,color:C.textFaint}}>RFC: {c.rfc}</span>}
+          </div>
+          {c.notas&&<div style={{marginTop:7,fontSize:12,color:C.textFaint,fontStyle:'italic',borderLeft:'2px solid '+C.border,paddingLeft:8}}>{c.notas}</div>}
+        </div>
+        <div style={{display:'flex',gap:8,flexShrink:0}}>
+          <button onClick={()=>setEditing(c)} style={{background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:7,padding:'7px 14px',color:C.text,fontSize:12.5,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif",whiteSpace:'nowrap'}}>✏ Editar</button>
+          <button onClick={()=>{if(window.confirm('¿Eliminar el cliente "'+c.nombre+'"?\nEsta acción no se puede deshacer.'))onDelete(c.nombre);}} style={{background:'transparent',border:'1px solid rgba(248,81,73,.3)',borderRadius:7,padding:'7px 10px',cursor:'pointer',color:C.red,fontSize:14}}>🗑</button>
+        </div>
+      </div>))}
+    </div>)}
+  </div>);
+}
+
 // ─── App principal ────────────────────────────────────────────────────────────
 function App(){
   const[loaded,setLoaded]=useState(false);
   const[requisitions,setRequisitions]=useState([]);
+  const[clientes,setClientes]=useState([]);
   const[companies,setCompanies]=useState([]);
   const[counter,setCounter]=useState(0);
   const[tab,setTab]=useState('new');
   const[dbErr,setDbErr]=useState('');
-  useEffect(()=>{(async()=>{try{const reqs=await dbGetAll();const cos=await dbGetMeta('companies',['Constructora del Norte','Inmobiliaria Pacífico']);const cnt=await dbGetMeta('counter',0);setRequisitions(reqs);setCompanies(cos);setCounter(cnt);setLoaded(true);}catch(e){setDbErr('Error al cargar los datos: '+(e.message||e)+'. Si usas modo incógnito, prueba en una ventana normal.');setLoaded(true);}})();},[]);
+
+  useEffect(()=>{(async()=>{
+    try{
+      const[reqs,clis,cnt]=await Promise.all([dbGetAll(),dbGetClientes(),dbGetCounter()]);
+      setRequisitions(reqs);
+      setClientes(clis);
+      setCompanies(clis.map(c=>c.nombre));
+      setCounter(cnt);
+      setLoaded(true);
+    }catch(e){
+      setDbErr('Error al cargar los datos: '+(e.message||e)+'. Si usas modo incógnito, prueba en una ventana normal.');
+      setLoaded(true);
+    }
+  })();},[]);
+
   const nextFolio=makeFolio(counter+1);
+
   async function handleSave(data){
     const nc=counter+1,folio=makeFolio(nc),req={...data,folio,createdAt:Date.now()};
-    try{await dbPut(req);await dbSetMeta('counter',nc);setRequisitions(p=>[...p,req]);setCounter(nc);downloadPDF(req);setTab('history');}catch(e){alert('Error al guardar: '+e);}
+    try{await dbPut(req);await dbSetCounter(nc);setRequisitions(p=>[req,...p]);setCounter(nc);downloadPDF(req);setTab('history');}
+    catch(e){alert('Error al guardar: '+e);}
   }
-  async function handleAddCo(name){if(companies.includes(name))return;const next=[...companies,name].sort();setCompanies(next);try{await dbSetMeta('companies',next);}catch(e){}}
-  async function handleDel(folio){try{await dbDel(folio);setRequisitions(p=>p.filter(r=>r.folio!==folio));}catch(e){alert('Error al eliminar: '+e);}}
+
+  // Agregar empresa rápida desde el formulario de requisición (crea registro mínimo)
+  async function handleAddCo(name){
+    if(companies.includes(name))return;
+    try{
+      await dbUpsertCliente({nombre:name});
+      const updated=await dbGetClientes();
+      setClientes(updated);
+      setCompanies(updated.map(c=>c.nombre));
+    }catch(e){console.error('Error al guardar empresa:',e);}
+  }
+
+  // Guardar cliente completo desde el módulo de Clientes
+  async function handleUpsertCliente(data){
+    try{
+      await dbUpsertCliente(data);
+      const updated=await dbGetClientes();
+      setClientes(updated);
+      setCompanies(updated.map(c=>c.nombre));
+    }catch(e){alert('Error al guardar cliente: '+(e.message||e));}
+  }
+
+  async function handleDelCliente(nombre){
+    try{
+      await dbDelCliente(nombre);
+      setClientes(p=>p.filter(c=>c.nombre!==nombre));
+      setCompanies(p=>p.filter(n=>n!==nombre));
+    }catch(e){alert('Error al eliminar cliente: '+(e.message||e));}
+  }
+
+  async function handleDel(folio){
+    try{await dbDel(folio);setRequisitions(p=>p.filter(r=>r.folio!==folio));}
+    catch(e){alert('Error al eliminar: '+e);}
+  }
+
   if(!loaded)return<div id="loading">Cargando base de datos…</div>;
-  const tabs=[{id:'new',label:'Nueva requisición',icon:'📝'},{id:'history',label:'Consultar',icon:'🔍'}];
+
+  const tabs=[
+    {id:'new',    label:'Nueva requisición', icon:'📝', badge:0},
+    {id:'history',label:'Consultar',         icon:'🔍', badge:requisitions.length},
+    {id:'clientes',label:'Clientes',         icon:'🏢', badge:clientes.length},
+  ];
+
   return(<div style={{minHeight:'100vh',background:C.bg,color:C.text,paddingBottom:60}}>
     <header style={{borderBottom:'1px solid '+C.border,background:C.panel,padding:'16px 0',marginBottom:28}}>
-      <div style={{maxWidth:920,margin:'0 auto',padding:'0 24px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <div style={{maxWidth:960,margin:'0 auto',padding:'0 24px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           <div style={{width:38,height:38,borderRadius:9,background:C.accent,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>📦</div>
-          <div><h1 style={{fontSize:17,fontWeight:800,letterSpacing:'-.3px'}}>Dashboard de Requisiciones</h1><p style={{fontSize:11.5,color:C.textDim,marginTop:1}}>Departamento de Ingeniería · Uso personal</p></div>
+          <div><h1 style={{fontSize:17,fontWeight:800,letterSpacing:'-.3px'}}>Dashboard de Requisiciones</h1><p style={{fontSize:11.5,color:C.textDim,marginTop:1}}>Departamento de Ingeniería · Gardner Denver México</p></div>
+        </div>
+        <div style={{fontSize:11.5,color:C.textFaint,textAlign:'right'}}>
+          {USE_SB()?<span style={{color:C.green}}>☁️ Supabase · Compartido</span>:<span>💾 Local · Solo este navegador</span>}
         </div>
       </div>
     </header>
-    <div style={{maxWidth:920,margin:'0 auto',padding:'0 24px'}}>
+    <div style={{maxWidth:960,margin:'0 auto',padding:'0 24px'}}>
       {dbErr&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid '+C.red,borderRadius:8,padding:'10px 14px',marginBottom:18,fontSize:13,color:C.red}}>{dbErr}</div>}
       <div style={{display:'flex',gap:4,marginBottom:24,background:C.panel,padding:5,borderRadius:11,border:'1px solid '+C.border,width:'fit-content'}}>
-        {tabs.map(t=>{const a=tab===t.id;return(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13.5,fontWeight:700,fontFamily:"'Archivo',sans-serif",background:a?C.accent:'transparent',color:a?C.bg:C.textDim,transition:'all .15s'}}><span>{t.icon}</span>{t.label}{t.id==='history'&&requisitions.length>0&&<span style={{background:a?'rgba(0,0,0,.2)':C.panel2,color:a?C.bg:C.textDim,fontSize:11,fontWeight:700,padding:'1px 7px',borderRadius:20}}>{requisitions.length}</span>}</button>);} )}
+        {tabs.map(t=>{const a=tab===t.id;return(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13.5,fontWeight:700,fontFamily:"'Archivo',sans-serif",background:a?C.accent:'transparent',color:a?C.bg:C.textDim,transition:'all .15s'}}>
+          <span>{t.icon}</span>{t.label}
+          {t.badge>0&&<span style={{background:a?'rgba(0,0,0,.2)':C.panel2,color:a?C.bg:C.textDim,fontSize:11,fontWeight:700,padding:'1px 7px',borderRadius:20,minWidth:22,textAlign:'center'}}>{t.badge}</span>}
+        </button>);})}
       </div>
       <div style={{background:C.panel,border:'1px solid '+C.border,borderRadius:14,padding:28}}>
-        {tab==='new'?<NewForm companies={companies} onAddCompany={handleAddCo} onSave={handleSave} nextFolio={nextFolio}/>:<History requisitions={requisitions} companies={companies} onDelete={handleDel}/>}
+        {tab==='new'
+          ?<NewForm companies={companies} onAddCompany={handleAddCo} onSave={handleSave} nextFolio={nextFolio}/>
+          :tab==='history'
+          ?<History requisitions={requisitions} companies={companies} onDelete={handleDel}/>
+          :<Clientes clientes={clientes} onUpsert={handleUpsertCliente} onDelete={handleDelCliente}/>
+        }
       </div>
-      <p style={{textAlign:'center',fontSize:11.5,color:C.textFaint,marginTop:20}}>{USE_SB()?'Base de datos Supabase ☁️ · Datos compartidos entre dispositivos':'Base de datos local (este navegador) · Configura Supabase para sincronizar entre dispositivos'} · El PDF se descarga directo a tu carpeta de descargas</p>
+      <p style={{textAlign:'center',fontSize:11.5,color:C.textFaint,marginTop:18}}>
+        {USE_SB()?'☁️ Base de datos Supabase · Clientes, Piezas y Requisiciones compartidas entre dispositivos':'💾 Base de datos local · Configura Supabase para sincronizar con tu equipo'} · El PDF se descarga directo a tu carpeta de descargas
+      </p>
     </div>
   </div>);
 }

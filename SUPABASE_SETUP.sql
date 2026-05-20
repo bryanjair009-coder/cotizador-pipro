@@ -16,38 +16,47 @@
 -- Catálogo de materiales / lista de precios
 CREATE TABLE IF NOT EXISTS materiales (
   id            BIGSERIAL PRIMARY KEY,
-  numero_parte  TEXT        UNIQUE NOT NULL,
-  descripcion   TEXT        NOT NULL,
+  numero_parte  TEXT          UNIQUE NOT NULL,
+  descripcion   TEXT          NOT NULL,
   precio        NUMERIC(14,4) NOT NULL DEFAULT 0,
-  created_at    TIMESTAMPTZ DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ DEFAULT NOW()
+  unidad        TEXT          DEFAULT 'PZA',
+  created_at    TIMESTAMPTZ   DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ   DEFAULT NOW()
+);
+
+-- Catálogo de clientes (empresas)
+CREATE TABLE IF NOT EXISTS clientes (
+  id            BIGSERIAL PRIMARY KEY,
+  nombre        TEXT          UNIQUE NOT NULL,
+  contacto      TEXT,
+  telefono      TEXT,
+  email         TEXT,
+  rfc           TEXT,
+  ciudad        TEXT,
+  notas         TEXT,
+  created_at    TIMESTAMPTZ   DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ   DEFAULT NOW()
 );
 
 -- Requisiciones del departamento de Ingeniería
 CREATE TABLE IF NOT EXISTS requisiciones (
-  folio         TEXT        PRIMARY KEY,
+  folio         TEXT          PRIMARY KEY,
   requester     TEXT,
   company       TEXT,
-  is_internal   BOOLEAN     DEFAULT FALSE,
+  is_internal   BOOLEAN       DEFAULT FALSE,
   approver      TEXT,
   delivery      TEXT,
   observations  TEXT,
   date          TEXT,
-  items         JSONB       NOT NULL DEFAULT '[]'::JSONB,
-  created_at    TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Catálogo de empresas clientes
-CREATE TABLE IF NOT EXISTS empresas (
-  nombre        TEXT        PRIMARY KEY,
-  created_at    TIMESTAMPTZ DEFAULT NOW()
+  items         JSONB         NOT NULL DEFAULT '[]'::JSONB,
+  created_at    TIMESTAMPTZ   DEFAULT NOW()
 );
 
 -- Metadatos generales (contador de folios, etc.)
 CREATE TABLE IF NOT EXISTS meta (
-  key           TEXT        PRIMARY KEY,
+  key           TEXT          PRIMARY KEY,
   value         TEXT,
-  updated_at    TIMESTAMPTZ DEFAULT NOW()
+  updated_at    TIMESTAMPTZ   DEFAULT NOW()
 );
 
 
@@ -57,30 +66,29 @@ CREATE TABLE IF NOT EXISTS meta (
 INSERT INTO meta (key, value) VALUES ('req_counter', '0')
   ON CONFLICT (key) DO NOTHING;
 
--- Empresas de ejemplo (puedes borrar o agregar las que necesites)
-INSERT INTO empresas (nombre) VALUES
-  ('Constructora del Norte'),
-  ('Inmobiliaria Pacífico')
+-- Clientes de ejemplo
+INSERT INTO clientes (nombre, contacto, ciudad, notas) VALUES
+  ('Constructora del Norte', 'Ing. Roberto García', 'Monterrey, N.L.', 'Cliente frecuente'),
+  ('Inmobiliaria Pacífico',  'Lic. Ana Martínez',  'Guadalajara, Jal.', '')
 ON CONFLICT (nombre) DO NOTHING;
 
 
 -- ── 3. SEGURIDAD (Row Level Security) ───────────────────────────────────────
--- Permite acceso público total (apropiado para sistema interno sin autenticación)
+-- Acceso público total (sistema interno sin autenticación de usuario).
 -- Si en el futuro agregas autenticación, actualiza estas políticas.
 
-ALTER TABLE materiales  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE materiales    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clientes      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE requisiciones ENABLE ROW LEVEL SECURITY;
-ALTER TABLE empresas    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE meta        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meta          ENABLE ROW LEVEL SECURITY;
 
--- Política: acceso completo para el rol anon (clave pública)
-CREATE POLICY "acceso_publico" ON materiales   FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "acceso_publico" ON materiales    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "acceso_publico" ON clientes      FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "acceso_publico" ON requisiciones FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "acceso_publico" ON empresas      FOR ALL TO anon USING (true) WITH CHECK (true);
 CREATE POLICY "acceso_publico" ON meta          FOR ALL TO anon USING (true) WITH CHECK (true);
 
 
--- ── 4. TRIGGER: actualizar updated_at automáticamente en materiales ──────────
+-- ── 4. TRIGGERS: actualizar updated_at automáticamente ───────────────────────
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -93,17 +101,21 @@ CREATE TRIGGER materiales_updated_at
   BEFORE UPDATE ON materiales
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+CREATE TRIGGER clientes_updated_at
+  BEFORE UPDATE ON clientes
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 CREATE TRIGGER meta_updated_at
   BEFORE UPDATE ON meta
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
 -- ── 5. VERIFICACIÓN ──────────────────────────────────────────────────────────
--- Ejecuta esto para verificar que todo quedó correcto:
+-- Ejecuta esto para confirmar que todo quedó correcto:
 SELECT 'materiales'   AS tabla, count(*) AS registros FROM materiales
 UNION ALL
-SELECT 'requisiciones',          count(*)              FROM requisiciones
+SELECT 'clientes',               count(*)              FROM clientes
 UNION ALL
-SELECT 'empresas',               count(*)              FROM empresas
+SELECT 'requisiciones',          count(*)              FROM requisiciones
 UNION ALL
 SELECT 'meta',                   count(*)              FROM meta;
