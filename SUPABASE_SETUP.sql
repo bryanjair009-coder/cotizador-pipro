@@ -1,21 +1,27 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
---  SUPABASE_SETUP.sql  –  Configuración inicial de base de datos para PIPRO
---
---  INSTRUCCIONES:
---  1. Ve a https://supabase.com y crea un proyecto (gratis)
---  2. En tu proyecto → SQL Editor → New Query
---  3. Pega TODO este archivo y haz clic en "Run"
---  4. Luego ve a Settings → API y copia:
---       • Project URL  →  SUPABASE_URL  en supabase-client.js
---       • anon public  →  SUPABASE_KEY  en supabase-client.js
+--  SUPABASE_SETUP.sql  –  Configuración de base de datos para PIPRO
+--  Versión con DROP IF EXISTS para evitar errores si ya existía algo antes.
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 
--- ── 1. TABLAS ────────────────────────────────────────────────────────────────
+-- ── 1. LIMPIAR POLÍTICAS Y TRIGGERS EXISTENTES ──────────────────────────────
+-- (Evita el error "already exists" si el script se corre más de una vez)
+
+DROP POLICY IF EXISTS "acceso_publico" ON materiales;
+DROP POLICY IF EXISTS "acceso_publico" ON requisiciones;
+DROP POLICY IF EXISTS "acceso_publico" ON clientes;
+DROP POLICY IF EXISTS "acceso_publico" ON meta;
+
+DROP TRIGGER IF EXISTS materiales_updated_at ON materiales;
+DROP TRIGGER IF EXISTS clientes_updated_at   ON clientes;
+DROP TRIGGER IF EXISTS meta_updated_at       ON meta;
+
+
+-- ── 2. TABLAS ────────────────────────────────────────────────────────────────
 
 -- Catálogo de materiales / lista de precios
 CREATE TABLE IF NOT EXISTS materiales (
-  id            BIGSERIAL PRIMARY KEY,
+  id            BIGSERIAL     PRIMARY KEY,
   numero_parte  TEXT          UNIQUE NOT NULL,
   descripcion   TEXT          NOT NULL,
   precio        NUMERIC(14,4) NOT NULL DEFAULT 0,
@@ -23,59 +29,57 @@ CREATE TABLE IF NOT EXISTS materiales (
   created_at    TIMESTAMPTZ   DEFAULT NOW(),
   updated_at    TIMESTAMPTZ   DEFAULT NOW()
 );
+-- Agregar columna unidad si la tabla ya existía sin ella
+ALTER TABLE materiales ADD COLUMN IF NOT EXISTS unidad TEXT DEFAULT 'PZA';
 
 -- Catálogo de clientes (empresas)
 CREATE TABLE IF NOT EXISTS clientes (
-  id            BIGSERIAL PRIMARY KEY,
-  nombre        TEXT          UNIQUE NOT NULL,
+  id            BIGSERIAL   PRIMARY KEY,
+  nombre        TEXT        UNIQUE NOT NULL,
   contacto      TEXT,
   telefono      TEXT,
   email         TEXT,
   rfc           TEXT,
   ciudad        TEXT,
   notas         TEXT,
-  created_at    TIMESTAMPTZ   DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ   DEFAULT NOW()
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Requisiciones del departamento de Ingeniería
 CREATE TABLE IF NOT EXISTS requisiciones (
-  folio         TEXT          PRIMARY KEY,
+  folio         TEXT        PRIMARY KEY,
   requester     TEXT,
   company       TEXT,
-  is_internal   BOOLEAN       DEFAULT FALSE,
+  is_internal   BOOLEAN     DEFAULT FALSE,
   approver      TEXT,
   delivery      TEXT,
   observations  TEXT,
   date          TEXT,
-  items         JSONB         NOT NULL DEFAULT '[]'::JSONB,
-  created_at    TIMESTAMPTZ   DEFAULT NOW()
+  items         JSONB       NOT NULL DEFAULT '[]'::JSONB,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Metadatos generales (contador de folios, etc.)
 CREATE TABLE IF NOT EXISTS meta (
-  key           TEXT          PRIMARY KEY,
+  key           TEXT        PRIMARY KEY,
   value         TEXT,
-  updated_at    TIMESTAMPTZ   DEFAULT NOW()
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 
--- ── 2. DATOS INICIALES ───────────────────────────────────────────────────────
+-- ── 3. DATOS INICIALES ───────────────────────────────────────────────────────
 
--- Contador de requisiciones (comienza en 0)
 INSERT INTO meta (key, value) VALUES ('req_counter', '0')
   ON CONFLICT (key) DO NOTHING;
 
--- Clientes de ejemplo
 INSERT INTO clientes (nombre, contacto, ciudad, notas) VALUES
-  ('Constructora del Norte', 'Ing. Roberto García', 'Monterrey, N.L.', 'Cliente frecuente'),
-  ('Inmobiliaria Pacífico',  'Lic. Ana Martínez',  'Guadalajara, Jal.', '')
+  ('Constructora del Norte', 'Ing. Roberto García', 'Monterrey, N.L.',   'Cliente frecuente'),
+  ('Inmobiliaria Pacífico',  'Lic. Ana Martínez',   'Guadalajara, Jal.', '')
 ON CONFLICT (nombre) DO NOTHING;
 
 
--- ── 3. SEGURIDAD (Row Level Security) ───────────────────────────────────────
--- Acceso público total (sistema interno sin autenticación de usuario).
--- Si en el futuro agregas autenticación, actualiza estas políticas.
+-- ── 4. SEGURIDAD (Row Level Security) ───────────────────────────────────────
 
 ALTER TABLE materiales    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clientes      ENABLE ROW LEVEL SECURITY;
@@ -88,7 +92,8 @@ CREATE POLICY "acceso_publico" ON requisiciones FOR ALL TO anon USING (true) WIT
 CREATE POLICY "acceso_publico" ON meta          FOR ALL TO anon USING (true) WITH CHECK (true);
 
 
--- ── 4. TRIGGERS: actualizar updated_at automáticamente ───────────────────────
+-- ── 5. FUNCIÓN Y TRIGGERS updated_at ─────────────────────────────────────────
+
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -110,8 +115,7 @@ CREATE TRIGGER meta_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
--- ── 5. VERIFICACIÓN ──────────────────────────────────────────────────────────
--- Ejecuta esto para confirmar que todo quedó correcto:
+-- ── 6. VERIFICACIÓN ──────────────────────────────────────────────────────────
 SELECT 'materiales'   AS tabla, count(*) AS registros FROM materiales
 UNION ALL
 SELECT 'clientes',               count(*)              FROM clientes
