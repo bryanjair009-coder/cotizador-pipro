@@ -1,0 +1,2645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cotizador PIPRO · Gardner Denver México</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="materiales.js"></script>
+<script src="logo_b64.js"></script>
+<style>
+:root {
+  --gd-red:   #C8102E;
+  --gd-dark:  #1F1F1F;
+  --gd-gray:  #F5F5F5;
+  --gd-lgray: #E8E8E8;
+  --gd-blue:  #1F3864;
+  --gd-lblue: #D6E4F0;
+  --radius:   8px;
+  --shadow:   0 2px 8px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{font-family:Arial,sans-serif;background:#f0f2f5;color:#1F1F1F;min-height:100vh;}
+
+/* ── HEADER ─────────────────────────────────────────────────────────────────── */
+.gd-header{
+  background:var(--gd-dark);
+  border-bottom:4px solid var(--gd-red);
+  padding:10px 20px;
+  display:flex;align-items:center;gap:14px;
+  position:sticky;top:0;z-index:200;
+}
+.gd-header img{height:44px;}
+.gd-header-text .title{color:#fff;font-size:1.15rem;font-weight:700;letter-spacing:.03em;}
+.gd-header-text .sub{color:var(--gd-red);font-size:.78rem;font-weight:600;margin-top:2px;}
+
+/* ── NAV TABS ───────────────────────────────────────────────────────────────── */
+.gd-tabs{background:var(--gd-dark);display:flex;gap:4px;padding:0 16px;}
+.gd-tab{
+  padding:9px 20px;border:none;background:transparent;
+  color:#aaa;font-size:.9rem;cursor:pointer;border-bottom:3px solid transparent;
+  font-family:Arial,sans-serif;transition:color .2s,border-color .2s;
+}
+.gd-tab.active{color:#fff;border-bottom-color:var(--gd-red);}
+.gd-tab:hover{color:#fff;}
+
+/* ── MAIN CONTENT ───────────────────────────────────────────────────────────── */
+.page{display:none;padding:16px;max-width:960px;margin:0 auto;}
+.page.active{display:block;}
+
+/* ── SECTION TITLE ──────────────────────────────────────────────────────────── */
+.sec-title{
+  color:var(--gd-dark);font-weight:700;font-size:1rem;
+  border-bottom:3px solid var(--gd-red);padding-bottom:4px;
+  margin:20px 0 12px;
+}
+
+/* ── CARD ────────────────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;}
+
+/* ── GRID ────────────────────────────────────────────────────────────────────── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media(max-width:640px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr;}
+  .grid-4{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:400px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+}
+
+/* ── FORM ELEMENTS ──────────────────────────────────────────────────────────── */
+label{font-size:.82rem;font-weight:600;color:#444;display:block;margin-bottom:4px;}
+input[type=text],input[type=number],input[type=date],input[type=password],select{
+  width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;
+  font-size:.92rem;font-family:Arial,sans-serif;background:#fff;
+  transition:border-color .2s;-webkit-appearance:none;appearance:none;
+}
+input:focus,select:focus{outline:none;border-color:var(--gd-red);}
+input[type=number]{-moz-appearance:textfield;}
+input[type=number]::-webkit-inner-spin-button{opacity:1;}
+
+/* ── BUTTONS ─────────────────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 18px;border:none;border-radius:6px;font-size:.9rem;
+  font-family:Arial,sans-serif;cursor:pointer;font-weight:600;
+  transition:filter .15s,transform .1s;min-height:44px;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--gd-red);color:#fff;}
+.btn-primary:hover{filter:brightness(1.1);}
+.btn-secondary{background:var(--gd-lgray);color:var(--gd-dark);}
+.btn-secondary:hover{filter:brightness(.95);}
+.btn-dark{background:var(--gd-dark);color:#fff;}
+.btn-dark:hover{filter:brightness(1.3);}
+.btn-sm{padding:6px 12px;font-size:.82rem;min-height:36px;}
+.btn-full{width:100%;}
+.btn-danger{background:#dc3545;color:#fff;}
+
+/* ── RADIO GROUP ────────────────────────────────────────────────────────────── */
+.radio-group{display:flex;gap:10px;flex-wrap:wrap;}
+.radio-btn{
+  padding:9px 20px;border:2px solid #ccc;border-radius:6px;cursor:pointer;
+  font-size:.9rem;background:#fff;transition:all .2s;font-weight:600;
+}
+.radio-btn.selected{border-color:var(--gd-red);background:var(--gd-red);color:#fff;}
+
+/* ── FOLIO BOX ───────────────────────────────────────────────────────────────── */
+.folio-box{
+  background:var(--gd-gray);border-left:4px solid var(--gd-red);
+  padding:10px 14px;border-radius:4px;font-family:monospace;
+  font-size:1.1rem;font-weight:bold;color:var(--gd-dark);
+  margin:8px 0;letter-spacing:.03em;
+}
+
+/* ── EXPANDER / ACCORDION ───────────────────────────────────────────────────── */
+details{background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+#auto-details{overflow:visible;}
+#gm-map{width:100%;}
+summary{
+  padding:12px 14px;cursor:pointer;font-weight:700;font-size:.95rem;
+  list-style:none;display:flex;align-items:center;justify-content:space-between;
+  user-select:none;background:var(--gd-gray);
+}
+summary::after{content:'▼';font-size:.75rem;color:#999;transition:transform .2s;}
+details[open] summary::after{transform:rotate(180deg);}
+summary::-webkit-details-marker{display:none;}
+.details-body{padding:14px;}
+
+/* ── INFO / SUCCESS / WARNING BOXES ─────────────────────────────────────────── */
+.info-box{
+  background:#e8f4f8;border-left:4px solid #2196F3;
+  padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
+}
+.success-box{
+  background:#e8f5e9;border-left:4px solid #4CAF50;
+  padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
+}
+.warning-box{
+  background:#fff8e1;border-left:4px solid #FFC107;
+  padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
+}
+.error-box{
+  background:#ffebee;border-left:4px solid var(--gd-red);
+  padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
+}
+
+/* ── METRIC CARDS ───────────────────────────────────────────────────────────── */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:12px 0;}
+.metric-card{
+  background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);
+  padding:12px;text-align:center;
+}
+.metric-label{font-size:.78rem;color:#666;margin-bottom:4px;}
+.metric-value{font-size:1.1rem;font-weight:700;color:var(--gd-dark);}
+.metric-delta{font-size:.76rem;color:#888;margin-top:2px;}
+.metric-card.highlight{background:var(--gd-red);border-color:var(--gd-red);}
+.metric-card.highlight .metric-label{color:#ffaaaa;}
+.metric-card.highlight .metric-value,.metric-card.highlight .metric-delta{color:#fff;}
+
+/* ── SEARCH AUTOCOMPLETE ─────────────────────────────────────────────────────── */
+.search-wrap{position:relative;}
+.search-wrap input{font-size:.95rem;padding:11px 14px;}
+.dropdown{
+  position:absolute;top:100%;left:0;right:0;
+  background:#fff;border:1.5px solid #ccc;border-top:none;
+  border-radius:0 0 8px 8px;max-height:320px;overflow-y:auto;
+  z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+.dropdown.hidden{display:none;}
+.dd-item{
+  padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;
+  font-size:.88rem;line-height:1.4;
+}
+.dd-item:hover,.dd-item.active{background:var(--gd-lgray);}
+.dd-item .part{color:var(--gd-red);font-weight:700;font-size:.8rem;}
+.dd-item .price{float:right;font-weight:700;color:var(--gd-dark);}
+.dd-item .desc{color:#333;}
+.dd-count{padding:6px 14px;font-size:.78rem;color:#888;background:#fafafa;border-bottom:1px solid #f0f0f0;}
+
+/* ── SELECTED MATERIAL PREVIEW ───────────────────────────────────────────────── */
+.mat-preview{
+  background:var(--gd-gray);border-left:4px solid var(--gd-red);
+  padding:12px 14px;border-radius:4px;margin:8px 0;display:none;
+}
+.mat-preview .mat-name{font-weight:700;font-size:.95rem;margin-bottom:4px;}
+.mat-preview .mat-meta{font-size:.85rem;color:#555;}
+.mat-preview .mat-price{color:var(--gd-red);font-weight:700;font-size:1.05rem;}
+.mat-preview .add-row{display:flex;gap:8px;margin-top:10px;align-items:center;}
+.mat-preview .add-row input{width:80px;flex-shrink:0;}
+
+/* ── CART TABLE ──────────────────────────────────────────────────────────────── */
+.cart-table{width:100%;border-collapse:collapse;font-size:.88rem;}
+.cart-table th{
+  background:var(--gd-blue);color:#fff;padding:8px 10px;text-align:left;
+  font-size:.82rem;white-space:nowrap;
+}
+.cart-table td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:middle;}
+.cart-table tr:nth-child(even) td{background:#f9f9f9;}
+.cart-table .col-qty input{width:70px;padding:5px;text-align:center;}
+.cart-table .col-total{font-weight:700;text-align:right;white-space:nowrap;}
+.cart-table .col-price{text-align:right;white-space:nowrap;color:#555;}
+.cart-table .col-rm{text-align:center;}
+.cart-table .col-num{text-align:center;color:#888;font-size:.8rem;}
+.cart-table .col-part{color:var(--gd-red);font-size:.8rem;white-space:nowrap;}
+.cart-totals{margin-top:12px;background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);padding:14px;}
+.cart-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:.9rem;}
+.cart-total-row.subtotal{border-top:1px solid #eee;margin-top:4px;padding-top:8px;}
+.cart-total-row.grand{border-top:2px solid var(--gd-dark);margin-top:6px;padding-top:8px;font-size:1.05rem;font-weight:700;}
+.cart-total-row .label{color:#555;}
+.cart-total-row .amount{font-weight:700;color:var(--gd-dark);}
+.cart-total-row.grand .amount{color:var(--gd-red);font-size:1.1rem;}
+.cart-empty{text-align:center;color:#aaa;padding:24px;font-size:.95rem;}
+
+/* ── ADMIN TABLE ─────────────────────────────────────────────────────────────── */
+.admin-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+.admin-table th{background:var(--gd-blue);color:#fff;padding:7px 10px;text-align:left;}
+.admin-table td{padding:6px 10px;border-bottom:1px solid #eee;}
+.admin-table tr:nth-child(even) td{background:#f9f9f9;}
+.admin-wrap{max-height:380px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:var(--radius);}
+
+/* ── CHECKBOX ─────────────────────────────────────────────────────────────────── */
+.check-group{display:flex;flex-direction:column;gap:4px;}
+.check-label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.88rem;font-weight:normal;}
+.check-label input[type=checkbox]{width:18px;height:18px;accent-color:var(--gd-red);cursor:pointer;flex-shrink:0;}
+.check-info{font-size:.78rem;color:#888;margin-left:26px;}
+
+/* ── HR ──────────────────────────────────────────────────────────────────────── */
+hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
+
+/* ── UPLOAD AREA ─────────────────────────────────────────────────────────────── */
+.upload-area{
+  border:2px dashed #ccc;border-radius:var(--radius);padding:24px;
+  text-align:center;cursor:pointer;transition:border-color .2s;
+}
+.upload-area:hover{border-color:var(--gd-red);}
+.upload-area input{display:none;}
+
+/* ── SPINNER ─────────────────────────────────────────────────────────────────── */
+.spinner{display:none;width:20px;height:20px;border:3px solid #f3f3f3;
+  border-top:3px solid var(--gd-red);border-radius:50%;animation:spin .8s linear infinite;
+  margin:0 auto 8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── MO DAYS HIGHLIGHT ───────────────────────────────────────────────────────── */
+.dias-box{background:#fff;border:2px solid var(--gd-red);border-radius:var(--radius);padding:14px;}
+.dias-box label{color:var(--gd-red);font-size:.95rem;}
+.dias-box input{font-size:1.4rem;font-weight:700;text-align:center;border-color:var(--gd-red);color:var(--gd-red);}
+.dias-preview{font-size:.88rem;color:#555;margin-top:6px;}
+
+/* ── TOAST ────────────────────────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--gd-dark);color:#fff;padding:10px 24px;border-radius:20px;
+  font-size:.9rem;z-index:999;display:none;white-space:nowrap;
+}
+.toast.show{display:block;animation:fadeInOut 2.5s forwards;}
+@keyframes fadeInOut{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
+
+/* ── GENERATE BUTTONS ─────────────────────────────────────────────────────────── */
+.gen-row{display:flex;gap:10px;flex-wrap:wrap;}
+.gen-row .btn{flex:1;min-width:130px;}
+
+/* ── UTILITY ──────────────────────────────────────────────────────────────────── */
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────────── -->
+<header class="gd-header">
+  <img src="assets/logo_gd.png" alt="Gardner Denver" onerror="this.style.display='none'">
+  <div class="gd-header-text">
+    <div class="title">Cotizador PIPRO</div>
+    <div class="sub">Gardner Denver México · Tubería Neumática AIRWYN</div>
+  </div>
+</header>
+
+<!-- ── NAV ────────────────────────────────────────────────────────────────────── -->
+<nav class="gd-tabs">
+  <button class="gd-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
+  <button class="gd-tab" onclick="showPage('admin',this)">🔐 Administrador</button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     PAGE: COTIZADOR
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-cotizador">
+
+  <!-- 1. TIPO ─────────────────────────────────────────────────────────────────── -->
+  <div class="sec-title">1. Tipo de Cotización</div>
+  <div class="card">
+    <div class="radio-group">
+      <div class="radio-btn" id="tipo-it" onclick="setTipo('it')">📦 Sin Mano de Obra (IT)</div>
+      <div class="radio-btn selected" id="tipo-ip" onclick="setTipo('ip')">🔧 Con Mano de Obra (IP)</div>
+    </div>
+  </div>
+
+  <!-- 2. DATOS DEL CLIENTE ────────────────────────────────────────────────────── -->
+  <div class="sec-title">2. Datos del Cliente y Folio</div>
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <label>Empresa / Cliente</label>
+        <input type="text" id="empresa" placeholder="Ej: EATON Corporation" oninput="updateFolio()">
+      </div>
+      <div>
+        <label>Atención a</label>
+        <input type="text" id="atencion" placeholder="Ej: Ing. Diego García">
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:10px;">
+      <div>
+        <label>Fecha</label>
+        <input type="date" id="fecha" oninput="updateFolio()">
+      </div>
+      <div>
+        <label>Descripción del proyecto (opcional)</label>
+        <input type="text" id="desc_proy" placeholder="Ej: instalación de bajada neumática">
+      </div>
+    </div>
+    <hr>
+    <div style="font-weight:700;font-size:.9rem;margin-bottom:8px;">Folio:</div>
+    <div class="grid-3">
+      <div>
+        <label>Abreviatura empresa (máx. 4)</label>
+        <input type="text" id="abbrev" maxlength="4" placeholder="EATO" oninput="updateFolio()">
+      </div>
+      <div>
+        <label>Iniciales del ingeniero</label>
+        <input type="text" id="initials" maxlength="5" value="JLD" placeholder="JLD" oninput="updateFolio()">
+      </div>
+      <div>
+        <label>No. referencia (opcional)</label>
+        <input type="text" id="refnum" placeholder="COT39124" oninput="updateFolio()">
+      </div>
+    </div>
+    <div class="folio-box" id="folio-preview">📄 XXXX-010125-IP-JLD</div>
+  </div>
+
+  <!-- 3. MO CALCULATOR ────────────────────────────────────────────────────────── -->
+  <div id="mo-section">
+    <div class="sec-title">3. Presupuesto M.O. Viáticos y Plataformas</div>
+
+    <!-- Personal -->
+    <details open>
+      <summary>👷 Personal</summary>
+      <div class="details-body">
+        <div style="font-size:.83rem;color:#666;margin-bottom:10px;">
+          Cantidad de personas por puesto. El total se propaga automáticamente a comidas y hospedaje.
+        </div>
+        <div class="grid-4">
+          <div>
+            <label>Técnico<br><small style="font-weight:normal;color:#888;">$25,723/mes</small></label>
+            <input type="number" id="n_tec" value="1" min="0" step="1" oninput="updateMO()">
+          </div>
+          <div>
+            <label>Ayudante<br><small style="font-weight:normal;color:#888;">$15,005/mes</small></label>
+            <input type="number" id="n_aya" value="1" min="0" step="1" oninput="updateMO()">
+          </div>
+          <div>
+            <label>Ingeniero<br><small style="font-weight:normal;color:#888;">$32,154/mes</small></label>
+            <input type="number" id="n_ing" value="1" min="0" step="1" oninput="updateMO()">
+          </div>
+          <div>
+            <label>Segurista<br><small style="font-weight:normal;color:#888;">$18,150/mes</small></label>
+            <input type="number" id="n_seg" value="0" min="0" step="1" oninput="updateMO()">
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:10px;">
+          <div class="info-box" id="total-pers-box">Total personas: <b>3</b> (auto → viáticos)</div>
+          <div class="info-box" id="total-mens-box">Total mensual sueldos: <b>$72,882.00</b></div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Días de trabajo -->
+    <div class="card dias-box" style="margin-bottom:10px;">
+      <div class="grid-2" style="align-items:start;">
+        <div>
+          <label>📅 Días de trabajo <span style="font-weight:normal;color:#888;">(se propaga a viáticos y equipo)</span></label>
+          <input type="number" id="dias_trabajo" value="0" min="0" step="0.5" oninput="updateMO()">
+        </div>
+        <div class="success-box" id="costo-mo-preview" style="margin-top:24px;">
+          <b>Costo M.O. = ($72,882 / 30) × 0 días</b><br>
+          <span style="font-size:1.3rem;font-weight:700;color:#2e7d32;">$0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comidas -->
+    <details>
+      <summary id="sum-comidas">🍽️ Comidas · (3 pers × 0 días) = $0.00</summary>
+      <div class="details-body">
+        <div style="font-size:.8rem;color:#666;margin-bottom:8px;">Total = personas × costo × comidas/día × días</div>
+        <div class="grid-2">
+          <div>
+            <label># Comidas por persona/día</label>
+            <input type="number" id="comidas_por_dia" value="3" min="1" step="1" oninput="updateMO()">
+          </div>
+          <div>
+            <label>Costo por comida/persona ($)</label>
+            <input type="number" id="costo_comida" value="80" min="0" step="10" oninput="updateMO()">
+          </div>
+        </div>
+        <div class="success-box" id="comidas-result">Total Comidas: $0.00</div>
+      </div>
+    </details>
+
+    <!-- Hospedaje -->
+    <details>
+      <summary>🏨 Hospedaje</summary>
+      <div class="details-body">
+        <label class="check-label" style="margin-bottom:10px;">
+          <input type="checkbox" id="req_hospedaje" checked onchange="updateMO()">
+          ¿Requiere hospedaje? (obra foránea)
+        </label>
+        <div id="hospedaje-fields">
+          <div class="grid-2">
+            <div>
+              <label>Noches de hospedaje <span style="font-weight:normal;color:#888;">(default = días)</span></label>
+              <input type="number" id="noches_hospedaje" value="0" min="0" step="1" oninput="updateMO()">
+            </div>
+            <div>
+              <label>Costo hospedaje/persona/noche ($)</label>
+              <input type="number" id="costo_hospedaje" value="450" min="0" step="50" oninput="updateMO()">
+            </div>
+          </div>
+          <div class="success-box" id="hospedaje-result">Total Hospedaje: $0.00</div>
+        </div>
+        <div class="info-box hidden" id="hospedaje-no">Obra local — sin hospedaje</div>
+      </div>
+    </details>
+
+    <!-- Automóvil -->
+    <details id="auto-details" ontoggle="if(this.open) loadOSMMap()">
+      <summary>🚗 Automóvil</summary>
+      <div class="details-body">
+
+        <!-- ── OSM ROUTE PLANNER (Leaflet + OSRM — sin clave API) ──────── -->
+        <div style="background:#f0f4ff;border:1px solid #c5d5f5;border-radius:8px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:.85rem;font-weight:700;color:#1F3864;margin-bottom:10px;">🗺️ Calcular ruta (OpenStreetMap — gratuito)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:flex-end;margin-bottom:8px;">
+            <div style="position:relative;">
+              <label style="font-size:.79rem;font-weight:600;color:#444;">📍 Origen</label>
+              <input type="text" id="gm-origin" placeholder="Ej. Guadalajara, Jalisco" autocomplete="off"
+                oninput="nominatimSearch(this,'gm-origin-dd','origin')"
+                style="width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:.9rem;font-family:Arial,sans-serif;">
+              <div id="gm-origin-dd" style="display:none;position:absolute;z-index:9999;top:100%;left:0;right:0;
+                background:#fff;border:1px solid #ccc;border-top:none;border-radius:0 0 6px 6px;
+                max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.15);"></div>
+            </div>
+            <div style="position:relative;">
+              <label style="font-size:.79rem;font-weight:600;color:#444;">🏁 Destino</label>
+              <input type="text" id="gm-dest" placeholder="Ej. Monterrey, Nuevo León" autocomplete="off"
+                oninput="nominatimSearch(this,'gm-dest-dd','dest')"
+                style="width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:.9rem;font-family:Arial,sans-serif;">
+              <div id="gm-dest-dd" style="display:none;position:absolute;z-index:9999;top:100%;left:0;right:0;
+                background:#fff;border:1px solid #ccc;border-top:none;border-radius:0 0 6px 6px;
+                max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.15);"></div>
+            </div>
+            <button class="btn btn-primary" style="height:40px;white-space:nowrap;" onclick="calcularRuta()">🗺 Calcular ruta</button>
+          </div>
+          <div id="gm-map" style="height:300px;border-radius:8px;border:1px solid #c5d5f5;margin-bottom:8px;"></div>
+          <div id="gm-info" style="display:none;"></div>
+          <div style="font-size:.76rem;color:#888;margin-top:6px;">
+            La distancia se carga automáticamente. Las casetas ingrésalas manualmente (sin costo de API).
+          </div>
+        </div>
+        <!-- ─────────────────────────────────────────────────────────────── -->
+
+        <div class="info-box" style="margin-bottom:10px;font-size:.82rem;">
+          <b>Modelo:</b> km totales = km ida × 2 × # viajes &nbsp;|&nbsp;
+          <b>Local:</b> # viajes = días de trabajo &nbsp;|&nbsp;
+          <b>Foráneo:</b> # viajes = 2 (inicio + fin)
+        </div>
+        <div class="grid-2" style="margin-bottom:10px;">
+          <div>
+            <label>Distancia al sitio (km, ida sencilla)</label>
+            <input type="number" id="km_sencillo" value="120" min="0" step="10" oninput="updateMO()">
+          </div>
+          <div>
+            <label># Viajes redondos</label>
+            <input type="number" id="n_viajes" value="2" min="0" step="1" oninput="updateMO()">
+          </div>
+        </div>
+        <div class="grid-3" style="margin-bottom:10px;">
+          <div>
+            <label>Rendimiento (km/L)</label>
+            <input type="number" id="rendimiento" value="6" min="0.1" step="0.5" oninput="updateMO()">
+          </div>
+          <div>
+            <label>Precio gasolina ($/L)</label>
+            <input type="number" id="costo_gas" value="25" min="0" step="1" oninput="updateMO()">
+          </div>
+          <div>
+            <label>Casetas ida sencilla ($)</label>
+            <input type="number" id="casetas_ida" value="0" min="0" step="50" oninput="updateMO()">
+          </div>
+        </div>
+        <div>
+          <label>Desgaste vehículo ($/km) — opcional</label>
+          <input type="number" id="costo_desgaste" value="0" min="0" step="0.5" oninput="updateMO()">
+        </div>
+        <div class="metric-grid" id="auto-metrics" style="margin-top:10px;">
+          <div class="metric-card"><div class="metric-label">Combustible</div><div class="metric-value" id="m-combustible">$0.00</div><div class="metric-delta" id="m-combustible-d">0 km / 6 = 0 L</div></div>
+          <div class="metric-card"><div class="metric-label">Casetas</div><div class="metric-value" id="m-casetas">$0.00</div><div class="metric-delta" id="m-casetas-d">$0 × 2 × 2 viajes</div></div>
+          <div class="metric-card"><div class="metric-label">Desgaste</div><div class="metric-value" id="m-desgaste">$0.00</div><div class="metric-delta" id="m-desgaste-d">sin cargo</div></div>
+        </div>
+        <div class="success-box" id="auto-result">Total Automóvil: $0.00</div>
+      </div>
+    </details>
+
+    <!-- Total viáticos con ganancia -->
+    <div style="background:#fff8e1;border-left:4px solid #FFC107;padding:10px 14px;border-radius:4px;margin:8px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#555;margin-bottom:4px;">
+        <span>Sub-Viáticos (costo real)</span><span id="viat-real">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#e65100;margin-bottom:4px;">
+        <span>+ Ganancia 30%</span><span id="viat-gan">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid #ffe082;padding-top:4px;margin-top:2px;">
+        <span>🧾 Viáticos cobrado al cliente</span><span id="viaticos-total">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Equipo de maniobras -->
+    <details>
+      <summary id="sum-equipo">🏗️ Equipo de Maniobras · (0 días) = $0.00</summary>
+      <div class="details-body">
+        <div style="font-size:.82rem;color:#666;margin-bottom:10px;">
+          Costo diario = mensual / 30. Total = costo diario × días de trabajo. Selecciona el equipo del proyecto.
+        </div>
+        <div class="grid-2">
+          <div>
+            <label class="check-label">
+              <input type="checkbox" id="usar_escalera" onchange="updateMO()">
+              Escalera
+            </label>
+            <div class="check-info" id="info-escalera">$1,500/mes → $50.00/día → $0.00 total</div>
+          </div>
+          <div>
+            <label class="check-label">
+              <input type="checkbox" id="usar_gennie" onchange="updateMO()">
+              Genie 10 m
+            </label>
+            <div class="check-info" id="info-gennie">$65,000/mes → $2,166.67/día → $0.00 total</div>
+          </div>
+          <div>
+            <label class="check-label">
+              <input type="checkbox" id="usar_elevador" onchange="updateMO()">
+              Elevador vertical
+            </label>
+            <div class="check-info" id="info-elevador">$30,000/mes → $1,000.00/día → $0.00 total</div>
+          </div>
+          <div>
+            <label class="check-label">
+              <input type="checkbox" id="usar_plat_tijera" onchange="updateMO()">
+              Plataforma tijera
+            </label>
+            <div class="check-info" id="info-plat">$56,000/mes → $1,866.67/día → $0.00 total</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <label>Embarque — monto fijo ($)</label>
+          <input type="number" id="embarque" value="0" min="0" step="500" oninput="updateMO()">
+        </div>
+        <div class="info-box" id="equipo-result" style="margin-top:10px;">Total Equipos: $0.00</div>
+      </div>
+    </details>
+
+    <!-- Resumen MO -->
+    <div class="card" id="mo-resumen">
+      <div class="sec-title" style="margin-top:0;">📊 Resumen Programación de Obra</div>
+      <div class="metric-grid">
+        <div class="metric-card"><div class="metric-label">💼 Mano de Obra</div><div class="metric-value" id="r-mo">$0.00</div><div class="metric-delta" id="r-mo-d">3 pers × 0 días</div></div>
+        <div class="metric-card"><div class="metric-label">🍽️ Comidas</div><div class="metric-value" id="r-comidas">$0.00</div></div>
+        <div class="metric-card"><div class="metric-label">🏨 Hospedaje</div><div class="metric-value" id="r-hospedaje">$0.00</div><div class="metric-delta" id="r-hospedaje-d">no aplica</div></div>
+        <div class="metric-card"><div class="metric-label">🚗 Automóvil</div><div class="metric-value" id="r-auto">$0.00</div><div class="metric-delta" id="r-auto-d">0 km</div></div>
+        <div class="metric-card"><div class="metric-label">🏗️ Plataformas</div><div class="metric-value" id="r-plat">$0.00</div></div>
+        <div class="metric-card" style="background:#fff8e1;border-color:#FFC107;"><div class="metric-label" style="color:#e65100;">Viáticos real</div><div class="metric-value" id="r-viat-real">$0.00</div></div>
+        <div class="metric-card" style="background:#fff8e1;border-color:#FF8F00;"><div class="metric-label" style="color:#e65100;">Ganancia viáticos 30%</div><div class="metric-value" id="r-viat-gan">$0.00</div></div>
+        <div class="metric-card"><div class="metric-label">Viáticos cobrado</div><div class="metric-value" id="r-viat">$0.00</div></div>
+        <div class="metric-card highlight"><div class="metric-label">💰 TOTAL M.O.</div><div class="metric-value" id="r-total">$0.00</div></div>
+      </div>
+    </div>
+  </div><!-- end #mo-section -->
+
+  <!-- 4. MATERIALES ───────────────────────────────────────────────────────────── -->
+  <div class="sec-title" id="sec-materiales">4. Selección de Materiales</div>
+  <div class="card">
+    <div style="font-size:.85rem;color:#666;margin-bottom:8px;" id="mat-count-label">
+      Base de datos: <b>234</b> materiales · Escribe en el buscador para filtrar.
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+      <label style="font-size:.85rem;font-weight:600;white-space:nowrap;color:#444;">Diámetro:</label>
+      <select id="diam-filter" onchange="onSearchInput()" style="flex:1;min-width:180px;max-width:300px;padding:8px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:.88rem;background:#fff;">
+        <option value="">Todos los diámetros</option>
+      </select>
+    </div>
+    <div class="search-wrap">
+      <input type="text" id="mat-search" placeholder="🔍 Escribe número de parte o descripción..." autocomplete="off" oninput="onSearchInput()">
+      <div class="dropdown hidden" id="mat-dropdown"></div>
+    </div>
+    <div class="mat-preview" id="mat-preview">
+      <div class="mat-name" id="prev-desc"></div>
+      <div class="mat-meta">
+        <span class="part" id="prev-part" style="color:var(--gd-red);font-weight:700;"></span>
+        &nbsp;&nbsp;
+        <span class="mat-price" id="prev-price"></span>
+      </div>
+      <div class="add-row">
+        <input type="number" id="add-qty" value="1" min="1" max="9999" style="width:80px;">
+        <button class="btn btn-primary" onclick="addSelectedToCart()">➕ Agregar al carrito</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. CARRITO ──────────────────────────────────────────────────────────────── -->
+  <div class="sec-title">5. Carrito</div>
+  <div class="card" id="cart-container">
+    <div class="cart-empty" id="cart-empty">El carrito está vacío.</div>
+    <div id="cart-content" style="display:none;">
+      <div style="overflow-x:auto;">
+        <table class="cart-table" id="cart-table">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th>Descripción</th>
+              <th>No. Parte</th>
+              <th class="col-qty">Qty</th>
+              <th class="col-price">P. Unit.</th>
+              <th class="col-total">Total</th>
+              <th class="col-rm">✕</th>
+            </tr>
+          </thead>
+          <tbody id="cart-tbody"></tbody>
+        </table>
+      </div>
+      <div id="discount-row" style="display:none;margin-top:10px;">
+        <label>Descuento (%)</label>
+        <input type="number" id="descuento_pct" value="0" min="0" max="100" step="5" style="width:120px;" oninput="updateTotales()">
+      </div>
+      <div class="cart-totals" id="cart-totals"></div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-danger btn-sm" onclick="clearCart()">🗑 Limpiar carrito</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. GENERAR ──────────────────────────────────────────────────────────────── -->
+  <div class="sec-title">6. Generar Cotización</div>
+  <div class="card">
+    <div class="error-box hidden" id="gen-warning">⚠️ Completa empresa, abreviatura e iniciales del ingeniero.</div>
+    <div class="gen-row">
+      <button class="btn btn-dark" onclick="generateWord()">📄 Generar Word (.doc)</button>
+      <button class="btn btn-primary" onclick="generateExcel()">📊 Generar Excel (.xlsx)</button>
+      <button class="btn btn-secondary" onclick="generateBoth()">📦 Ambos</button>
+      <button class="btn btn-secondary" onclick="generatePDF()" style="background:#C8102E;color:#fff;border-color:#C8102E;">🖨 Generar PDF</button>
+    </div>
+  </div>
+
+  <!-- ➕ AGREGAR PRODUCTO ────────────────────────────────────────────────────── -->
+  <div class="sec-title">➕ Agregar Producto a la Base de Datos</div>
+  <div class="card">
+    <div id="add-prod-gate">
+      <details>
+        <summary>🔒 Requiere acceso de administrador</summary>
+        <div class="details-body">
+          <div class="grid-2">
+            <div>
+              <label>Contraseña de administrador</label>
+              <input type="password" id="add-prod-pwd" placeholder="Contraseña">
+            </div>
+            <div style="display:flex;align-items:flex-end;">
+              <button class="btn btn-primary" onclick="unlockAddProduct()">Desbloquear</button>
+            </div>
+          </div>
+          <div class="error-box hidden" id="add-prod-err">Contraseña incorrecta.</div>
+        </div>
+      </details>
+    </div>
+    <div id="add-prod-form" style="display:none;">
+      <div class="grid-3">
+        <div>
+          <label>Descripción del producto</label>
+          <input type="text" id="new-desc" placeholder="Descripción completa">
+        </div>
+        <div>
+          <label>Número de parte</label>
+          <input type="text" id="new-part" placeholder="Ej: 12B00 00">
+        </div>
+        <div>
+          <label>Precio Unitario MXN</label>
+          <input type="number" id="new-price" min="0" step="10" placeholder="0.00">
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="addProduct()">✅ Agregar a la base de datos</button>
+        <button class="btn btn-secondary btn-sm" onclick="lockAddProduct()">🔒 Cerrar acceso</button>
+      </div>
+      <div class="success-box hidden" id="add-prod-ok"></div>
+
+      <!-- ── Importar desde Excel ─────────────────────────────────────── -->
+      <div style="margin-top:16px;padding-top:14px;border-top:1.5px solid var(--gd-lgray);">
+        <label style="font-size:.82rem;font-weight:600;color:#444;margin-bottom:6px;display:block;">
+          📎 Importar múltiples productos desde Excel
+        </label>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;">
+            📂 Seleccionar archivo .xlsx / .xls
+            <input type="file" id="qx-file" accept=".xls,.xlsx" style="display:none" onchange="initQuickExcel(this)">
+          </label>
+          <span id="qx-fname" style="font-size:.82rem;color:#888;"></span>
+        </div>
+        <div id="qx-preview" style="display:none;margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end page-cotizador -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     PAGE: ADMINISTRADOR
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-admin">
+  <div class="sec-title">🔐 Panel de Administrador</div>
+
+  <!-- Login gate -->
+  <div id="admin-gate" class="card">
+    <div style="max-width:360px;">
+      <label>Contraseña</label>
+      <input type="password" id="admin-pwd" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')adminLogin()">
+      <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="adminLogin()">Ingresar</button>
+      <div class="error-box hidden" id="admin-err" style="margin-top:8px;">Contraseña incorrecta.</div>
+    </div>
+  </div>
+
+  <!-- Admin panel (hidden until logged in) -->
+  <div id="admin-panel" style="display:none;">
+    <div class="success-box" style="margin-bottom:12px;">✅ Sesión activa. <button class="btn btn-secondary btn-sm" style="float:right;" onclick="adminLogout()">Cerrar sesión</button></div>
+
+    <!-- Upload -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;">📁 Actualizar Base de Datos de Materiales</div>
+      <div class="info-box" style="margin-bottom:10px;">
+        Sube el Excel con hoja <b>"Lista de Materiales"</b> (col D = Descripción, col E = No. Parte, col H = Precio Unitario MXN).
+      </div>
+      <label class="upload-area" for="admin-file">
+        <input type="file" id="admin-file" accept=".xls,.xlsx" onchange="uploadMateriales(this)">
+        <div>📂 Haz clic o arrastra un archivo Excel (.xls / .xlsx)</div>
+        <div style="color:#999;font-size:.82rem;margin-top:4px;">Lista de Materiales</div>
+      </label>
+      <div id="upload-status"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;">📋 Base de Datos</div>
+      <div style="margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span id="admin-mat-count" style="font-weight:700;"></span>
+        <input type="text" id="admin-search" placeholder="Filtrar..." style="width:200px;" oninput="renderAdminTable()">
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
+      </div>
+      <div class="admin-wrap">
+        <table class="admin-table">
+          <thead><tr><th>#</th><th>Descripción</th><th>No. Parte</th><th>Precio MXN</th></tr></thead>
+          <tbody id="admin-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- end page-admin -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════════════════════════ -->
+<script>
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const ADMIN_PASSWORD = 'pipro2026';
+const GANANCIA_VIATICOS_PCT = 0.30;  // 30% ganancia sobre viáticos
+const UTIL_COMBUSTIBLE_PCT  = 0.15;  // 15% utilidad sobre combustible
+
+const SUELDO_TECNICO    = 25723.065720;
+const SUELDO_AYUDANTE   = 15005.121670;
+const SUELDO_INGENIERO  = 32153.832150;
+const SUELDO_SEGURISTA  = 18150.0;
+const COSTO_ESCALERA_MES    = 1500.0;
+const COSTO_GENNIE_MES      = 65000.0;
+const COSTO_ELEVADOR_MES    = 30000.0;
+const COSTO_PLAT_TIJERA_MES = 56000.0;
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const state = {
+  tipo: 'ip',
+  materiales: [],
+  carrito: {},
+  selectedMat: null,
+  adminOk: false,
+  addProdOk: false,
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(n) {
+  return new Intl.NumberFormat('es-MX', {style:'currency',currency:'MXN',minimumFractionDigits:2}).format(n);
+}
+function fmtNum(n, dec=0) {
+  return new Intl.NumberFormat('es-MX', {minimumFractionDigits:dec,maximumFractionDigits:dec}).format(n);
+}
+function el(id) { return document.getElementById(id); }
+function show(id) { el(id).style.display = ''; }
+function hide(id) { el(id).style.display = 'none'; }
+function showCls(id, cls='hidden') { el(id).classList.remove(cls); }
+function hideCls(id, cls='hidden') { el(id).classList.add(cls); }
+
+function toast(msg) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.remove('show');
+  void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function shortDesc(text, maxlen=50) {
+  return text.length > maxlen ? text.substring(0, maxlen-1) + '…' : text;
+}
+
+// ── SPANISH MONTHS ────────────────────────────────────────────────────────────
+const MESES = ['enero','febrero','marzo','abril','mayo','junio',
+               'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function formatDateES(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return `${d} de ${MESES[m-1]} de ${y}`;
+}
+
+// ── AMOUNT IN WORDS ───────────────────────────────────────────────────────────
+const _UNITS = ['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE',
+  'DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS',
+  'DIECISIETE','DIECIOCHO','DIECINUEVE'];
+const _TENS = ['','DIEZ','VEINTE','TREINTA','CUARENTA','CINCUENTA',
+  'SESENTA','SETENTA','OCHENTA','NOVENTA'];
+const _HUNDS = ['','CIEN','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS',
+  'SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
+function intToWords(n) {
+  n = Math.floor(n);
+  if (n===0) return 'CERO';
+  if (n<0) return 'MENOS '+intToWords(-n);
+  if (n<20) return _UNITS[n];
+  if (n<100) { const t=Math.floor(n/10),u=n%10; return _TENS[t]+(u?(' Y '+_UNITS[u]):''); }
+  if (n<1000) { const h=Math.floor(n/100),r=n%100; const p=h===1?(r?'CIENTO':'CIEN'):_HUNDS[h]; return p+(r?' '+intToWords(r):''); }
+  if (n<1000000) { const th=Math.floor(n/1000),r=n%1000; const p=th===1?'MIL':intToWords(th)+' MIL'; return p+(r?' '+intToWords(r):''); }
+  if (n<1000000000) { const m=Math.floor(n/1000000),r=n%1000000; const p=m===1?'UN MILLÓN':intToWords(m)+' MILLONES'; return p+(r?' '+intToWords(r):''); }
+  return String(n);
+}
+function amountWords(amount) {
+  const pesos = Math.floor(amount);
+  const cts = Math.round((amount-pesos)*100);
+  return `${intToWords(pesos)} PESOS ${String(cts).padStart(2,'0')}/100 M.N.`;
+}
+
+// ── FOLIO GENERATION ─────────────────────────────────────────────────────────
+function genAbbrev(empresa) {
+  const words = (empresa||'').match(/[A-Za-záéíóúñÁÉÍÓÚÑ]+/g)||[];
+  if (!words.length) return '';
+  if (words.length===1) return words[0].substring(0,4).toUpperCase();
+  const skip = new Set(['de','del','la','las','los','el','sa','cv','sap']);
+  return words.filter(w=>!skip.has(w.toLowerCase())).map(w=>w[0]).join('').substring(0,4).toUpperCase();
+}
+function updateFolio() {
+  const empresa = el('empresa').value;
+  const dateStr = el('fecha').value;
+  let abbrev = el('abbrev').value.trim();
+  if (!abbrev && empresa) { abbrev = genAbbrev(empresa); el('abbrev').value = abbrev; }
+  const initials = el('initials').value.trim()||'XXX';
+  const ref = el('refnum').value.trim();
+  const tipoCode = state.tipo==='ip'?'IP':'IT';
+
+  let dateFormatted = '010125';
+  if (dateStr) {
+    const [y,m,d] = dateStr.split('-');
+    dateFormatted = `${d}${m}${y.substring(2)}`;
+  }
+  let folio = `${(abbrev||'XXXX').toUpperCase()}-${dateFormatted}-${tipoCode}-${initials.toUpperCase()}`;
+  if (ref) folio += ` (${ref})`;
+  el('folio-preview').textContent = '📄 ' + folio;
+}
+
+function getFolio() {
+  return el('folio-preview').textContent.replace('📄 ','').trim();
+}
+
+// ── PAGE NAVIGATION ───────────────────────────────────────────────────────────
+function showPage(pageId, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.gd-tab').forEach(b=>b.classList.remove('active'));
+  el('page-'+pageId).classList.add('active');
+  btn.classList.add('active');
+  if (pageId==='admin') renderAdminTable();
+}
+
+// ── TIPO SELECTION ────────────────────────────────────────────────────────────
+function setTipo(t) {
+  state.tipo = t;
+  el('tipo-ip').classList.toggle('selected', t==='ip');
+  el('tipo-it').classList.toggle('selected', t==='it');
+  el('mo-section').style.display = t==='ip' ? '' : 'none';
+  el('sec-materiales').textContent = t==='ip' ? '4. Selección de Materiales' : '3. Selección de Materiales';
+  el('discount-row').style.display = t==='it' ? '' : 'none';
+  updateFolio();
+  updateTotales();
+}
+
+// ── MO CALCULATOR ────────────────────────────────────────────────────────────
+function calcularMO(inp) {
+  const n_tec = +inp.n_tec||0, n_aya = +inp.n_aya||0, n_ing = +inp.n_ing||0, n_seg = +inp.n_seg||0;
+  const total_personas = n_tec+n_aya+n_ing+n_seg;
+  const tec_total = n_tec*SUELDO_TECNICO, aya_total = n_aya*SUELDO_AYUDANTE;
+  const ing_total = n_ing*SUELDO_INGENIERO, seg_total = n_seg*SUELDO_SEGURISTA;
+  const total_mensual = tec_total+aya_total+ing_total+seg_total;
+  const dias = +inp.dias||0;
+  const costo_mo = (total_mensual/30)*dias;
+  const comidas_por_dia = +inp.comidas_por_dia||3, costo_comida = +inp.costo_comida||80;
+  const comidas_total = total_personas*costo_comida*comidas_por_dia*dias;
+  const req_hospe = !!inp.req_hospedaje;
+  const costo_hospe = +inp.costo_hospedaje||450;
+  const noches = +inp.noches_hospedaje;
+  const noches_hospedaje = noches>0 ? noches : dias;
+  const hospedaje_total = req_hospe ? total_personas*costo_hospe*noches_hospedaje : 0;
+  const km_sencillo = +inp.km_sencillo||0, n_viajes = +inp.n_viajes||0;
+  const rendimiento = +inp.rendimiento||6, costo_gas = +inp.costo_gas||25;
+  const casetas_ida = +inp.casetas_ida||0, costo_desgaste_km = +inp.costo_desgaste||0;
+  const km_total = km_sencillo*2*n_viajes;
+  const litros = rendimiento>0 ? km_total/rendimiento : 0;
+  const combustible_base   = litros*costo_gas;
+  const util_combustible   = combustible_base * UTIL_COMBUSTIBLE_PCT;
+  const combustible_total  = combustible_base + util_combustible;
+  const casetas_total = casetas_ida*2*n_viajes;
+  const desgaste_total = km_total*costo_desgaste_km;
+  const total_automovil = combustible_total+casetas_total+desgaste_total;
+  const total_viaticos_real = comidas_total+hospedaje_total+total_automovil;
+  const ganancia_viaticos = total_viaticos_real * GANANCIA_VIATICOS_PCT;
+  const total_viaticos = total_viaticos_real + ganancia_viaticos; // cobrado al cliente
+  const usar_esc = !!inp.usar_escalera, usar_gen = !!inp.usar_gennie;
+  const usar_elev = !!inp.usar_elevador, usar_plat = !!inp.usar_plat_tijera;
+  const embarque = +inp.embarque||0;
+  const d_esc=COSTO_ESCALERA_MES/30, d_gen=COSTO_GENNIE_MES/30, d_elev=COSTO_ELEVADOR_MES/30, d_plat=COSTO_PLAT_TIJERA_MES/30;
+  const t_esc=usar_esc?d_esc*dias:0, t_gen=usar_gen?d_gen*dias:0, t_elev=usar_elev?d_elev*dias:0, t_plat=usar_plat?d_plat*dias:0;
+  const total_plataformas = t_esc+t_gen+t_elev+t_plat+embarque;
+  const total_mo_equipo_viaticos = costo_mo+total_viaticos+total_plataformas;
+  return {
+    n_tec,n_aya,n_ing,n_seg,tec_total,aya_total,ing_total,seg_total,
+    total_personas,total_mensual,dias,costo_mo,
+    comidas_por_dia,costo_comida,comidas_total,
+    req_hospe,costo_hospe,noches_hospedaje,hospedaje_total,
+    km_sencillo,n_viajes,km_total,rendimiento,costo_gas,litros,
+    combustible_base,util_combustible,combustible_total,casetas_ida,casetas_total,costo_desgaste_km,desgaste_total,
+    total_automovil,total_viaticos_real,ganancia_viaticos,total_viaticos,
+    usar_esc,usar_gen,usar_elev,usar_plat,d_esc,d_gen,d_elev,d_plat,
+    t_esc,t_gen,t_elev,t_plat,embarque,total_plataformas,total_mo_equipo_viaticos,
+  };
+}
+
+function getMOInputs() {
+  return {
+    n_tec: +el('n_tec').value, n_aya: +el('n_aya').value,
+    n_ing: +el('n_ing').value, n_seg: +el('n_seg').value,
+    dias: +el('dias_trabajo').value,
+    comidas_por_dia: +el('comidas_por_dia').value, costo_comida: +el('costo_comida').value,
+    req_hospedaje: el('req_hospedaje').checked,
+    noches_hospedaje: +el('noches_hospedaje').value, costo_hospedaje: +el('costo_hospedaje').value,
+    km_sencillo: +el('km_sencillo').value, n_viajes: +el('n_viajes').value,
+    rendimiento: +el('rendimiento').value, costo_gas: +el('costo_gas').value,
+    casetas_ida: +el('casetas_ida').value, costo_desgaste: +el('costo_desgaste').value,
+    usar_escalera: el('usar_escalera').checked, usar_gennie: el('usar_gennie').checked,
+    usar_elevador: el('usar_elevador').checked, usar_plat_tijera: el('usar_plat_tijera').checked,
+    embarque: +el('embarque').value,
+  };
+}
+
+function updateMO() {
+  const inp = getMOInputs();
+  const r = calcularMO(inp);
+  // Personal
+  el('total-pers-box').innerHTML = `Total personas: <b>${r.total_personas}</b> (auto → viáticos)`;
+  el('total-mens-box').innerHTML = `Total mensual sueldos: <b>${fmt(r.total_mensual)}</b>`;
+  // MO preview
+  el('costo-mo-preview').innerHTML = `<b>Costo M.O. = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días</b><br>
+    <span style="font-size:1.3rem;font-weight:700;color:#2e7d32;">${fmt(r.costo_mo)}</span>`;
+  // Comidas
+  el('sum-comidas').textContent = `🍽️ Comidas · (${r.total_personas} pers × ${fmtNum(r.dias,0)} días) = ${fmt(r.comidas_total)}`;
+  el('comidas-result').innerHTML = `<b>Total Comidas: ${fmt(r.comidas_total)}</b> · ${r.total_personas} pers × ${fmt(r.costo_comida)} × ${r.comidas_por_dia} com/día × ${fmtNum(r.dias,0)} días`;
+  // Hospedaje
+  if (r.req_hospe) {
+    show('hospedaje-fields'); hideCls('hospedaje-no');
+    el('noches_hospedaje').placeholder = `default = ${fmtNum(r.dias,0)} días`;
+    el('hospedaje-result').innerHTML = `<b>Total Hospedaje: ${fmt(r.hospedaje_total)}</b> · ${r.total_personas} pers × ${fmt(r.costo_hospe)} × ${fmtNum(r.noches_hospedaje,0)} noches`;
+  } else {
+    hide('hospedaje-fields'); showCls('hospedaje-no');
+  }
+  // Automóvil
+  el('m-combustible').textContent = fmt(r.combustible_total);
+  el('m-combustible-d').textContent = `${fmtNum(r.litros,1)} L × ${fmt(r.costo_gas)} = ${fmt(r.combustible_base)} + 15% util. = ${fmt(r.combustible_total)}`;
+  el('m-casetas').textContent = fmt(r.casetas_total);
+  el('m-casetas-d').textContent = `${fmt(r.casetas_ida)} × 2 × ${r.n_viajes} viajes`;
+  el('m-desgaste').textContent = fmt(r.desgaste_total);
+  el('m-desgaste-d').textContent = r.costo_desgaste_km>0 ? `${fmtNum(r.km_total,0)} km × ${fmt(r.costo_desgaste_km)}` : 'sin cargo';
+  el('auto-result').innerHTML = `<b>Total Automóvil: ${fmt(r.total_automovil)}</b>`;
+  // Viáticos con ganancia
+  el('viat-real').textContent = fmt(r.total_viaticos_real);
+  el('viat-gan').textContent = fmt(r.ganancia_viaticos);
+  el('viaticos-total').textContent = fmt(r.total_viaticos);
+  // Equipo
+  const dias_label = fmtNum(r.dias,0);
+  el('info-escalera').textContent = `${fmt(COSTO_ESCALERA_MES)}/mes → ${fmt(r.d_esc)}/día → ${fmt(r.t_esc)} total`;
+  el('info-gennie').textContent   = `${fmt(COSTO_GENNIE_MES)}/mes → ${fmt(r.d_gen)}/día → ${fmt(r.t_gen)} total`;
+  el('info-elevador').textContent = `${fmt(COSTO_ELEVADOR_MES)}/mes → ${fmt(r.d_elev)}/día → ${fmt(r.t_elev)} total`;
+  el('info-plat').textContent     = `${fmt(COSTO_PLAT_TIJERA_MES)}/mes → ${fmt(r.d_plat)}/día → ${fmt(r.t_plat)} total`;
+  el('equipo-result').innerHTML = `<b>Total Equipos: ${fmt(r.total_plataformas)}</b>`;
+  el('sum-equipo').textContent = `🏗️ Equipo de Maniobras · (${dias_label} días) = ${fmt(r.total_plataformas)}`;
+  // Resumen
+  el('r-mo').textContent = fmt(r.costo_mo);
+  el('r-mo-d').textContent = `${r.total_personas} pers × ${dias_label} días`;
+  el('r-comidas').textContent = fmt(r.comidas_total);
+  el('r-hospedaje').textContent = fmt(r.hospedaje_total);
+  el('r-hospedaje-d').textContent = r.req_hospe ? `${fmtNum(r.noches_hospedaje,0)} noches` : 'no aplica';
+  el('r-auto').textContent = fmt(r.total_automovil);
+  el('r-auto-d').textContent = `${fmtNum(r.km_total,0)} km`;
+  el('r-plat').textContent = fmt(r.total_plataformas);
+  el('r-viat-real').textContent = fmt(r.total_viaticos_real);
+  el('r-viat-gan').textContent = fmt(r.ganancia_viaticos);
+  el('r-viat').textContent = fmt(r.total_viaticos);
+  el('r-total').textContent = fmt(r.total_mo_equipo_viaticos);
+  updateTotales();
+}
+
+function getMOResult() {
+  if (state.tipo !== 'ip') return null;
+  return calcularMO(getMOInputs());
+}
+
+// ── DIAMETER FILTER ───────────────────────────────────────────────────────────
+function extractDiam(desc) {
+  const m = desc.match(/^(\d+)\s*mm/i);
+  return m ? m[1] + 'mm' : 'otros';
+}
+function populateDiamFilter() {
+  const diams = new Map(); // 'XXXmm' -> 'XXXmm (X" ID)'
+  state.materiales.forEach(m => {
+    const dKey = extractDiam(m.descripcion);
+    if (!diams.has(dKey)) {
+      if (dKey !== 'otros') {
+        const label = m.descripcion.match(/^(\d+\s*mm\s*\([^)]+\))/i);
+        diams.set(dKey, label ? label[1].trim() : dKey);
+      } else {
+        diams.set('otros', 'Otros (Herramientas / Accesorios)');
+      }
+    }
+  });
+  // Sort numerically: 200mm, 150mm, ... then otros
+  const numericDiams = [...diams.entries()].filter(([k])=>k!=='otros').sort((a,b)=>parseInt(b[0])-parseInt(a[0]));
+  const sel = el('diam-filter');
+  sel.innerHTML = '<option value="">Todos los diámetros</option>';
+  numericDiams.forEach(([k,v]) => { sel.innerHTML += `<option value="${k}">${v}</option>`; });
+  if (diams.has('otros')) sel.innerHTML += `<option value="otros">Otros (Herramientas / Accesorios)</option>`;
+}
+
+// ── MATERIALS SEARCH ──────────────────────────────────────────────────────────
+let searchTimer;
+function onSearchInput() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = el('mat-search').value.trim().toLowerCase();
+    const diam = el('diam-filter').value;
+    if (!q && !diam) { el('mat-dropdown').classList.add('hidden'); return; }
+    let results = state.materiales;
+    // Filter by diameter
+    if (diam === 'otros') {
+      results = results.filter(m => extractDiam(m.descripcion) === 'otros');
+    } else if (diam) {
+      results = results.filter(m => extractDiam(m.descripcion) === diam);
+    }
+    // Filter by text
+    if (q) {
+      results = results.filter(m =>
+        m.descripcion.toLowerCase().includes(q) || m.numero_parte.toLowerCase().includes(q)
+      );
+    }
+    renderDropdown(results.slice(0, 80), q);
+  }, 150);
+}
+
+function renderDropdown(items, q) {
+  const dd = el('mat-dropdown');
+  if (!items.length) {
+    dd.innerHTML = '<div class="dd-item" style="color:#999;">Sin resultados.</div>';
+    dd.classList.remove('hidden');
+    return;
+  }
+  let html = `<div class="dd-count">${items.length} resultado(s)</div>`;
+  items.forEach((m,i) => {
+    const descShort = shortDesc(m.descripcion, 72);
+    html += `<div class="dd-item" data-idx="${i}" onclick="selectMaterial(${state.materiales.indexOf(m)})">
+      <span class="price">${fmt(m.precio)}</span>
+      <span class="part">${m.numero_parte}</span><br>
+      <span class="desc">${descShort}</span>
+    </div>`;
+  });
+  dd.innerHTML = html;
+  dd.classList.remove('hidden');
+}
+
+function selectMaterial(idx) {
+  const m = state.materiales[idx];
+  if (!m) return;
+  state.selectedMat = m;
+  el('mat-dropdown').classList.add('hidden');
+  el('mat-search').value = '';  // Limpiar buscador al seleccionar
+  el('prev-desc').textContent = m.descripcion;
+  el('prev-part').textContent = m.numero_parte;
+  el('prev-price').textContent = fmt(m.precio) + ' c/u';
+  el('add-qty').value = 1;
+  el('mat-preview').style.display = 'block';
+  el('mat-search').focus();
+}
+
+// Hide dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) {
+    el('mat-dropdown').classList.add('hidden');
+  }
+});
+
+function addSelectedToCart() {
+  if (!state.selectedMat) return;
+  const qty = Math.max(1, parseInt(el('add-qty').value)||1);
+  addToCart(state.selectedMat, qty);
+  toast(`✅ ${qty}× ${shortDesc(state.selectedMat.descripcion,30)} agregado al carrito`);
+}
+
+// ── CART MANAGEMENT ───────────────────────────────────────────────────────────
+function cartKey(m) { return m.numero_parte + '||' + m.descripcion.substring(0,20); }
+
+function addToCart(m, qty) {
+  const k = cartKey(m);
+  if (state.carrito[k]) {
+    state.carrito[k].cantidad += qty;
+  } else {
+    state.carrito[k] = { descripcion:m.descripcion, numero_parte:m.numero_parte, precio:m.precio, cantidad:qty };
+  }
+  renderCart();
+  updateTotales();
+}
+
+function removeFromCart(k) {
+  delete state.carrito[k];
+  renderCart();
+  updateTotales();
+}
+
+function clearCart() {
+  if (!Object.keys(state.carrito).length) return;
+  if (!confirm('¿Limpiar todo el carrito?')) return;
+  state.carrito = {};
+  renderCart();
+  updateTotales();
+}
+
+function renderCart() {
+  const items = Object.entries(state.carrito);
+  el('cart-empty').style.display = items.length ? 'none' : '';
+  el('cart-content').style.display = items.length ? '' : 'none';
+  if (!items.length) return;
+
+  let html = '';
+  items.forEach(([k,item],i) => {
+    const tot = item.cantidad * item.precio;
+    const safeKey = encodeURIComponent(k);
+    html += `<tr>
+      <td class="col-num">${i+1}</td>
+      <td>${shortDesc(item.descripcion,45)}</td>
+      <td class="col-part">${item.numero_parte}</td>
+      <td class="col-qty"><input type="number" value="${item.cantidad}" min="1" max="9999"
+        data-key="${safeKey}"
+        oninput="updateQtyFromInput(this)"
+        style="width:65px;padding:4px;text-align:center;border:1px solid #ccc;border-radius:4px;"></td>
+      <td class="col-price">${fmt(item.precio)}</td>
+      <td class="col-total" id="tot-${safeKey}">${fmt(tot)}</td>
+      <td class="col-rm"><button class="btn btn-danger btn-sm" data-key="${safeKey}"
+        onclick="removeFromCartBtn(this)" style="padding:4px 8px;">✕</button></td>
+    </tr>`;
+  });
+  el('cart-tbody').innerHTML = html;
+  updateTotales();
+}
+
+function updateQtyFromInput(input) {
+  const k = decodeURIComponent(input.dataset.key);
+  const q = Math.max(1, parseInt(input.value)||1);
+  if (input.value !== String(q)) input.value = q;
+  if (state.carrito[k]) {
+    state.carrito[k].cantidad = q;
+    const safeKey = encodeURIComponent(k);
+    const totEl = document.getElementById('tot-' + safeKey);
+    if (totEl) totEl.textContent = fmt(q * state.carrito[k].precio);
+    updateTotales();
+  }
+}
+
+function removeFromCartBtn(btn) {
+  const k = decodeURIComponent(btn.dataset.key);
+  delete state.carrito[k];
+  renderCart();
+  updateTotales();
+}
+
+function getCartSubtotal() {
+  return Object.values(state.carrito).reduce((s,item)=>s+item.cantidad*item.precio, 0);
+}
+
+function updateTotales() {
+  const items = Object.entries(state.carrito);
+  if (!items.length) return;
+  const subtotal_mat = getCartSubtotal();
+  const mo_res = getMOResult();
+  const costo_mo = mo_res ? mo_res.total_mo_equipo_viaticos : 0;
+  const descuento = state.tipo==='it' ? ((+el('descuento_pct').value||0)/100) : 0;
+  const total_bruto = subtotal_mat + costo_mo;
+  const desc_monto = total_bruto * descuento;
+  const total_neto = total_bruto - desc_monto;
+  const iva = total_neto * 0.16;
+  const total_final = total_neto + iva;
+
+  let html = `<div class="cart-total-row subtotal"><span class="label">Subtotal Material</span><span class="amount">${fmt(subtotal_mat)}</span></div>`;
+  if (state.tipo==='ip' && costo_mo>0) {
+    html += `<div class="cart-total-row"><span class="label">M.O. y Maniobras</span><span class="amount">${fmt(costo_mo)}</span></div>`;
+  }
+  if (descuento>0) {
+    html += `<div class="cart-total-row"><span class="label">Descuento (${(descuento*100).toFixed(0)}%)</span><span class="amount" style="color:#d32f2f;">-${fmt(desc_monto)}</span></div>`;
+  }
+  html += `<div class="cart-total-row"><span class="label">Subtotal sin IVA</span><span class="amount">${fmt(total_neto)}</span></div>`;
+  html += `<div class="cart-total-row"><span class="label">IVA (16%)</span><span class="amount">${fmt(iva)}</span></div>`;
+  html += `<div class="cart-total-row grand"><span class="label">TOTAL CON IVA 16%</span><span class="amount">${fmt(total_final)}</span></div>`;
+  el('cart-totals').innerHTML = html;
+}
+
+// ── DOCUMENT GENERATION ───────────────────────────────────────────────────────
+function validateForm() {
+  const empresa = el('empresa').value.trim();
+  const abbrev  = el('abbrev').value.trim();
+  const initials = el('initials').value.trim();
+  if (!empresa || !abbrev || !initials) {
+    showCls('gen-warning');
+    return false;
+  }
+  hideCls('gen-warning');
+  return true;
+}
+
+function collectData() {
+  const mo_res = getMOResult();
+  const subtotal_mat = getCartSubtotal();
+  if (mo_res) mo_res.subtotal_material = subtotal_mat;
+  const descuento = state.tipo==='it' ? ((+el('descuento_pct').value||0)/100) : 0;
+  const costo_mo = mo_res ? mo_res.total_mo_equipo_viaticos : 0;
+  const items = Object.values(state.carrito);
+  const cliente = {
+    empresa: el('empresa').value.trim(),
+    atencion: el('atencion').value.trim(),
+    fecha: el('fecha').value,
+    folio: getFolio(),
+    desc_proy: el('desc_proy').value.trim(),
+  };
+  return { cliente, items, costo_mo, descuento, mo_res, tipo: state.tipo };
+}
+
+// ─ EXCEL GENERATOR ────────────────────────────────────────────────────────────
+function generateExcel() {
+  if (!validateForm()) return;
+  const d = collectData();
+  const wb = XLSX.utils.book_new();
+  buildCotizacionSheet(wb, d);
+  if (d.tipo==='ip' && d.mo_res) buildMOSheet(wb, d.mo_res);
+  const fn = (d.cliente.folio||'cotizacion').replace(/[\/:*?"<>|]/g,'_') + '.xlsx';
+  XLSX.writeFile(wb, fn);
+  toast('📊 Excel descargado');
+}
+
+function generatePDF() {
+  if (!validateForm()) return;
+  const d = collectData();
+  const { cliente, items, costo_mo, descuento } = d;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();
+  const ML = 13, HTOP = 24, FBOT = PH - 12;
+  const RED = [200, 16, 46], DARK = [30, 30, 38], GRAY = [150, 150, 160], LGRAY = [220, 220, 225];
+  const is_ip = d.tipo === 'ip';
+
+  const subtotal_mat = items.reduce((s, it) => s + it.cantidad * it.precio, 0);
+  const total_bruto = subtotal_mat + (is_ip ? costo_mo : 0);
+  const desc_monto = total_bruto * descuento;
+  const total_neto = total_bruto - desc_monto;
+  const iva = total_neto * 0.16;
+  const total_final = total_neto + iva;
+
+  const pagesReady = new Set();
+
+  function drawHeader() {
+    doc.setFillColor(...RED); doc.rect(0, 0, PW, 1.5, 'F');
+    const logo = window.LOGO_GD || null;
+    if (logo) { try { doc.addImage(logo, 'PNG', ML, 4, 30, 11); } catch(e) {} }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text('Cotización de Proyecto', ML + 33, 9);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text('Gardner Denver México  ·  Tubería Neumática AIRWYN', ML + 33, 14);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(cliente.folio || '—', PW - ML, 9, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    const fd = cliente.fecha ? (() => { const [yr,mo,dy]=cliente.fecha.split('-'); return `${dy}/${mo}/${yr}`; })() : '';
+    doc.text(fd, PW - ML, 14, { align: 'right' });
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3); doc.line(ML, 20, PW - ML, 20);
+  }
+
+  function drawFooter() {
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+    doc.text('MANUFACTURERA CENTURY, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
+    doc.text(cliente.folio || '', PW - ML, FBOT, { align: 'right' });
+  }
+
+  function setupPage() {
+    const pg = doc.internal.getCurrentPageInfo().pageNumber;
+    if (pagesReady.has(pg)) return;
+    pagesReady.add(pg);
+    drawHeader(); drawFooter();
+  }
+
+  function addNewPage() { doc.addPage(); setupPage(); return HTOP + 5; }
+
+  function checkY(yy, need) { return yy + need > FBOT - 10 ? addNewPage() : yy; }
+
+  function secTitle(txt, yy) {
+    yy = checkY(yy, 14);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...RED);
+    doc.text(txt, ML, yy);
+    doc.setDrawColor(...RED); doc.setLineWidth(0.4); doc.line(ML, yy + 1, PW - ML, yy + 1);
+    return yy + 7;
+  }
+
+  function para(txt, yy, sz, color, style) {
+    sz = sz || 9; style = style || 'normal';
+    doc.setFont('helvetica', style); doc.setFontSize(sz); doc.setTextColor(...(color || DARK));
+    const lines = doc.splitTextToSize(txt, PW - ML * 2);
+    const lh = sz * 0.36 + 1.6;
+    yy = checkY(yy, lines.length * lh);
+    doc.text(lines, ML, yy);
+    return yy + lines.length * lh;
+  }
+
+  const COND_IND = (PW - ML * 2) * 0.29;
+  function condRow(lbl, txt, yy) {
+    const lines = doc.splitTextToSize(txt, PW - ML * 2 - COND_IND);
+    const lh = 4.2;
+    yy = checkY(yy, lines.length * lh + 3);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+    doc.text(lbl, ML, yy);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60, 60, 60);
+    doc.text(lines, ML + COND_IND, yy);
+    return yy + lines.length * lh + 2;
+  }
+
+  // ── PÁGINA 1 ─────────────────────────────────────────────────────────────────
+  setupPage();
+  let y = HTOP + 2;
+
+  // Asunto (cuadro derecho) — se dibuja PRIMERO para conocer su área
+  const boxW = 74, boxH = 15, boxY = HTOP + 1;
+  const asuntoLines = is_ip
+    ? ['Cotización de tubería importada en aluminio', 'con servicio de instalación.']
+    : ['Cotización de tubería importada en aluminio', 'sin servicio de instalación.'];
+  doc.setDrawColor(...RED); doc.setLineWidth(0.5);
+  doc.setFillColor(255, 252, 252); doc.roundedRect(PW - ML - boxW, boxY, boxW, boxH, 1, 1, 'FD');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
+  doc.text('Asunto:', PW - ML - boxW + 4, boxY + 5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(70, 70, 70);
+  asuntoLines.forEach((ln, i) => doc.text(ln, PW - ML - boxW + 4, boxY + 5 + (i + 1) * 4.2));
+
+  // Empresa + Atención — limitar el ancho disponible para NO encimarse con el cuadro Asunto
+  const leftW = PW - ML * 2 - boxW - 4; // ancho disponible a la izquierda del cuadro
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...DARK);
+  const empresaLines = doc.splitTextToSize(cliente.empresa || '—', leftW);
+  doc.text(empresaLines, ML, y);
+  y += empresaLines.length * 5.5 + 1;
+  if (cliente.atencion) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+    const atLines = doc.splitTextToSize('Atención: ' + cliente.atencion, leftW);
+    doc.text(atLines, ML, y);
+    y += atLines.length * 4.5 + 1;
+  }
+
+  // Forzar que y quede SIEMPRE debajo del cuadro Asunto antes de continuar
+  const boxBottom = boxY + boxH + 4;
+  if (y < boxBottom) y = boxBottom;
+
+  // Párrafo intro
+  const intro = is_ip
+    ? `Por este medio le informo el alcance y costo para la instalación de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`
+    : `Por este medio le informo el alcance y costo de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`;
+  y = para(intro, y, 9, DARK, 'normal'); y += 3;
+
+  // ── OBJETIVO ─────────────────────────────────────────────────────────────────
+  y = secTitle('OBJETIVO', y);
+  y = para('La instalación correcta y el buen funcionamiento se encuentren dentro de los parámetros recomendados de eficiencia. La utilización e instalación de tubería de aluminio importado AIRWYN para sistemas de aire comprimido cuenta con ventajas como:', y, 8.5, [70, 70, 70], 'normal');
+  y += 1;
+  [
+    'Rendimiento óptimo de las máquinas y utillajes al contar con un cociente de fricción bajo y menor pérdida de presión que la tubería de acero al carbón.',
+    'Protección duradera a sus equipos al no presentar corrosión interna, garantizando calidad de aire limpio.',
+    'Ahorro de energía al tener un flujo de aire más laminar y por lo tanto menor caída de presión (máximo 5%).',
+    'Tiempo de instalación menor que en acero al carbón, generando ahorros económicos en mano de obra.',
+    'Derivaciones pueden ser instaladas en 30 minutos con componentes reutilizables.',
+    'Facilidad de realizar modificaciones: fácil de extender, desensamblar y reubicar.',
+    'Garantía de cero fugas de aire comprimido.',
+    'Accesorios que garantizan una mayor durabilidad.',
+  ].forEach(b => {
+    const lines = doc.splitTextToSize(b, PW - ML * 2 - 5);
+    const lh = 3.8;
+    y = checkY(y, lines.length * lh + 1);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(60, 60, 60);
+    doc.text('•', ML + 2, y);
+    doc.text(lines, ML + 6, y);
+    y += lines.length * lh + 0.8;
+  });
+  y += 4;
+
+  // ── LISTA DE MATERIALES ───────────────────────────────────────────────────────
+  y = secTitle(is_ip ? 'ALCANCE Y COSTO DEL MATERIAL' : 'LISTA DE MATERIALES', y);
+  if (is_ip && cliente.desc_proy) {
+    y = para(`Proyecto: ${cliente.desc_proy.charAt(0).toUpperCase() + cliente.desc_proy.slice(1)}, de acuerdo a la lista de materiales indicada a continuación.`, y, 8.5, DARK, 'normal');
+    y += 1;
+  }
+  const matBody = items.map((it, i) => [
+    String(i + 1), it.descripcion, it.numero_parte, String(it.cantidad), fmtPDF(it.precio), fmtPDF(it.cantidad * it.precio),
+  ]);
+  doc.autoTable({
+    startY: y,
+    head: [['#', 'Descripción', 'No. Parte', 'Cant.', 'P. Unitario', 'Total MXN']],
+    body: matBody.length ? matBody : [['—', 'Sin materiales', '—', '—', '—', '—']],
+    margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
+    theme: 'plain',
+    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.5, textColor: [40, 40, 40] },
+    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [237, 244, 251] },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 10 },
+      2: { font: 'courier', fontSize: 8, cellWidth: 34 },
+      3: { halign: 'center', cellWidth: 14 },
+      4: { halign: 'right', cellWidth: 26 },
+      5: { halign: 'right', cellWidth: 26 },
+    },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 3;
+
+  // Subtotal material
+  y = checkY(y, 12);
+  const stX = PW * 0.52;
+  doc.setFillColor(214, 228, 240); doc.rect(stX, y, PW - ML - stX, 7, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+  doc.text('SUBTOTAL MATERIAL', stX + 3, y + 5);
+  doc.text(fmtPDF(subtotal_mat), PW - ML - 2, y + 5, { align: 'right' });
+  y += 10;
+
+  y = para('La lista de materiales es de acuerdo con la información que se nos proporcionó; de existir alguna diferencia al colocarse el pedido, se ajustará el costo de esta cotización.', y, 7.5, [130, 130, 130], 'italic');
+  if (!is_ip) { y += 2; y = para('A estos precios añadirles el 16% de I.V.A.', y, 9, DARK, 'bold'); }
+  y += 5;
+
+  // ── RESUMEN DE COSTOS (solo IP) ───────────────────────────────────────────────
+  if (is_ip) {
+    y = secTitle('RESUMEN DE COSTOS DEL PROYECTO', y);
+    const costoBody = [['Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)', fmtPDF(subtotal_mat)]];
+    if (costo_mo > 0) costoBody.push(['Servicio de instalación y maniobras de tubería de aluminio', fmtPDF(costo_mo)]);
+    if (descuento > 0) costoBody.push([`Descuento (${(descuento * 100).toFixed(0)}%)`, '- ' + fmtPDF(desc_monto)]);
+    costoBody.push(['Subtotal sin IVA', fmtPDF(total_neto)], ['IVA (16%)', fmtPDF(iva)]);
+    doc.autoTable({
+      startY: y,
+      body: costoBody,
+      margin: { left: PW * 0.38, right: ML, top: HTOP + 5, bottom: 20 },
+      theme: 'plain',
+      styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.8, textColor: [40, 40, 40] },
+      alternateRowStyles: { fillColor: [237, 244, 251] },
+      columnStyles: { 1: { halign: 'right', cellWidth: 30 } },
+      didDrawPage: () => setupPage(),
+    });
+    y = doc.lastAutoTable.finalY + 2;
+    y = checkY(y, 12);
+    const cstX = PW * 0.38;
+    doc.setFillColor(31, 56, 100); doc.rect(cstX, y, PW - ML - cstX, 9, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+    doc.text('TOTAL DEL PROYECTO', cstX + 3, y + 6);
+    doc.setTextColor(...RED); doc.setFontSize(10);
+    doc.text(fmtPDF(total_final), PW - ML - 2, y + 6, { align: 'right' });
+    y += 13;
+  }
+
+  // ── TIEMPO DE INSTALACIÓN (solo IP) ──────────────────────────────────────────
+  if (is_ip && d.mo_res && d.mo_res.dias > 0) {
+    const dias = d.mo_res.dias;
+    const semanasAprox = Math.ceil(dias / 5);
+    const diasFmt = fmtNum(dias, dias % 1 === 0 ? 0 : 1);
+    y = secTitle('TIEMPO DE INSTALACIÓN', y);
+
+    // Caja principal
+    y = checkY(y, 28);
+    doc.setFillColor(245, 248, 252); doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+    doc.roundedRect(ML, y, PW - ML * 2, 20, 1.5, 1.5, 'FD');
+
+    // Días destacados
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(...RED);
+    doc.text(`${diasFmt}`, ML + 6, y + 14);
+    const diasNumW = doc.getTextWidth(`${diasFmt}`);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text(' días hábiles', ML + 6 + diasNumW, y + 14);
+
+    // Equivalencia en semanas
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(`aproximadamente ${semanasAprox} semana${semanasAprox === 1 ? '' : 's'} de trabajo`, ML + 6, y + 18.5);
+
+    y += 24;
+
+    // Nota días hábiles
+    const notaTiempo = 'El tiempo de instalación indicado corresponde a días hábiles (lunes a viernes). Los trabajos en fines de semana o días festivos no están contemplados en esta cotización; en caso de requerirse, el costo se recotizará de acuerdo con el programa de trabajo acordado con el cliente.';
+    y = para(notaTiempo, y, 7.5, [100, 100, 100], 'italic');
+    y += 4;
+  }
+
+  // ── CONDICIONES COMERCIALES ───────────────────────────────────────────────────
+  y = secTitle('CONDICIONES COMERCIALES', y);
+  y = condRow('IVA:', 'A estos precios añadirles el 16% de I.V.A.', y);
+  y = condRow('VIGENCIA:', 'La vigencia de esta cotización es de 15 días hábiles de no existir un incremento oficial en los salarios o en la paridad del dólar mayor al 3%.', y);
+  y = condRow('NOTA:', 'Después de aceptar nuestra propuesta y de colocarnos el pedido, cualquier cancelación de su parte tendrá un cargo del 20% sobre el monto total.', y);
+  if (is_ip) {
+    y = condRow('COND. DE PAGO:', '50% de anticipo, 40% contra avance de obra y 10% contra entrega de la instalación, plano, pruebas de funcionamiento y corrección de fugas (en caso de presentarse).', y);
+    y = condRow('TIEMPO DE ENTREGA:', 'Inmediato programado, salvo previa venta, a partir de contar con su orden de compra y anticipo. Instalación: 15 días hábiles a partir de contar con el material y área libre.', y);
+  } else {
+    y = condRow('COND. DE PAGO:', 'Material de importación: 100% pago de contado.', y);
+    y = condRow('TIEMPO DE ENTREGA:', 'Inmediato programado, salvo previa venta, a partir de contar con su pedido y pago del 100%.', y);
+    y = condRow('ENTREGA CDMX:', 'Recolección LAB desde el mismo día (antes de 12:00 p.m.). Entrega a domicilio en CDMX y área metropolitana: 1–3 días hábiles sin costo.', y);
+    y = condRow('REPÚBLICA:', 'Cuautitlán, Puebla, Querétaro, Guadalajara y Monterrey: 2–5 días hábiles. Fuera del área metropolitana: OCURRE por cobrar, embarque en 1–2 días hábiles.', y);
+  }
+  y += 5;
+
+  // ── FIRMA ─────────────────────────────────────────────────────────────────────
+  y = checkY(y, 32);
+  doc.setFillColor(...RED); doc.rect(ML, y, 18, 2, 'F'); y += 6;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+  doc.text('Ing. Marco Antonio Millán Ramírez', ML, y); y += 5;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+  doc.text('Gerente de Ingeniería', ML, y); y += 4;
+  doc.text('Tel: 5555 63 26 11  Ext: 520', ML, y); y += 4;
+  if (!is_ip) { doc.text('MARCOANTONIO.MILLAN@GARDNERDENVER.COM', ML, y); y += 4; }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+  doc.text('MANUFACTURERA CENTURY, S.A. DE C.V.', ML, y); y += 4;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+  doc.text(is_ip ? 'Departamento de Ingeniería' : 'Departamento de Ingeniería de Tubería', ML, y);
+
+  const fn = (cliente.folio || 'cotizacion').replace(/[\/:*?"<>|]/g, '_') + '.pdf';
+  doc.save(fn);
+  toast('🖨 PDF descargado');
+}
+
+function fmtPDF(n) {
+  return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function xlCell(v, bold, fillRgb, fontColor, numFmt, hAlign) {
+  const s = {};
+  if (bold||fontColor||fillRgb||hAlign) {
+    s.font = { name:'Arial', sz:9, bold:!!bold, color: fontColor ? {rgb:fontColor} : undefined };
+    if (fillRgb) s.fill = { patternType:'solid', fgColor:{rgb:fillRgb} };
+    s.alignment = { horizontal: hAlign||'left', vertical:'center', wrapText:false };
+    s.border = {
+      top:{style:'thin',color:{rgb:'BBBBBB'}}, bottom:{style:'thin',color:{rgb:'BBBBBB'}},
+      left:{style:'thin',color:{rgb:'BBBBBB'}}, right:{style:'thin',color:{rgb:'BBBBBB'}}
+    };
+  }
+  const cell = { v, t: (typeof v==='number'?'n':'s') };
+  if (numFmt) s.numFmt = numFmt;
+  if (Object.keys(s).length) cell.s = s;
+  return cell;
+}
+
+function buildCotizacionSheet(wb, d) {
+  const { cliente, items, costo_mo, descuento } = d;
+  const ws = {};
+  const merges = [];
+  let r = 0;
+
+  const hdrFill = '1F3864', altFill = 'EBF5FB', lblFill = 'D6E4F0';
+  const setCell = (row,col,cell) => { ws[XLSX.utils.encode_cell({r:row,c:col})] = cell; };
+  const merge = (sr,sc,er,ec) => merges.push({s:{r:sr,c:sc},e:{r:er,c:ec}});
+
+  const is_ip = d.tipo==='ip';
+  const tipoLabel = is_ip ? 'CON MANO DE OBRA' : 'SIN MANO DE OBRA';
+
+  // Title
+  setCell(r,0, xlCell(`COTIZACIÓN TUBERÍA NEUMÁTICA PIPRO  –  ${tipoLabel}`, true, hdrFill, 'FFFFFF', null, 'center'));
+  merge(r,0,r,5); r++;
+
+  // Client fields
+  const fields = [
+    ['Empresa:', cliente.empresa],
+    ['Atención a:', cliente.atencion],
+    ['Fecha:', cliente.fecha ? formatDateES(cliente.fecha) : ''],
+    ['No. Cotización:', cliente.folio],
+  ];
+  fields.forEach(([lbl,val]) => {
+    setCell(r,0, xlCell(lbl, true, lblFill, null, null, 'right'));
+    setCell(r,1, xlCell(val, false, null, null, null, 'left'));
+    merge(r,1,r,5); r++;
+  });
+  r++; // blank row
+
+  // Table header
+  const hdrs = ['#','Descripción','No. de Parte','Cantidad','Precio Unitario','Total'];
+  const hAligns = ['center','center','center','center','right','right'];
+  hdrs.forEach((h,c) => setCell(r,c, xlCell(h, true, hdrFill, 'FFFFFF', null, hAligns[c])));
+  r++;
+
+  // Data rows
+  let subtotal = 0;
+  items.forEach((item,i) => {
+    const qty = +item.cantidad, pu = +item.precio, tot = qty*pu;
+    subtotal += tot;
+    const fill = i%2===0 ? altFill : 'FFFFFF';
+    setCell(r,0, xlCell(i+1, false, fill, null, null, 'center'));
+    setCell(r,1, xlCell(item.descripcion, false, fill, null, null, 'left'));
+    setCell(r,2, xlCell(item.numero_parte, false, fill, null, null, 'center'));
+    setCell(r,3, xlCell(qty, false, fill, null, '#,##0', 'center'));
+    setCell(r,4, xlCell(pu, false, fill, null, '$#,##0.00', 'right'));
+    setCell(r,5, xlCell(tot, false, fill, null, '$#,##0.00', 'right'));
+    r++;
+  });
+  r++;
+
+  // Total rows
+  const addTotRow = (lbl, val, dark) => {
+    const f = dark ? hdrFill : lblFill;
+    const fc = dark ? 'FFFFFF' : '000000';
+    setCell(r,0, xlCell(lbl, true, f, fc, null, 'right'));
+    merge(r,0,r,4);
+    setCell(r,5, xlCell(val, true, f, fc, '$#,##0.00', 'right'));
+    r++;
+  };
+  addTotRow('Subtotal Material:', subtotal, false);
+  if (is_ip && costo_mo>0) addTotRow('Mano de Obra y Maniobras:', costo_mo, false);
+  const total_bruto = subtotal + (is_ip ? costo_mo : 0);
+  let total_neto = total_bruto;
+  if (descuento>0) { const dm=total_bruto*descuento; addTotRow(`Descuento (${(descuento*100).toFixed(0)}%):`, -dm, false); total_neto = total_bruto - dm; }
+  const iva = total_neto * 0.16;
+  addTotRow('Subtotal sin IVA:', total_neto, false);
+  addTotRow('IVA (16%):', iva, false);
+  addTotRow('TOTAL:', total_neto + iva, true);
+
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:4},{wch:42},{wch:16},{wch:10},{wch:18},{wch:18}];
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r,c:5}});
+  XLSX.utils.book_append_sheet(wb, ws, 'Cotización');
+}
+
+function buildMOSheet(wb, mo) {
+  const ws = {};
+  const merges = [];
+  let r = 0;
+  const MXN = '$#,##0.00', hdrF='1F3864', ltF='D6E4F0', greenF='E8F5E9', orangeF='FFF0E0';
+  const setCell = (row,col,cell) => { ws[XLSX.utils.encode_cell({r:row,c:col})] = cell; };
+  const merge = (sr,sc,er,ec) => merges.push({s:{r:sr,c:sc},e:{r:er,c:ec}});
+  const hdr = (row,c1,c2,text) => { setCell(row,c1, xlCell(text,true,hdrF,'FFFFFF',null,'center')); if(c2>c1) merge(row,c1,row,c2); };
+  const val = (row,col,v,nf,bold,fill) => setCell(row,col, xlCell(v,!!bold,fill||'FFFFFF','000000',nf,'right'));
+
+  // Title
+  setCell(r,0, xlCell('HOJA DE PRESUPUESTOS  –  MANO DE OBRA, VIÁTICOS Y PLATAFORMAS', true, hdrF, 'FFFFFF', null, 'center'));
+  merge(r,0,r,5); r+=2;
+
+  // Personal block
+  hdr(r,0,1,'Descripción'); hdr(r,2,2,'Sueldo mensual'); hdr(r,3,3,'Cantidad'); hdr(r,4,4,'Total mensual'); r++;
+  [['Técnico',SUELDO_TECNICO,mo.n_tec,mo.tec_total],
+   ['Ayudante',SUELDO_AYUDANTE,mo.n_aya,mo.aya_total],
+   ['Ingeniero',SUELDO_INGENIERO,mo.n_ing,mo.ing_total],
+   ['Segurista',SUELDO_SEGURISTA,mo.n_seg,mo.seg_total]].forEach(([d,s,c,t]) => {
+    setCell(r,0, xlCell(d,false,'FFFFFF','000000',null,'left')); merge(r,0,r,1);
+    val(r,2,s,MXN); val(r,3,c,'#,##0.0'); val(r,4,t,MXN); r++;
+  });
+  setCell(r,0, xlCell('Total',true,ltF,'000000',null,'right')); merge(r,0,r,2);
+  val(r,3,mo.total_personas,'#,##0',true,ltF); val(r,4,mo.total_mensual,MXN,true,ltF); r+=2;
+
+  // Costos MO
+  hdr(r,0,5,'COSTOS DE MANO DE OBRA'); r++;
+  hdr(r,0,1,'Puesto'); hdr(r,2,2,'Total sueldo'); hdr(r,3,3,'Días'); hdr(r,4,4,'Costo M.O.'); r++;
+  val(r,0,`Total mensual: ${fmt(mo.total_mensual)}`,null,false,'FFFFFF');
+  merge(r,0,r,1);
+  val(r,2,mo.total_mensual,MXN,true,ltF);
+  val(r,3,mo.dias,'#,##0.0',true,greenF);
+  val(r,4,mo.costo_mo,MXN,true,orangeF);
+  r+=2;
+
+  // Comidas
+  hdr(r,0,5,'COMIDAS'); r++;
+  hdr(r,0,1,'# Personas'); hdr(r,2,2,'Costo/comida'); hdr(r,3,3,'# Comidas/día'); hdr(r,4,4,`Días (=${mo.dias})`); hdr(r,5,5,'Total'); r++;
+  val(r,0,mo.total_personas,'#,##0',false,'FFFFFF'); merge(r,0,r,1);
+  val(r,2,mo.costo_comida,MXN); val(r,3,mo.comidas_por_dia,'#,##0');
+  val(r,4,mo.dias,'#,##0.0',false,greenF); val(r,5,mo.comidas_total,MXN,true); r+=2;
+
+  // Hospedaje
+  hdr(r,0,5,'HOSPEDAJE' + (mo.req_hospe?' ':' (no aplica - obra local)')); r++;
+  if (mo.req_hospe) {
+    hdr(r,0,1,'# Personas'); hdr(r,2,2,'Costo/noche'); hdr(r,3,3,'# Noches'); hdr(r,5,5,'Total'); r++;
+    val(r,0,mo.total_personas,'#,##0',false,'FFFFFF'); merge(r,0,r,1);
+    val(r,2,mo.costo_hospe,MXN); val(r,3,mo.noches_hospedaje,'#,##0.0',false,greenF);
+    val(r,5,mo.hospedaje_total,MXN,true); r+=2;
+  } else { setCell(r,0, xlCell('Obra local — sin hospedaje',false,'FFFFFF','888888',null,'left')); merge(r,0,r,5); r+=2; }
+
+  // Automóvil
+  hdr(r,0,5,'AUTOMÓVIL / TRANSPORTE'); r++;
+  setCell(r,0, xlCell('Km ida sencilla',false,ltF,null,null,'right')); merge(r,0,r,1); val(r,2,mo.km_sencillo,'#,##0.0');
+  setCell(r,3, xlCell('# Viajes',false,ltF,null,null,'right')); val(r,4,mo.n_viajes,'#,##0'); r++;
+  setCell(r,0, xlCell('Rendimiento km/L',false,ltF,null,null,'right')); merge(r,0,r,1); val(r,2,mo.rendimiento,'#,##0.0');
+  setCell(r,3, xlCell('Precio gas $/L',false,ltF,null,null,'right')); val(r,4,mo.costo_gas,MXN); r++;
+  setCell(r,0, xlCell('Km TOTAL proyecto',true,greenF,null,null,'right')); merge(r,0,r,4); val(r,5,mo.km_total,'#,##0.0',true,greenF); r++;
+  hdr(r,0,4,'Concepto'); hdr(r,5,5,'Total'); r++;
+  setCell(r,0,xlCell(`Combustible (${fmtNum(mo.litros,1)} L × $${mo.costo_gas}/L)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.combustible_total,MXN); r++;
+  setCell(r,0,xlCell(`Casetas ($${mo.casetas_ida} × 2 × ${mo.n_viajes} viajes)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.casetas_total,MXN); r++;
+  if (mo.costo_desgaste_km>0) { setCell(r,0,xlCell(`Desgaste (${fmtNum(mo.km_total,0)} km × $${mo.costo_desgaste_km}/km)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.desgaste_total,MXN); r++; }
+  setCell(r,0,xlCell('Total Automóvil',true,ltF,null,null,'right')); merge(r,0,r,4); val(r,5,mo.total_automovil,MXN,true,ltF); r+=2;
+
+  // Total viáticos con ganancia
+  setCell(r,0,xlCell('Sub-Viáticos costo real (Comidas + Hospedaje + Auto)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.total_viaticos_real,true,ltF,'000000',MXN,'right')); r++;
+  setCell(r,0,xlCell('+ Ganancia 30% sobre viáticos',false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.ganancia_viaticos,false,'FFF8E1','E65100',MXN,'right')); r++;
+  setCell(r,0,xlCell('TOTAL VIÁTICOS COBRADO AL CLIENTE',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.total_viaticos,true,orangeF,'000000',MXN,'right')); r+=2;
+
+  // Equipo
+  hdr(r,0,5,'EQUIPO DE MANIOBRAS Y ELEVACIÓN'); r++;
+  hdr(r,0,1,'Descripción'); hdr(r,2,2,'Costo mensual'); hdr(r,3,3,'Costo diario'); hdr(r,4,4,`Días (=${mo.dias})`); hdr(r,5,5,'Total'); r++;
+  [
+    ['Escalera',COSTO_ESCALERA_MES,mo.d_esc,mo.usar_esc,mo.t_esc],
+    ['Genie 10 m',COSTO_GENNIE_MES,mo.d_gen,mo.usar_gen,mo.t_gen],
+    ['Elevador vertical',COSTO_ELEVADOR_MES,mo.d_elev,mo.usar_elev,mo.t_elev],
+    ['Plat. tijera',COSTO_PLAT_TIJERA_MES,mo.d_plat,mo.usar_plat,mo.t_plat],
+  ].forEach(([desc,mes,dia,usar,tot]) => {
+    const f = usar ? 'FFFFFF' : 'F5F5F5';
+    setCell(r,0,xlCell((usar?'✔ ':'✗ ')+desc,false,f,null,null,'left')); merge(r,0,r,1);
+    val(r,2,mes,MXN,false,f); val(r,3,dia,MXN,false,greenF);
+    val(r,4,usar?mo.dias:0,'#,##0.0',false,usar?greenF:f); val(r,5,tot,MXN,usar); r++;
+  });
+  setCell(r,0,xlCell('Embarque (fijo)',false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.embarque,MXN); r++;
+  setCell(r,0,xlCell('Total Plataformas',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.total_plataformas,true,orangeF,'000000',MXN,'right')); r+=2;
+
+  // Resumen
+  hdr(r,0,5,'RESUMEN GENERAL'); r++;
+  ['Total M.O.','Total Viáticos','Total Equipos','Total Material','TOTAL PROYECTO'].forEach((lbl,c)=>hdr(r,c,c,lbl)); r++;
+  const subtot = mo.subtotal_material||0;
+  const totProyecto = mo.costo_mo + mo.total_viaticos + mo.total_plataformas + subtot;
+  [mo.costo_mo,mo.total_viaticos,mo.total_plataformas,subtot,totProyecto].forEach((v,c) => {
+    setCell(r,c,xlCell(v,c===4,c===4?orangeF:'FFFFFF','000000',MXN,'right'));
+  }); r+=2;
+
+  // Total final
+  setCell(r,0,xlCell('TOTAL M.O. + EQUIPO + VIÁTICOS',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.total_mo_equipo_viaticos,true,orangeF,'000000',MXN,'right'));
+
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:22},{wch:16},{wch:14},{wch:14},{wch:14},{wch:14}];
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r+2,c:5}});
+  XLSX.utils.book_append_sheet(wb, ws, 'Hoja de presupuestos');
+}
+
+// ─ WORD GENERATOR ────────────────────────────────────────────────────────────
+function generateWord() {
+  if (!validateForm()) return;
+  const d = collectData();
+  const html = buildWordHTML(d);
+  const blob = new Blob(['﻿', html], {type:'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (d.cliente.folio||'cotizacion').replace(/[\/:*?"<>|]/g,'_') + '.doc';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},1000);
+  toast('📄 Word descargado');
+}
+
+function buildWordHTML(d) {
+  const {cliente, items, costo_mo, descuento, mo_res, tipo} = d;
+  const is_ip = tipo === 'ip';
+  const fechaES = cliente.fecha ? formatDateES(cliente.fecha) : '';
+  const subtotal = items.reduce((s,i)=>s+i.cantidad*i.precio,0);
+  const total_bruto = subtotal + (is_ip?costo_mo:0);
+  const desc_monto = total_bruto*descuento;
+  const total_neto = total_bruto - desc_monto;
+  const iva = total_neto * 0.16;
+  const total_con_iva = total_neto + iva;
+
+  const BENEFITS = [
+    'Rendimiento óptimo de las máquinas y utillajes al contar con un cociente de fricción bajo y tener una pérdida de presión por fricción menor a la que presenta una tubería de acero al carbón.',
+    'Protección duradera a sus equipos al no presentar corrosión interna, garantizando una calidad de aire limpio.',
+    'Ahorro de energía al tener un flujo de aire más laminar y por lo tanto menor caída de presión (máximo 5%).',
+    'Tiempo de instalación en menor tiempo que en una de acero al carbón, generando ahorros económicos en mano de obra.',
+    'Agregar derivaciones puede ser muy costoso con otro material (acero, PVC, etc.) con tubería de aluminio las derivaciones pueden ser instaladas en 30 minutos.',
+    'Facilidad de realizar modificaciones al ser una tubería fácil de extender al sistema existente, fácil desensamble y reubicación con componentes reutilizables.',
+    'Garantía de cero fugas de aire comprimido, generando importantes ahorros económicos.',
+    'Accesorios que garantizan una mayor durabilidad.',
+  ];
+
+  // ── Logo: read directly from window at call time ───────────────────────────
+  const gdLogo = window.LOGO_GD || '';
+  const logoCell = gdLogo
+    ? `<img src="${gdLogo}" alt="Gardner Denver" style="height:48pt;width:auto;display:block;">`
+    : `<span style="font-family:'Century Gothic',Arial,sans-serif;font-size:15pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER</span>`;
+
+  // ── Section header bar — mismo estilo del PDF (texto rojo + línea roja) ─────
+  const sectionHdr = (text) =>
+    `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:12pt 0 6pt 0;"><tr>
+      <td style="border:none;border-bottom:1.5pt solid #C8102E;padding:0 0 3pt 0;">
+        <span style="font-family:Arial,sans-serif;font-size:9.5pt;font-weight:bold;color:#C8102E;letter-spacing:.04em;">${text}</span>
+      </td>
+    </tr></table>`;
+
+  // ── Materials rows ─────────────────────────────────────────────────────────
+  const matRows = items.map((item, i) => {
+    const tot = item.cantidad * item.precio;
+    const bg = i % 2 === 0 ? '#EDF4FB' : '#FFFFFF';
+    return `<tr>
+      <td align="center" bgcolor="${bg}" style="background:${bg};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${i+1}</td>
+      <td bgcolor="${bg}" style="background:${bg};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.descripcion}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.numero_parte}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.cantidad}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${fmt(item.precio)}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Intro text ─────────────────────────────────────────────────────────────
+  const intro_text = is_ip
+    ? `Por este medio le informo el alcance y costo para la instalación de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`
+    : `Por este medio le informo el alcance y costo de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`;
+
+  // ── Cost table (IP only) – compact single rows ─────────────────────────────
+  function costRow(label, amount, bg, fc, fw, fs) {
+    return `<tr>
+      <td bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid #BBBBBB;">${label}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid #BBBBBB;white-space:nowrap;">${fmt(amount)}</td>
+    </tr>`;
+  }
+
+  const costTableHTML = is_ip ? (() => {
+    let rows = costRow('Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)', subtotal, '#EDF4FB','#1F1F1F','600','9pt');
+    if (costo_mo > 0) rows += costRow('Servicio de instalación y maniobras de tubería de aluminio', costo_mo, '#EDF4FB','#1F1F1F','600','9pt');
+    if (descuento > 0) rows += costRow(`Descuento (${(descuento*100).toFixed(0)}%)`, -desc_monto, '#FFF9E6','#C8102E','600','9pt');
+    rows += costRow('Subtotal', total_neto, '#D6E4F0','#1F1F1F','700','9.5pt');
+    rows += costRow('IVA (16%)', iva, '#F5F5F5','#555555','400','8.5pt');
+    rows += costRow('TOTAL DEL PROYECTO', total_con_iva, '#1F3864','#FFFFFF','700','10.5pt');
+    return `<table width="60%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6pt 0 4pt auto;">${rows}</table>
+      <p style="font-size:7.5pt;font-style:italic;color:#666666;margin:3pt 0 8pt 0;">(${amountWords(total_con_iva)} incluye IVA)</p>`;
+  })() : '';
+
+  // ── Bloque TIEMPO DE INSTALACIÓN (solo IP) ─────────────────────────────────
+  const tiempoInstalacionHTML = (is_ip && mo_res && mo_res.dias > 0) ? (() => {
+    const dias = mo_res.dias;
+    const semanasAprox = Math.ceil(dias / 5);
+    const diasFmt = fmtNum(dias, dias % 1 === 0 ? 0 : 1);
+    return `${sectionHdr('TIEMPO DE INSTALACIÓN')}
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#F5F8FC;border:0.5pt solid #C5D5E8;margin:0 0 6pt 0;">
+  <tr>
+    <td style="border:none;padding:10pt 16pt;">
+      <span style="font-size:22pt;font-weight:bold;color:#C8102E;">${diasFmt}</span>
+      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;"> dias habiles</span>
+      <br>
+      <span style="font-size:7.5pt;color:#888888;">aproximadamente ${semanasAprox} semana${semanasAprox === 1 ? '' : 's'} de trabajo</span>
+    </td>
+  </tr>
+</table>
+<p style="font-size:7.5pt;font-style:italic;color:#666666;margin:0 0 8pt 0;">El tiempo de instalacion indicado corresponde a dias habiles (lunes a viernes). Los trabajos en fines de semana o dias festivos no estan contemplados en esta cotizacion; en caso de requerirse, el costo se recotizara de acuerdo con el programa de trabajo acordado con el cliente.</p>`;
+  })() : '';
+
+  // ── Conditions ─────────────────────────────────────────────────────────────
+  const condRow = (b, t) =>
+    `<tr><td valign="top" width="26%" style="border:none;padding:3pt 9pt 3pt 0;"><b style="font-size:9pt;">${b}</b></td>
+     <td style="border:none;padding:3pt 0;font-size:9pt;color:#333333;">${t}</td></tr>`;
+
+  const P_COM = `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+    ${condRow('IVA:', 'A estos precios añadirles el 16% de I.V.A.')}
+    ${condRow('VIGENCIA:', 'La vigencia de esta cotización es de 15 días hábiles de no existir un incremento oficial en los salarios o en la paridad del dólar mayor al 3%.')}
+    ${condRow('NOTA:', 'Después de aceptar nuestra propuesta y de colocarnos el pedido, cualquier cancelación de su parte tendrá un cargo del 20% sobre el monto total.')}
+  </table>`;
+
+  const P_IP_extra = `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:3pt;">
+    ${condRow('COND. DE PAGO:', '50% de anticipo, 40% contra avance de obra y 10% contra entrega de la instalación, plano, pruebas de funcionamiento y corrección de fugas (en caso de presentarse).')}
+    ${condRow('TIEMPO DE ENTREGA:', 'Inmediato programado, salvo previa venta, a partir de contar con su orden de compra y anticipo. Instalación: 15 días hábiles a partir de contar con el material y área libre.')}
+  </table>`;
+
+  const P_IT_extra = `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:3pt;">
+    ${condRow('COND. DE PAGO:', 'Material de importación: 100% pago de contado.')}
+    ${condRow('TIEMPO DE ENTREGA:', 'Inmediato programado, salvo previa venta, a partir de contar con su pedido y pago del 100%.')}
+    ${condRow('ENTREGA CDMX:', 'Recolección LAB desde el mismo día (antes de 12:00 p.m.). Entrega a domicilio en CDMX y área metropolitana: 1–3 días hábiles sin costo.')}
+    ${condRow('REPÚBLICA:', 'Cuautitlán, Puebla, Querétaro, Guadalajara y Monterrey: 2–5 días hábiles. Fuera del área metropolitana: OCURRE por cobrar, embarque en 1–2 días hábiles.')}
+  </table>`;
+
+  return `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+    xmlns:w='urn:schemas-microsoft-com:office:word'
+    xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'>
+<style>
+@page Word_Section_1 {
+  size:21.59cm 27.94cm;
+  margin-top:2.5cm; margin-bottom:2.2cm; margin-left:1.8cm; margin-right:1.8cm;
+  mso-header-margin:1.2cm; mso-footer-margin:0.8cm;
+  mso-header: wdHdr;
+  mso-footer: wdFtr;
+}
+div.Section1 { page:Word_Section_1; }
+body { font-family:Arial,sans-serif; font-size:9pt; color:#1F1F1F; line-height:1.4; margin:0; padding:0; }
+p  { margin:0 0 4pt 0; }
+ul { margin:3pt 0; padding-left:16pt; }
+li { margin:2pt 0; }
+table { border-collapse:collapse; }
+</style>
+</head>
+<body>
+
+<!-- ═══ ENCABEZADO: logo izquierda + folio/fecha derecha ══════════════════════ -->
+<div style="mso-element:header" id="wdHdr">
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+    <tr>
+      <td valign="middle" style="border:none;padding:0;">
+        ${gdLogo
+          ? `<img src="${gdLogo}" alt="Gardner Denver" style="height:40pt;width:auto;">`
+          : `<span style="font-family:Arial,sans-serif;font-size:13pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER</span>`}
+      </td>
+      <td align="right" valign="middle" style="border:none;padding:0;">
+        <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">${cliente.folio || ''}</span><br>
+        <span style="font-size:7.5pt;color:#666666;">${fechaES ? 'Ciudad de Mexico, ' + fechaES : ''}</span>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" bgcolor="#C8102E" style="background:#C8102E;height:2pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ═══ PIE DE PÁGINA ════════════════════════════════════════════════════════ -->
+<div style="mso-element:footer" id="wdFtr">
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+    <tr>
+      <td colspan="2" bgcolor="#C8102E" style="background:#C8102E;height:1pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+    </tr>
+    <tr>
+      <td style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#666666;">
+        MANUFACTURERA CENTURY, S.A. DE C.V. &nbsp;·&nbsp; Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX
+      </td>
+      <td align="right" style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#888888;">${cliente.folio || ''}</td>
+    </tr>
+  </table>
+</div>
+
+<div class="Section1">
+
+<!-- ═══ EMPRESA + ASUNTO ══════════════════════════════════════════════════════ -->
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8pt;">
+  <tr>
+    <td width="55%" valign="top" style="border:none;padding:0 10pt 0 0;">
+      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;">${cliente.empresa || ''}</span>
+      ${cliente.atencion ? `<br><span style="font-size:8.5pt;color:#555555;">Atencion: <b>${cliente.atencion}</b></span>` : ''}
+    </td>
+    <td width="45%" valign="top" align="right" style="border:none;padding:0;">
+      <table cellpadding="0" cellspacing="0" style="border:1pt solid #C8102E;border-collapse:collapse;margin-left:auto;">
+        <tr><td style="padding:5pt 10pt;background:#FFF8F8;">
+          <span style="font-size:8pt;color:#1F1F1F;">
+            <b>Asunto:</b> Cotizacion de tuberia importada<br>en aluminio${is_ip ? ' con servicio de instalacion.' : '.'}
+          </span>
+        </td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="font-size:9pt;text-align:justify;margin-bottom:8pt;">${intro_text}</p>
+
+<!-- ═══ OBJETIVO ════════════════════════════════════════════════════════════ -->
+${sectionHdr('OBJETIVO')}
+<p style="font-size:8.5pt;margin-bottom:4pt;color:#444444;">La instalacion correcta y el buen funcionamiento se encuentren dentro de los parametros recomendados de eficiencia. La utilizacion e instalacion de tuberia de aluminio importado AIRWYN para sistemas de aire comprimido cuenta con ventajas como:</p>
+<ul style="margin:0;padding-left:15pt;">${BENEFITS.map(b=>`<li style="font-size:8pt;color:#333333;margin:2pt 0;">${b}</li>`).join('')}</ul>
+
+<!-- ═══ LISTA DE MATERIALES ══════════════════════════════════════════════════ -->
+${sectionHdr(is_ip ? 'ALCANCE Y COSTO DEL MATERIAL' : 'LISTA DE MATERIALES')}
+${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b>Proyecto:</b> ${cliente.desc_proy.charAt(0).toUpperCase()+cliente.desc_proy.slice(1)}, de acuerdo a la lista de materiales indicada a continuacion.</p>` : ''}
+
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+  <thead><tr>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 4pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:4%;">#</th>
+    <th bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 6pt;border:0.5pt solid #1F3864;font-size:7.5pt;text-align:left;width:40%;">Descripcion</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 4pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:18%;">No. de Parte</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 4pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:6%;">Cant.</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 6pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:16%;">P. Unitario</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 6pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:16%;">Total MXN</th>
+  </tr></thead>
+  <tbody>${matRows}</tbody>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:5pt;">
+  <tr>
+    <td width="54%" style="border:none;"></td>
+    <td bgcolor="#D6E4F0" style="background:#D6E4F0;font-weight:bold;font-size:8.5pt;padding:4pt 8pt;border:0.5pt solid #AAAAAA;">SUBTOTAL MATERIAL</td>
+    <td align="right" style="padding:4pt 8pt;border:0.5pt solid #AAAAAA;font-weight:bold;font-size:9pt;white-space:nowrap;">${fmt(subtotal)}</td>
+  </tr>
+</table>
+<p style="font-size:7pt;color:#666666;margin:3pt 0 6pt 0;font-style:italic;">${amountWords(subtotal)}</p>
+<p style="font-size:7.5pt;color:#666666;margin-bottom:4pt;">La lista de materiales es de acuerdo con la informacion que se nos proporciono; de existir alguna diferencia al colocarse el pedido, se ajustara el costo de esta cotizacion.</p>
+${!is_ip ? '<p style="font-size:9pt;font-weight:bold;margin-bottom:4pt;">A estos precios anadirles el 16% de I.V.A.</p>' : ''}
+
+<!-- ═══ RESUMEN DE COSTOS (solo IP) ══════════════════════════════════════════ -->
+${is_ip ? sectionHdr('RESUMEN DE COSTOS DEL PROYECTO') : ''}
+${costTableHTML}
+
+<!-- ═══ TIEMPO DE INSTALACIÓN (solo IP) ══════════════════════════════════════ -->
+${tiempoInstalacionHTML}
+
+<!-- ═══ CONDICIONES COMERCIALES ═══════════════════════════════════════════════ -->
+${sectionHdr('CONDICIONES COMERCIALES')}
+${P_COM}
+${is_ip ? P_IP_extra : P_IT_extra}
+
+<!-- ═══ FIRMA ═════════════════════════════════════════════════════════════════ -->
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:20pt;">
+  <tr>
+    <td width="55%" valign="top" style="border:none;padding:0;">
+      <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        <tr><td bgcolor="#C8102E" style="background:#C8102E;height:2.5pt;width:60pt;font-size:1pt;line-height:1pt;">&nbsp;</td></tr>
+        <tr><td style="border:none;padding:5pt 0 0 0;">
+          <span style="font-size:9pt;font-weight:bold;color:#1F1F1F;">Ing. Marco Antonio Millan Ramirez</span><br>
+          <span style="font-size:8pt;color:#555555;">Gerente de Ingenieria</span><br>
+          <span style="font-size:8pt;color:#555555;">Tel: 5555 63 26 11 Ext: 520</span><br>
+          ${!is_ip ? '<span style="font-size:7.5pt;color:#555555;">MARCOANTONIO.MILLAN@GARDNERDENVER.COM</span><br>' : ''}
+          <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">MANUFACTURERA CENTURY, S.A. DE C.V.</span><br>
+          <span style="font-size:7.5pt;color:#555555;">${is_ip ? 'Departamento de Ingenieria' : 'Departamento de Ingenieria de Tuberia'}</span>
+        </td></tr>
+      </table>
+    </td>
+    <td style="border:none;"></td>
+  </tr>
+</table>
+
+</div></body></html>`;
+}
+
+function generateBoth() {
+  generateWord();
+  setTimeout(generateExcel, 500);
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+function adminLogin() {
+  if (el('admin-pwd').value === ADMIN_PASSWORD) {
+    state.adminOk = true;
+    hide('admin-gate');
+    show('admin-panel');
+    renderAdminTable();
+  } else {
+    showCls('admin-err');
+  }
+}
+function adminLogout() {
+  state.adminOk = false;
+  show('admin-gate');
+  hide('admin-panel');
+  el('admin-pwd').value = '';
+}
+function unlockAddProduct() {
+  if (el('add-prod-pwd').value === ADMIN_PASSWORD) {
+    state.addProdOk = true;
+    hide('add-prod-gate');
+    show('add-prod-form');
+    hideCls('add-prod-err');
+  } else {
+    showCls('add-prod-err');
+  }
+}
+function lockAddProduct() {
+  state.addProdOk = false;
+  show('add-prod-gate');
+  hide('add-prod-form');
+  el('add-prod-pwd').value = '';
+}
+async function addProduct() {
+  const desc = el('new-desc').value.trim();
+  const part = el('new-part').value.trim();
+  const price = parseFloat(el('new-price').value)||0;
+  if (!desc||!part||price<=0) { alert('Completa todos los campos con un precio mayor a 0.'); return; }
+  const existing = state.materiales.findIndex(m=>m.numero_parte===part);
+  if (existing>=0) {
+    state.materiales[existing].descripcion = desc;
+    state.materiales[existing].precio = price;
+    el('add-prod-ok').textContent = `✅ Producto ${part} actualizado.`;
+  } else {
+    state.materiales.push({descripcion:desc,numero_parte:part,precio:price});
+    el('add-prod-ok').textContent = `✅ Producto ${part} agregado.`;
+  }
+  // Guardar en caché local siempre
+  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+  // Sincronizar este material con Supabase
+  if (window.SB && window.SB.configured) {
+    try {
+      await window.SB.upsert('materiales', [{numero_parte: part, descripcion: desc, precio: price}], 'numero_parte');
+      el('add-prod-ok').textContent += ' ☁️ Sincronizado.';
+    } catch(e) {
+      console.warn('Supabase sync individual:', e.message);
+      el('add-prod-ok').textContent += ' ⚠️ Sin conexión, guardado localmente.';
+    }
+  }
+  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  showCls('add-prod-ok'); el('new-desc').value=''; el('new-part').value=''; el('new-price').value='';
+  if (state.adminOk) renderAdminTable();
+}
+
+function uploadMateriales(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  el('upload-status').innerHTML = '<div class="info-box">Procesando...</div>';
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      // Try sheet "Lista de Materiales" or first sheet
+      const sheetName = wb.SheetNames.includes('Lista de Materiales') ? 'Lista de Materiales' : wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1});
+      const newMats = [];
+      rows.forEach((row,i) => {
+        if (i<2) return; // skip headers
+        const desc = String(row[3]||'').trim();
+        const part = String(row[4]||'').trim();
+        const price = parseFloat(row[7])||0;
+        const skip = new Set(['MC','Número de Parte','N?mero de Parte','']);
+        if (desc && part && !skip.has(part) && price>0) {
+          newMats.push({descripcion:desc, numero_parte:part, precio:price});
+        }
+      });
+      if (newMats.length===0) {
+        el('upload-status').innerHTML = '<div class="error-box">No se encontraron materiales válidos. Verifica que el archivo tenga la hoja "Lista de Materiales" con las columnas correctas.</div>';
+        return;
+      }
+      state.materiales = newMats;
+      // Guardar en caché local siempre
+      try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+      el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+      populateDiamFilter();
+      renderAdminTable();
+      // Sincronizar con Supabase (reemplaza catálogo completo)
+      if (window.SB && window.SB.configured) {
+        el('upload-status').innerHTML = `<div class="info-box">⏳ Sincronizando ${newMats.length} materiales con el servidor…</div>`;
+        try {
+          await replaceMateriales();
+          el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${file.name}" y sincronizados con el servidor ☁️.</div>`;
+        } catch(sbErr) {
+          el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${file.name}". ⚠️ No se pudo sincronizar con servidor: ${sbErr.message}</div>`;
+        }
+      } else {
+        el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${file.name}".</div>`;
+      }
+    } catch(err) {
+      el('upload-status').innerHTML = `<div class="error-box">Error al procesar el archivo: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── OSM — CALCULADORA DE RUTA (Leaflet + OSRM — sin clave API) ───────────────
+const _osm = { map: null, routeLayer: null, markers: [], origin: null, dest: null };
+let _nominatimTimer = null;
+
+function loadOSMMap() {
+  if (!window.L) {
+    el('gm-info').innerHTML = `<div class="error-box">Leaflet no se cargó. Verifica tu conexión y recarga la página.</div>`;
+    el('gm-info').style.display = 'block';
+    return;
+  }
+  if (_osm.map) {
+    // Ya existe — solo corrige el tamaño al volver a abrir el details
+    setTimeout(() => _osm.map.invalidateSize(), 120);
+    return;
+  }
+  _initOSMMap();
+}
+
+function _initOSMMap() {
+  // Pequeño delay para que el browser pinte el div antes de que Leaflet mida
+  setTimeout(() => {
+    _osm.map = L.map('gm-map').setView([23.6, -102.5], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(_osm.map);
+    // Segunda pasada para garantizar tiles cuando el panel acaba de abrir
+    setTimeout(() => _osm.map.invalidateSize(), 300);
+  }, 80);
+}
+
+function nominatimSearch(inp, ddId, role) {
+  clearTimeout(_nominatimTimer);
+  const q = inp.value.trim();
+  const dd = el(ddId);
+  if (q.length < 3) { dd.style.display = 'none'; return; }
+
+  _nominatimTimer = setTimeout(async () => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&countrycodes=mx&accept-language=es`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+      const items = await res.json();
+      if (!items.length) { dd.style.display = 'none'; return; }
+
+      dd.innerHTML = items.map(item => {
+        const name = item.display_name;
+        const lat  = item.lat, lon = item.lon;
+        return `<div onclick="selectPlace('${ddId}','${role}',${lat},${lon},\`${name.replace(/`/g,"'")}\`)"
+          style="padding:8px 12px;cursor:pointer;font-size:.83rem;border-bottom:1px solid #f0f0f0;line-height:1.35;"
+          onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">${name}</div>`;
+      }).join('');
+      dd.style.display = 'block';
+    } catch(e) { dd.style.display = 'none'; }
+  }, 420);
+}
+
+function selectPlace(ddId, role, lat, lon, name) {
+  _osm[role] = { lat: parseFloat(lat), lon: parseFloat(lon) };
+  el(role === 'origin' ? 'gm-origin' : 'gm-dest').value = name;
+  el(ddId).style.display = 'none';
+}
+
+// Cierra dropdowns al hacer clic fuera
+document.addEventListener('click', e => {
+  ['gm-origin-dd','gm-dest-dd'].forEach(id => {
+    const dd = el(id); if (!dd) return;
+    const inputId = id === 'gm-origin-dd' ? 'gm-origin' : 'gm-dest';
+    if (!dd.contains(e.target) && e.target.id !== inputId) dd.style.display = 'none';
+  });
+});
+
+async function _geocodeFallback(text) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=1&countrycodes=mx`;
+  const res  = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+  const data = await res.json();
+  if (!data.length) return null;
+  return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+}
+
+async function calcularRuta() {
+  // Si no hay coordenadas guardadas, geocodifica el texto escrito
+  if (!_osm.origin) {
+    const q = el('gm-origin').value.trim();
+    if (!q) { alert('Escribe el origen.'); return; }
+    el('gm-info').innerHTML = '<div class="info-box">⏳ Buscando origen…</div>';
+    el('gm-info').style.display = 'block';
+    _osm.origin = await _geocodeFallback(q);
+    if (!_osm.origin) {
+      el('gm-info').innerHTML = `<div class="error-box">No se encontró "<b>${q}</b>". Selecciónalo de la lista desplegable.</div>`;
+      return;
+    }
+  }
+  if (!_osm.dest) {
+    const q = el('gm-dest').value.trim();
+    if (!q) { alert('Escribe el destino.'); return; }
+    el('gm-info').innerHTML = '<div class="info-box">⏳ Buscando destino…</div>';
+    el('gm-info').style.display = 'block';
+    _osm.dest = await _geocodeFallback(q);
+    if (!_osm.dest) {
+      el('gm-info').innerHTML = `<div class="error-box">No se encontró "<b>${q}</b>". Selecciónalo de la lista desplegable.</div>`;
+      return;
+    }
+  }
+
+  el('gm-info').innerHTML = '<div class="info-box">⏳ Calculando ruta…</div>';
+  el('gm-info').style.display = 'block';
+
+  if (!_osm.map) { loadOSMMap(); await new Promise(r => setTimeout(r, 1800)); }
+
+  try {
+    const {lon: lon1, lat: lat1} = _osm.origin;
+    const {lon: lon2, lat: lat2} = _osm.dest;
+    const url  = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (data.code !== 'Ok' || !data.routes?.length) {
+      el('gm-info').innerHTML = `<div class="error-box">No se pudo trazar la ruta. Prueba con nombres de ciudad más específicos.</div>`;
+      return;
+    }
+
+    const route  = data.routes[0];
+    const distKm = Math.round(route.distance / 1000);
+    const mins   = Math.round(route.duration / 60);
+    const durTxt = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}min` : `${mins} min`;
+
+    // Dibujar en el mapa
+    if (_osm.routeLayer) _osm.map.removeLayer(_osm.routeLayer);
+    _osm.markers.forEach(m => _osm.map.removeLayer(m));
+    _osm.markers = [];
+
+    _osm.routeLayer = L.geoJSON(route.geometry, {
+      style: { color: '#C8102E', weight: 5, opacity: 0.85 }
+    }).addTo(_osm.map);
+    _osm.map.fitBounds(_osm.routeLayer.getBounds(), { padding: [36, 36] });
+
+    const iOrig = L.divIcon({ html: '📍', iconSize:[26,26], iconAnchor:[13,26], className:'' });
+    const iDest = L.divIcon({ html: '🏁', iconSize:[26,26], iconAnchor:[13,26], className:'' });
+    _osm.markers.push(
+      L.marker([lat1, lon1], { icon: iOrig }).bindPopup('Origen').addTo(_osm.map),
+      L.marker([lat2, lon2], { icon: iDest }).bindPopup('Destino').addTo(_osm.map)
+    );
+
+    // Auto-rellenar km
+    el('km_sencillo').value = distKm;
+
+    el('gm-info').innerHTML = `
+      <div class="success-box" style="font-size:.83rem;line-height:1.8;">
+        📏 Distancia: <b>${distKm} km</b> &nbsp;·&nbsp; ⏱ Tiempo estimado: <b>${durTxt}</b><br>
+        🛣️ Casetas: ingrésalas manualmente en el campo de abajo<br>
+        <span style="color:#888;font-size:.78rem;">✅ El campo "Distancia al sitio" se actualizó automáticamente.</span>
+      </div>`;
+
+    updateMO();
+  } catch(e) {
+    el('gm-info').innerHTML = `<div class="error-box">Error al calcular la ruta: ${e.message}</div>`;
+  }
+}
+
+// ── IMPORTAR EXCEL EN "AGREGAR PRODUCTO" ──────────────────────────────────────
+window._qxRows = null; // filas parseadas del archivo en preview
+
+function initQuickExcel(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  el('qx-fname').textContent = file.name;
+  el('qx-preview').innerHTML = '<div class="info-box">Leyendo archivo…</div>';
+  el('qx-preview').style.display = 'block';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const sName = wb.SheetNames.find(s => /material|lista|catalog/i.test(s)) || wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sName], {header:1, defval:''});
+      window._qxRows = rows;
+      renderQxMapper(rows, sName);
+    } catch(err) {
+      el('qx-preview').innerHTML = `<div class="error-box">Error al leer el archivo: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/** Detecta automáticamente fila de encabezados y columnas por palabras clave,
+ *  con fallback a detección por tipo de contenido de cada celda. */
+function autoDetectQxCols(rows) {
+  let hdrRow = -1, colMap = {desc:-1, part:-1, price:-1};
+
+  // Paso 1: buscar por palabras clave en las primeras 8 filas
+  for (let i = 0; i < Math.min(rows.length, 8); i++) {
+    rows[i].forEach((cell, j) => {
+      const c = String(cell||'').toLowerCase().trim();
+      if (/desc|mercancía|mercanc|articulo|artículo|producto|material/.test(c)) { colMap.desc = j;  hdrRow = i; }
+      if (/parte|part|no\.|num|código|codigo|clave|sku/.test(c))                { colMap.part = j;  hdrRow = i; }
+      if (/precio|price|unit|mxn|costo|cost/.test(c))                           { colMap.price = j; hdrRow = i; }
+    });
+    if (hdrRow === i) break;
+  }
+  if (hdrRow >= 0) return {hdrRow, colMap};
+
+  // Paso 2: fallback — detectar por tipo de contenido de cada columna
+  const sample = rows.slice(0, Math.min(rows.length, 20));
+  const ncols  = Math.max(...sample.map(r => r.length), 1);
+  const numS   = new Array(ncols).fill(0), codeS = new Array(ncols).fill(0);
+  const txtS   = new Array(ncols).fill(0), tot   = new Array(ncols).fill(0);
+
+  sample.forEach(row => {
+    for (let j = 0; j < ncols; j++) {
+      const v = String(row[j]||'').trim();
+      if (!v) continue; tot[j]++;
+      const n = parseFloat(v.replace(/[$,\s]/g,''));
+      if (!isNaN(n) && n > 0 && n < 9_999_999)                       numS[j]++;
+      else if (/^[A-Z0-9][A-Z0-9\s\-/]{1,24}$/i.test(v) && v.length<=30) codeS[j]++;
+      else                                                              txtS[j]++;
+    }
+  });
+  let maxN=0, maxC=0, maxT=0;
+  for (let j = 0; j < ncols; j++) {
+    if (!tot[j]) continue;
+    const nr=numS[j]/tot[j], cr=codeS[j]/tot[j], tr=txtS[j]/tot[j];
+    if (nr>0.55 && nr>maxN) { maxN=nr; colMap.price=j; }
+    else if (cr>0.45 && cr>maxC) { maxC=cr; colMap.part=j; }
+    else if (tr>0.45 && tr>maxT) { maxT=tr; colMap.desc=j; }
+  }
+  return {hdrRow:-1, colMap};
+}
+
+function renderQxMapper(rows, sheetName) {
+  const {hdrRow, colMap} = autoDetectQxCols(rows);
+  const dataStart = hdrRow >= 0 ? hdrRow + 1 : 0;
+  const hdrRowArr = hdrRow >= 0 ? rows[hdrRow] : [];
+  const ncols     = Math.max(...rows.slice(0, dataStart + 5).map(r => r.length), 3);
+  const letters   = Array.from({length: ncols}, (_, i) => String.fromCharCode(65 + i));
+
+  const colOpts = (selected) => [
+    `<option value="-1">– No usar –</option>`,
+    ...letters.map((l, i) => {
+      const hint = hdrRowArr[i] ? ` – ${String(hdrRowArr[i]).slice(0,22)}` : '';
+      return `<option value="${i}"${i===selected?' selected':''}>${l}${hint}</option>`;
+    })
+  ].join('');
+
+  const SS = 'width:100%;padding:7px 8px;border:1.5px solid #ccc;border-radius:6px;font-size:.84rem;font-family:Arial,sans-serif;';
+  const LS = 'font-size:.79rem;font-weight:600;color:#555;display:block;margin-bottom:3px;';
+
+  const previewRows = rows.slice(dataStart, dataStart + 5);
+  const previewHtml = `<div style="overflow-x:auto;margin:8px 0 12px;">
+    <table style="border-collapse:collapse;font-size:.78rem;width:100%;">
+      <thead><tr>${letters.map(l=>`<th style="border:1px solid #ddd;padding:3px 8px;background:#e9ecef;white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
+      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(r[i]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+
+  const totalRows = rows.length - dataStart;
+  const detected  = hdrRow >= 0 ? '✅ Encabezados detectados automáticamente' : '⚠️ Sin encabezados detectados — ajusta las columnas manualmente';
+
+  el('qx-preview').innerHTML = `
+    <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:14px;">
+      <div style="font-size:.82rem;color:#555;margin-bottom:10px;">
+        Hoja: <b>${sheetName}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px;">
+        <div><span style="${LS}">📝 Descripción</span><select id="qx-col-desc"  style="${SS}"><option value="-1">– No usar –</option>${colOpts(colMap.desc)}</select></div>
+        <div><span style="${LS}">🔢 No. de Parte</span><select id="qx-col-part"  style="${SS}"><option value="-1">– No usar –</option>${colOpts(colMap.part)}</select></div>
+        <div><span style="${LS}">💲 Precio Unitario MXN</span><select id="qx-col-price" style="${SS}"><option value="-1">– No usar –</option>${colOpts(colMap.price)}</select></div>
+      </div>
+      <div style="font-size:.78rem;color:#777;margin-bottom:2px;">Vista previa — primeras 5 filas a partir de la fila ${dataStart+1}:</div>
+      ${previewHtml}
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="importQuickExcel(${dataStart})">✅ Importar ${totalRows} productos</button>
+        <button class="btn btn-secondary btn-sm" onclick="el('qx-preview').style.display='none';el('qx-file').value='';el('qx-fname').textContent='';">✕ Cancelar</button>
+        <span id="qx-status" style="font-size:.82rem;font-weight:600;"></span>
+      </div>
+    </div>`;
+  el('qx-preview').style.display = 'block';
+}
+
+async function importQuickExcel(dataStart) {
+  const rows = window._qxRows;
+  if (!rows) return;
+  const dCol  = parseInt(el('qx-col-desc').value);
+  const pCol  = parseInt(el('qx-col-part').value);
+  const prCol = parseInt(el('qx-col-price').value);
+
+  if (dCol < 0 || pCol < 0 || prCol < 0) {
+    el('qx-status').style.color = '#c00';
+    el('qx-status').textContent = '⚠️ Selecciona las tres columnas antes de importar.';
+    return;
+  }
+
+  el('qx-status').style.color = '#555';
+  el('qx-status').textContent = '⏳ Procesando filas…';
+
+  let added=0, updated=0, skipped=0;
+  const toSync = [];
+
+  rows.slice(dataStart).forEach(row => {
+    const desc  = String(row[dCol] ||'').trim();
+    const part  = String(row[pCol] ||'').trim();
+    const price = parseFloat(String(row[prCol]||'').replace(/[$,\s]/g,''))||0;
+    if (!desc || !part || price <= 0) { skipped++; return; }
+    const idx = state.materiales.findIndex(m => m.numero_parte === part);
+    if (idx >= 0) {
+      state.materiales[idx].descripcion = desc;
+      state.materiales[idx].precio      = price;
+      updated++;
+    } else {
+      state.materiales.push({descripcion:desc, numero_parte:part, precio:price});
+      added++;
+    }
+    toSync.push({numero_parte:part, descripcion:desc, precio:price});
+  });
+
+  if (added + updated === 0) {
+    el('qx-status').style.color = '#c00';
+    el('qx-status').textContent = `⚠️ Ningún producto válido encontrado (${skipped} filas omitidas). Revisa las columnas seleccionadas.`;
+    return;
+  }
+
+  // Guardar caché local
+  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  if (state.adminOk) renderAdminTable();
+
+  // Sincronizar con Supabase
+  if (window.SB && window.SB.configured && toSync.length) {
+    el('qx-status').textContent = `⏳ Sincronizando ${toSync.length} productos con el servidor…`;
+    try {
+      const BATCH = 500;
+      for (let i = 0; i < toSync.length; i += BATCH)
+        await window.SB.upsert('materiales', toSync.slice(i, i + BATCH), 'numero_parte');
+      el('qx-status').style.color = '#2a7a2a';
+      el('qx-status').textContent = `✅ ${added} nuevos · ${updated} actualizados · ${skipped} omitidos · Sincronizado ☁️`;
+    } catch(e) {
+      el('qx-status').style.color = '#a05a00';
+      el('qx-status').textContent = `✅ ${added} nuevos · ${updated} actualizados. ⚠️ Sin sync Supabase: ${e.message}`;
+    }
+  } else {
+    el('qx-status').style.color = '#2a7a2a';
+    el('qx-status').textContent = `✅ ${added} nuevos · ${updated} actualizados · ${skipped} omitidos.`;
+  }
+
+  window._qxRows = null;
+  el('qx-file').value = '';
+  el('qx-fname').textContent = '';
+}
+
+function renderAdminTable() {
+  const q = (el('admin-search')||{value:''}).value.trim().toLowerCase();
+  const mats = state.materiales.filter(m =>
+    !q || m.descripcion.toLowerCase().includes(q) || m.numero_parte.toLowerCase().includes(q)
+  );
+  el('admin-mat-count').textContent = `${state.materiales.length} materiales`;
+  el('admin-tbody').innerHTML = mats.map((m,i) =>
+    `<tr><td>${i+1}</td><td>${m.descripcion}</td><td>${m.numero_parte}</td><td>${fmt(m.precio)}</td></tr>`
+  ).join('');
+}
+
+function exportCSV() {
+  const rows = [['Descripcion','Numero_Parte','Precio_Unitario_MXN'],...state.materiales.map(m=>[m.descripcion,m.numero_parte,m.precio])];
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='materiales.csv'; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},500);
+}
+
+// ── PERSISTENCIA (Supabase con fallback a localStorage y archivo local) ───────
+
+/** Carga materiales: Supabase → localStorage → MATERIALES_DB bundled */
+async function loadMateriales() {
+  // 1. Intentar desde Supabase
+  if (window.SB && window.SB.configured) {
+    try {
+      const rows = await window.SB.getAll('materiales', '?order=descripcion.asc&limit=5000');
+      if (rows && rows.length) {
+        state.materiales = rows.map(r => ({
+          descripcion: r.descripcion,
+          numero_parte: r.numero_parte,
+          precio: parseFloat(r.precio) || 0
+        }));
+        // Actualizar caché local
+        try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+        return true;
+      }
+    } catch(e) {
+      console.warn('Supabase no disponible, usando caché local:', e.message);
+    }
+  }
+  // 2. Fallback: localStorage
+  try {
+    const saved = localStorage.getItem('pipro_materiales');
+    if (saved) { state.materiales = JSON.parse(saved); return true; }
+  } catch(e) {}
+  return false;
+}
+
+/** Upsert de todos los materiales actuales en Supabase */
+async function saveMateriales() {
+  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+  if (!window.SB || !window.SB.configured) return;
+  const rows = state.materiales.map(m => ({
+    numero_parte: m.numero_parte, descripcion: m.descripcion, precio: m.precio
+  }));
+  await window.SB.upsert('materiales', rows, 'numero_parte');
+}
+
+/** Reemplaza TODOS los materiales en Supabase (usa en carga masiva desde Excel) */
+async function replaceMateriales() {
+  if (!window.SB || !window.SB.configured) return;
+  // Borrar catálogo anterior y subir el nuevo
+  await window.SB.deleteWhere('materiales', 'numero_parte=not.is.null');
+  const rows = state.materiales.map(m => ({
+    numero_parte: m.numero_parte, descripcion: m.descripcion, precio: m.precio
+  }));
+  // Supabase tiene límite de 1000 registros por POST; enviar en lotes
+  const BATCH = 500;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    await window.SB.upsert('materiales', rows.slice(i, i + BATCH), 'numero_parte');
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init() {
+  // Set today's date
+  const today = new Date();
+  const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0');
+  el('fecha').value = `${y}-${m}-${dd}`;
+
+  // Default tipo (carga UI antes de esperar a la red)
+  setTipo('ip');
+  updateFolio();
+  updateMO();
+
+  // Cargar materiales: Supabase → localStorage → archivo bundled
+  const loaded = await loadMateriales();
+  if (!loaded) {
+    state.materiales = (window.MATERIALES_DB||[]).map(m => ({
+      descripcion: m.descripcion, numero_parte: m.numero_parte, precio: m.precio
+    }));
+    // Si Supabase está configurado pero vacío, sembrar el catálogo inicial
+    if (window.SB && window.SB.configured && state.materiales.length > 0) {
+      replaceMateriales().catch(e => console.warn('Seed inicial Supabase:', e.message));
+    }
+  }
+  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  populateDiamFilter();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

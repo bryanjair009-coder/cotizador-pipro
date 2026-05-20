@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Portal PIPRO · Gardner Denver</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#0f0f14}
+header{
+  display:flex;align-items:center;height:50px;flex-shrink:0;
+  background:#15151E;border-bottom:2.5px solid #C8102E;
+  position:relative;z-index:10;box-shadow:0 2px 18px rgba(0,0,0,.5);
+}
+.brand{
+  display:flex;align-items:center;gap:10px;padding:0 20px;
+  border-right:1px solid rgba(255,255,255,.08);height:100%;min-width:180px;
+}
+.brand-logo{font-weight:900;font-size:13.5px;color:#fff;letter-spacing:.02em;line-height:1.2}
+.brand-logo span{color:#C8102E}
+.brand-sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;margin-top:1px}
+nav{display:flex;align-items:center;height:100%;padding:0 10px;gap:3px;flex:1}
+.tab{
+  display:flex;align-items:center;gap:7px;height:34px;padding:0 18px;
+  border-radius:8px;border:none;cursor:pointer;
+  font-size:13px;font-weight:600;font-family:Arial,sans-serif;
+  color:rgba(255,255,255,.45);background:transparent;transition:all .15s;
+  white-space:nowrap;
+}
+.tab:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.tab.active{background:#C8102E;color:#fff;box-shadow:0 3px 14px rgba(200,16,46,.4)}
+.tab-icon{font-style:normal;font-size:15px}
+.version{margin-left:auto;padding-right:16px;font-size:10px;color:rgba(255,255,255,.18);letter-spacing:.04em}
+main{position:relative;height:calc(100vh - 50px);overflow:hidden}
+iframe{
+  position:absolute;top:0;left:0;width:100%;height:100%;border:none;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;
+  background:#0f0f14;
+}
+iframe.active{opacity:1;pointer-events:auto}
+.loader{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  color:rgba(255,255,255,.3);font-size:13px;
+}
+.spinner{
+  width:32px;height:32px;border:3px solid rgba(200,16,46,.2);
+  border-top-color:#C8102E;border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div>
+      <div class="brand-logo">GARDNER <span>DENVER</span></div>
+      <div class="brand-sub">Portal PIPRO</div>
+    </div>
+  </div>
+  <nav>
+    <button class="tab active" data-tab="cotizador" onclick="showTab('cotizador')">
+      <i class="tab-icon">📋</i> Cotizador
+    </button>
+    <button class="tab" data-tab="gantt" onclick="showTab('gantt')">
+      <i class="tab-icon">📅</i> Diagrama de Gantt
+    </button>
+    <button class="tab" data-tab="requisiciones" onclick="showTab('requisiciones')">
+      <i class="tab-icon">📦</i> Requisiciones
+    </button>
+    <button class="tab" data-tab="presiones" onclick="showTab('presiones')">
+      <i class="tab-icon">🔵</i> Caídas de Presión
+    </button>
+  </nav>
+  <div class="version">PIPRO v2.0</div>
+</header>
+
+<main id="main">
+  <!-- Cotizador carga de inmediato (pestaña activa por defecto) -->
+  <iframe id="frame-cotizador" src="cotizador.html" class="active"></iframe>
+  <!-- Gantt y Requisiciones: carga diferida (data-src) -->
+  <iframe id="frame-gantt"         data-src="gantt.html"></iframe>
+  <iframe id="frame-requisiciones" data-src="requisiciones.html"></iframe>
+  <iframe id="frame-presiones"    data-src="presiones.html"></iframe>
+
+  <div class="loader" id="loader" style="display:none">
+    <div class="spinner"></div>
+    <span id="loader-txt">Cargando…</span>
+  </div>
+</main>
+
+<script>
+const NAMES = {
+  cotizador:    'Cotizador PIPRO',
+  gantt:        'Generador de Gantt',
+  requisiciones:'Requisiciones',
+  presiones:    'Caídas de Presión',
+};
+const LOADER_LABELS = {
+  cotizador:    'Cargando cotizador…',
+  gantt:        'Cargando generador de Gantt…',
+  requisiciones:'Cargando módulo de requisiciones…',
+  presiones:    'Cargando módulo de presiones…',
+};
+
+function showTab(name) {
+  // Actualizar botones
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name)
+  );
+
+  const frame = document.getElementById('frame-' + name);
+
+  // Carga diferida: asignar src solo la primera vez
+  if (frame.dataset.src) {
+    showLoader(LOADER_LABELS[name]);
+    frame.addEventListener('load', hideLoader, { once: true });
+    frame.src = frame.dataset.src;
+    delete frame.dataset.src;
+  }
+
+  // Mostrar/ocultar iframes
+  document.querySelectorAll('iframe').forEach(f =>
+    f.classList.toggle('active', f.id === 'frame-' + name)
+  );
+
+  document.title = NAMES[name] + ' · Gardner Denver';
+}
+
+function showLoader(msg) {
+  const l = document.getElementById('loader');
+  document.getElementById('loader-txt').textContent = msg;
+  l.style.display = 'flex';
+}
+function hideLoader() {
+  document.getElementById('loader').style.display = 'none';
+}
+</script>
+</body>
+</html>

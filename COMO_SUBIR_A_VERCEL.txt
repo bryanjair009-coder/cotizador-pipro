@@ -1,0 +1,53 @@
+═══════════════════════════════════════════════════════
+  CÓMO SUBIR EL COTIZADOR PIPRO A VERCEL
+  (Para abrir desde cualquier dispositivo con internet)
+═══════════════════════════════════════════════════════
+
+OPCIÓN A - CON GITHUB (recomendada, actualizaciones automáticas):
+─────────────────────────────────────────────────────────────────
+1. Crear cuenta en github.com (gratis)
+2. Crear un repositorio nuevo llamado "cotizador-pipro"
+3. Subir todos los archivos de esta carpeta "web-app" al repositorio
+4. Ir a vercel.com → "Add New Project" → conectar con GitHub
+5. Seleccionar el repositorio → Deploy
+6. ¡Listo! Vercel te dará una URL como: https://cotizador-pipro.vercel.app
+
+OPCIÓN B - DIRECTO (sin GitHub, más fácil):
+─────────────────────────────────────────────────────────────────
+1. Ir a vercel.com con tu cuenta (bryanjair009@gmail.com)
+2. En el dashboard → "Add New Project" → "Browse"
+3. Arrastrar la carpeta "web-app" completa
+   (o usar el CLI: npm i -g vercel → vercel deploy)
+4. Vercel desplegará automáticamente y dará una URL pública
+
+OPCIÓN C - CON VERCEL CLI (desde terminal):
+─────────────────────────────────────────────────────────────────
+1. Instalar Node.js si no lo tienes (nodejs.org)
+2. Abrir PowerShell en la carpeta web-app
+3. Ejecutar:
+     npm install -g vercel
+     vercel login
+     vercel --prod
+4. Seguir las instrucciones en pantalla
+5. La URL final será algo como: https://cotizador-pipro-xxx.vercel.app
+
+ARCHIVOS NECESARIOS (todos en la carpeta web-app):
+─────────────────────────────────────────────────────────────────
+  index.html       ← Aplicación completa (HTML + CSS + JavaScript)
+  materiales.js    ← Base de datos de 234 materiales
+  vercel.json      ← Configuración de Vercel
+  assets/
+    logo_gd.png    ← Logo de Gardner Denver
+
+NOTAS IMPORTANTES:
+─────────────────────────────────────────────────────────────────
+- La URL que da Vercel funciona desde cualquier dispositivo:
+  tablet, celular, computadora
+- No requiere instalar nada en el dispositivo
+- Funciona en Safari (iPad/iPhone), Chrome, Edge, Firefox
+- Los cambios al carrito y productos se guardan mientras
+  la pestaña esté abierta
+- Contraseña de administrador: pipro2026
+- Los documentos Word (.doc) y Excel (.xlsx) se descargan
+  directamente desde el navegador
+═══════════════════════════════════════════════════════

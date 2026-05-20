@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Requisiciones · Ingeniería</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="logo_b64.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0b0d11;font-family:'Archivo',sans-serif}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:#0e1116}
+::-webkit-scrollbar-thumb{background:#2d3340;border-radius:6px}
+::-webkit-scrollbar-thumb:hover{background:#3d4452}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.req-input::placeholder{color:#5a6270}
+input[type="date"]{color-scheme:dark}
+select{color-scheme:dark}
+#loading{color:#8b94a3;font-size:14px;text-align:center;padding:80px 20px}
+</style>
+</head>
+<body>
+<div id="root"><div id="loading">Cargando…</div></div>
+<script type="text/babel">
+const{useState,useEffect,useMemo,useRef}=React;
+
+const APPROVER="Marco Antonio Millan Ramirez";
+const DELIVERY_DEFAULT="Entrega al Depto. de Ingeniería";
+const C={bg:"#0b0d11",panel:"#13161c",panel2:"#1a1e26",border:"#262b35",borderLight:"#323844",text:"#e8eaed",textDim:"#8b94a3",textFaint:"#5a6270",accent:"#f0b429",accentDim:"#a87d12",green:"#3fb950",red:"#f85149"};
+
+// ─── Capa de datos – Supabase ─────────────────────────────────────────────────
+
+/** Obtiene todas las requisiciones ordenadas por fecha descendente */
+async function dbGetAll(){
+  const rows = await window.SB.getAll('requisiciones','?order=created_at.desc');
+  return (rows||[]).map(r=>({
+    folio:       r.folio,
+    requester:   r.requester,
+    company:     r.company,
+    isInternal:  r.is_internal,
+    approver:    r.approver,
+    delivery:    r.delivery,
+    observations:r.observations,
+    date:        r.date,
+    items:       r.items||[],
+    createdAt:   new Date(r.created_at).getTime()
+  }));
+}
+
+/** Guarda (o actualiza) una requisición */
+async function dbPut(obj){
+  await window.SB.upsert('requisiciones',[{
+    folio:       obj.folio,
+    requester:   obj.requester,
+    company:     obj.company||'',
+    is_internal: obj.isInternal||false,
+    approver:    obj.approver,
+    delivery:    obj.delivery,
+    observations:obj.observations||'',
+    date:        obj.date,
+    items:       obj.items
+  }],'folio');
+}
+
+/** Elimina una requisición por folio */
+async function dbDel(folio){
+  await window.SB.delete('requisiciones',{folio});
+}
+
+/** Lee un valor de metadatos (companies → tabla empresas; resto → tabla meta) */
+async function dbGetMeta(key,fb){
+  if(key==='companies'){
+    try{
+      const rows=await window.SB.getAll('empresas','?order=nombre.asc');
+      return rows&&rows.length?rows.map(r=>r.nombre):fb;
+    }catch{return fb;}
+  }
+  return window.SB.getMeta(key,fb);
+}
+
+/** Guarda un valor de metadatos */
+async function dbSetMeta(key,val){
+  if(key==='companies'){
+    // Upsert de todas las empresas (nunca borra, solo acumula)
+    const rows=val.map(nombre=>({nombre}));
+    await window.SB.upsert('empresas',rows,'nombre');
+    return;
+  }
+  await window.SB.setMeta(key,val);
+}
+
+// ─── Utilidades ───────────────────────────────────────────────────────────────
+function makeFolio(n){return'REQ-'+new Date().getFullYear()+'-'+String(n).padStart(4,'0');}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function fmtDate(iso){if(!iso)return'–';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+
+// ─── PDF ──────────────────────────────────────────────────────────────────────
+function downloadPDF(req){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'letter'});
+  const PW=doc.internal.pageSize.getWidth(), PH=doc.internal.pageSize.getHeight();
+  const ML=12, RED=[200,16,46], DARK=[30,30,38], GRAY=[150,150,160], LGRAY=[220,220,225];
+
+  // Franja roja delgada en la parte superior
+  doc.setFillColor(...RED); doc.rect(0,0,PW,1.5,'F');
+
+  // Logo
+  const logo=window.LOGO_GD||null;
+  const LOGO_W=36, LOGO_H=14;
+  if(logo){ try{ doc.addImage(logo,'PNG',ML,4,LOGO_W,LOGO_H); }catch(e){} }
+
+  // Título a la derecha del logo
+  const tx=ML+LOGO_W+8;
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...DARK);
+  doc.text('Solicitud de Requisición', tx, 10);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+  doc.text('Departamento de Ingeniería  ·  Gardner Denver México', tx, 15.5);
+
+  // Folio y fecha (derecha)
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+  doc.text(req.folio, PW-ML, 10, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+  doc.text('Fecha: '+fmtDate(req.date), PW-ML, 15.5, {align:'right'});
+
+  // Línea separadora
+  let y=22;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3); doc.line(ML,y,PW-ML,y); y+=8;
+
+  // Título de sección
+  function secTitle(txt,yy){
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...RED);
+    doc.text(txt, ML, yy);
+    doc.setDrawColor(...RED); doc.setLineWidth(0.4); doc.line(ML,yy+1,PW-ML,yy+1);
+    return yy+6;
+  }
+
+  // Campo etiqueta + valor
+  const CW=(PW-ML*2)/2;
+  function field(lbl,val,x,yy){
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+    doc.text(lbl, x, yy);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    const lines=doc.splitTextToSize(String(val||'–'), CW-4);
+    doc.text(lines, x, yy+5);
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(x,yy+7.5,x+CW-4,yy+7.5);
+    return yy+13;
+  }
+
+  // Datos generales
+  y=secTitle('DATOS GENERALES', y);
+  let yL=y, yR=y;
+  yL=field('SOLICITA (INGENIERO)', req.requester||'–', ML, yL);
+  yR=field('EMPRESA', req.isInternal?'Requisición interna – Equipo de Ingeniería':(req.company||'–'), ML+CW, yR);
+  yL=field('APRUEBA', req.approver, ML, yL);
+  yR=field('FORMATO DE ENTREGA', req.delivery, ML+CW, yR);
+  y=Math.max(yL,yR)+3;
+
+  // Partes solicitadas
+  y=secTitle('PARTES SOLICITADAS', y);
+  const body=req.items.map((it,i)=>[String(i+1),String(it.qty),it.partNumber||'–',it.description]);
+  doc.autoTable({
+    startY:y, head:[['#','Cant.','No. de Parte','Descripción de Mercancía']],
+    body:body.length?body:[['–','–','–','Sin partes registradas']],
+    margin:{left:ML,right:ML}, theme:'plain',
+    styles:{font:'helvetica',fontSize:9,cellPadding:2.5,textColor:[40,40,40]},
+    headStyles:{fillColor:[45,45,55],textColor:[255,255,255],fontSize:8,fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[248,248,250]},
+    columnStyles:{0:{halign:'center',cellWidth:10},1:{halign:'center',cellWidth:16},2:{cellWidth:40,font:'courier',fontSize:8.5}},
+  });
+  y=doc.lastAutoTable.finalY+8;
+
+  // Observaciones
+  y=secTitle('OBSERVACIONES', y);
+  const obsText=req.observations||'Sin observaciones.';
+  const obsLines=doc.splitTextToSize(obsText, PW-ML*2-4);
+  const obsH=Math.max(14,obsLines.length*4.5+6);
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.setFillColor(250,251,252);
+  doc.roundedRect(ML,y,PW-ML*2,obsH,1,1,'FD');
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.setTextColor(req.observations?40:160, req.observations?40:160, req.observations?40:160);
+  doc.text(obsLines, ML+3, y+5); y+=obsH+16;
+
+  // Firmas
+  const SW=(PW-ML*2-24)/2;
+  function sig(x,name,role){
+    doc.setDrawColor(...DARK); doc.setLineWidth(0.4); doc.line(x,y,x+SW,y);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+    doc.text(name||'________________', x+SW/2, y+5, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+    doc.text(role, x+SW/2, y+9, {align:'center'});
+  }
+  sig(ML, req.requester, 'SOLICITANTE');
+  sig(ML+SW+24, req.approver, 'GERENTE DE INGENIERÍA – APROBACIÓN');
+
+  // Pie de página
+  const FY=PH-10;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML,FY-3,PW-ML,FY-3);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+  doc.text('Documento generado – uso interno  ·  Gardner Denver México', ML, FY);
+  doc.text(req.folio, PW-ML, FY, {align:'right'});
+
+  doc.save(req.folio+'.pdf');
+}
+
+// ─── Componentes básicos ──────────────────────────────────────────────────────
+const IS={width:'100%',background:C.bg,border:'1px solid '+C.border,borderRadius:8,padding:'10px 12px',color:C.text,fontSize:14,fontFamily:"'Archivo',sans-serif",outline:'none',transition:'border-color 0.15s'};
+function Field({label,hint,children}){return(<div style={{marginBottom:16}}><label style={{display:'block',fontSize:11,fontWeight:700,letterSpacing:'0.6px',textTransform:'uppercase',color:C.textDim,marginBottom:6}}>{label}{hint&&<span style={{color:C.textFaint,fontWeight:400,textTransform:'none',letterSpacing:0,marginLeft:6}}>{hint}</span>}</label>{children}</div>);}
+function TI({value,onChange,placeholder,disabled,mono}){return(<input className="req-input" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} disabled={disabled} style={{...IS,fontFamily:mono?"'Spline Sans Mono',monospace":"'Archivo',sans-serif",opacity:disabled?0.4:1,cursor:disabled?'not-allowed':'text'}} onFocus={e=>e.target.style.borderColor=C.accent} onBlur={e=>e.target.style.borderColor=C.border}/>);}
+
+// ─── Formulario nueva requisición ─────────────────────────────────────────────
+function NewForm({companies,onAddCompany,onSave,nextFolio}){
+  const[requester,setRequester]=useState('');
+  const[isInternal,setIsInternal]=useState(false);
+  const[company,setCompany]=useState('');
+  const[ddOpen,setDdOpen]=useState(false);
+  const[newCo,setNewCo]=useState('');
+  const[delivery,setDelivery]=useState(DELIVERY_DEFAULT);
+  const[obs,setObs]=useState('');
+  const[date,setDate]=useState(todayISO());
+  const[items,setItems]=useState([{qty:'',partNumber:'',description:''}]);
+  const[error,setError]=useState('');
+  const ddRef=useRef(null);
+  useEffect(()=>{function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setDdOpen(false);}document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);},[]);
+  function updItem(i,k,v){setItems(p=>p.map((it,j)=>j===i?{...it,[k]:v}:it));}
+  function addItem(){setItems(p=>[...p,{qty:'',partNumber:'',description:''}]);}
+  function rmItem(i){setItems(p=>p.length===1?p:p.filter((_,j)=>j!==i));}
+  function addCo(){const n=newCo.trim();if(!n)return;onAddCompany(n);setCompany(n);setNewCo('');setDdOpen(false);}
+  function reset(){setRequester('');setIsInternal(false);setCompany('');setDelivery(DELIVERY_DEFAULT);setObs('');setDate(todayISO());setItems([{qty:'',partNumber:'',description:''}]);setError('');}
+  function submit(){
+    if(!requester.trim()){setError('Indica el nombre del ingeniero que solicita.');return;}
+    if(!isInternal&&!company.trim()){setError('Selecciona una empresa o marca la requisición como interna.');return;}
+    const clean=items.filter(it=>it.description.trim()||String(it.qty).trim()||it.partNumber.trim()).map(it=>({qty:String(it.qty).trim()||'1',partNumber:it.partNumber.trim(),description:it.description.trim()}));
+    if(!clean.length){setError('Agrega al menos una parte con descripción.');return;}
+    if(clean.some(it=>!it.description)){setError('Cada parte necesita una descripción de mercancía.');return;}
+    onSave({requester:requester.trim(),isInternal,company:isInternal?'':company.trim(),approver:APPROVER,delivery:delivery.trim()||DELIVERY_DEFAULT,observations:obs.trim(),date,items:clean});
+    reset();
+  }
+  return(<div style={{animation:'slideUp .3s ease both'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22,paddingBottom:16,borderBottom:'1px solid '+C.border}}>
+      <div><h2 style={{fontSize:20,fontWeight:800,color:C.text,letterSpacing:'-.3px'}}>Nueva Requisición</h2><p style={{fontSize:13,color:C.textDim,marginTop:2}}>Completa los datos y descarga el PDF</p></div>
+      <div style={{fontFamily:"'Spline Sans Mono',monospace",fontSize:15,fontWeight:600,color:C.accent,background:C.bg,border:'1px solid '+C.accentDim,padding:'8px 14px',borderRadius:8}}>{nextFolio}</div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 24px'}}>
+      <Field label="Solicita – Nombre del Ingeniero"><TI value={requester} onChange={setRequester} placeholder="Ej. Juan Pérez García"/></Field>
+      <Field label="Fecha de Solicitud"><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={IS}/></Field>
+    </div>
+    <div style={{background:C.panel2,border:'1px solid '+C.border,borderRadius:10,padding:16,marginBottom:16}}>
+      <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',marginBottom:isInternal?0:14,flexWrap:'wrap'}}>
+        <div onClick={()=>setIsInternal(!isInternal)} style={{width:20,height:20,borderRadius:6,flexShrink:0,border:'1.5px solid '+(isInternal?C.accent:C.borderLight),background:isInternal?C.accent:'transparent',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
+          {isInternal&&<span style={{color:C.bg,fontSize:13,fontWeight:900}}>✓</span>}
+        </div>
+        <span style={{fontSize:14,color:C.text,fontWeight:500}}>Requisición interna – herramientas para el equipo de ingeniería</span>
+        <span style={{fontSize:12,color:C.textFaint}}>(oculta el campo de empresa)</span>
+      </label>
+      {!isInternal&&(<Field label="Empresa">
+        <div ref={ddRef} style={{position:'relative'}}>
+          <div onClick={()=>setDdOpen(!ddOpen)} style={{...IS,display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer',color:company?C.text:C.textFaint}}>
+            <span>{company||'Selecciona o agrega una empresa…'}</span>
+            <span style={{color:C.textDim,fontSize:11}}>{ddOpen?'▲':'▼'}</span>
+          </div>
+          {ddOpen&&(<div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:8,padding:6,boxShadow:'0 12px 32px rgba(0,0,0,.5)',maxHeight:260,overflowY:'auto',animation:'fadeIn .12s ease'}}>
+            {!companies.length&&<div style={{padding:'8px 10px',fontSize:13,color:C.textFaint}}>No hay empresas guardadas</div>}
+            {companies.map(co=>(<div key={co} onClick={()=>{setCompany(co);setDdOpen(false);}} style={{padding:'8px 10px',fontSize:14,color:C.text,borderRadius:6,cursor:'pointer',background:co===company?C.bg:'transparent'}} onMouseEnter={e=>e.currentTarget.style.background=C.bg} onMouseLeave={e=>e.currentTarget.style.background=co===company?C.bg:'transparent'}>{co}</div>))}
+            <div style={{display:'flex',gap:6,padding:6,marginTop:4,borderTop:'1px solid '+C.border}}>
+              <input className="req-input" value={newCo} onChange={e=>setNewCo(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addCo()} placeholder="Nueva empresa…" style={{...IS,padding:'7px 10px',fontSize:13}}/>
+              <button onClick={addCo} style={{background:C.accent,border:'none',borderRadius:6,padding:'0 14px',cursor:'pointer',color:C.bg,fontSize:18,fontWeight:700}}>+</button>
+            </div>
+          </div>)}
+        </div>
+      </Field>)}
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 24px'}}>
+      <Field label="Usuario que Aprueba"><TI value={APPROVER} onChange={()=>{}} disabled/></Field>
+      <Field label="Formato de Entrega"><TI value={delivery} onChange={setDelivery} placeholder={DELIVERY_DEFAULT}/></Field>
+    </div>
+    <div style={{marginTop:8,marginBottom:16}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+        <label style={{fontSize:11,fontWeight:700,letterSpacing:'0.6px',textTransform:'uppercase',color:C.textDim}}>Partes a Comprar</label>
+        <button onClick={addItem} style={{display:'flex',alignItems:'center',gap:6,background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:7,padding:'6px 12px',color:C.text,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>+ Agregar fila</button>
+      </div>
+      <div style={{border:'1px solid '+C.border,borderRadius:10,overflow:'hidden'}}>
+        <div style={{display:'grid',gridTemplateColumns:'80px 1fr 1.6fr 44px',gap:1,background:C.border}}>
+          {['Cantidad','No. de Parte','Descripción de Mercancía',''].map((h,i)=>(<div key={i} style={{background:C.panel2,padding:'9px 12px',fontSize:10.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:C.textDim}}>{h}{i===1&&<span style={{color:C.textFaint,fontWeight:400,textTransform:'none'}}> (opcional)</span>}</div>))}
+        </div>
+        {items.map((it,i)=>(<div key={i} style={{display:'grid',gridTemplateColumns:'80px 1fr 1.6fr 44px',gap:1,background:C.border}}>
+          <div style={{background:C.panel}}><input className="req-input" value={it.qty} onChange={e=>updItem(i,'qty',e.target.value.replace(/[^0-9.]/g,''))} placeholder="0" style={{...IS,border:'none',borderRadius:0,background:'transparent',textAlign:'center'}}/></div>
+          <div style={{background:C.panel}}><input className="req-input" value={it.partNumber} onChange={e=>updItem(i,'partNumber',e.target.value)} placeholder="–" style={{...IS,border:'none',borderRadius:0,background:'transparent',fontFamily:"'Spline Sans Mono',monospace",fontSize:13}}/></div>
+          <div style={{background:C.panel}}><input className="req-input" value={it.description} onChange={e=>updItem(i,'description',e.target.value)} placeholder="Descripción de la mercancía…" style={{...IS,border:'none',borderRadius:0,background:'transparent'}}/></div>
+          <div style={{background:C.panel,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={()=>rmItem(i)} disabled={items.length===1} style={{background:'transparent',border:'none',cursor:items.length===1?'not-allowed':'pointer',color:C.red,fontSize:16,opacity:items.length===1?0.25:0.8}}>🗑</button></div>
+        </div>))}
+      </div>
+    </div>
+    <Field label="Observaciones"><textarea className="req-input" value={obs} onChange={e=>setObs(e.target.value)} placeholder="Comentarios adicionales, justificación, urgencia…" rows={3} style={{...IS,resize:'vertical',lineHeight:1.5}}/></Field>
+    {error&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid '+C.red,borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:C.red}}>⚠ {error}</div>}
+    <div style={{display:'flex',gap:10}}>
+      <button onClick={submit} style={{flex:1,background:C.accent,border:'none',borderRadius:9,padding:'13px',color:C.bg,fontSize:14.5,fontWeight:800,cursor:'pointer',fontFamily:"'Archivo',sans-serif",letterSpacing:'0.2px'}}>✓ Guardar requisición y descargar PDF</button>
+      <button onClick={reset} style={{background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:9,padding:'13px 20px',color:C.textDim,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>Limpiar</button>
+    </div>
+  </div>);
+}
+
+// ─── Historial ────────────────────────────────────────────────────────────────
+function DR({label,value,full}){return(<div style={{gridColumn:full?'1 / -1':'auto'}}><span style={{fontSize:10.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:C.textFaint,marginRight:8}}>{label}</span><span style={{color:C.text}}>{value}</span></div>);}
+
+function History({requisitions,companies,onDelete}){
+  const[fco,setFco]=useState('ALL');
+  const[from,setFrom]=useState('');
+  const[to,setTo]=useState('');
+  const[search,setSearch]=useState('');
+  const[exp,setExp]=useState(null);
+  const filtered=useMemo(()=>{
+    return requisitions.filter(r=>{if(fco==='INTERNAL')return r.isInternal;if(fco!=='ALL')return!r.isInternal&&r.company===fco;return true;}).filter(r=>from?r.date>=from:true).filter(r=>to?r.date<=to:true).filter(r=>{if(!search.trim())return true;const q=search.toLowerCase();return r.folio.toLowerCase().includes(q)||r.requester.toLowerCase().includes(q)||(r.company||'').toLowerCase().includes(q)||r.items.some(it=>it.description.toLowerCase().includes(q)||it.partNumber.toLowerCase().includes(q));}).sort((a,b)=>b.createdAt-a.createdAt);
+  },[requisitions,fco,from,to,search]);
+  const hasF=fco!=='ALL'||from||to||search;
+  const FLS={display:'flex',alignItems:'center',gap:4,fontSize:10.5,fontWeight:700,letterSpacing:'0.5px',textTransform:'uppercase',color:C.textDim,marginBottom:5};
+  return(<div style={{animation:'slideUp .3s ease both'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,paddingBottom:16,borderBottom:'1px solid '+C.border}}>
+      <div><h2 style={{fontSize:20,fontWeight:800,color:C.text,letterSpacing:'-.3px'}}>Consulta de Requisiciones</h2><p style={{fontSize:13,color:C.textDim,marginTop:2}}>{requisitions.length} requisicion{requisitions.length===1?'':'es'} en la base de datos{hasF&&' · '+filtered.length+' coinciden con los filtros'}</p></div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1.4fr 1fr 1fr 1fr',gap:12,background:C.panel2,border:'1px solid '+C.border,borderRadius:10,padding:14,marginBottom:18}}>
+      <div><label style={FLS}>🔍 Buscar</label><input className="req-input" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Folio, ingeniero, parte…" style={{...IS,padding:'8px 11px',fontSize:13}}/></div>
+      <div><label style={FLS}>🏢 Empresa</label><select value={fco} onChange={e=>setFco(e.target.value)} style={{...IS,padding:'8px 11px',fontSize:13,cursor:'pointer'}}><option value="ALL">Todas</option><option value="INTERNAL">★ Internas (ingeniería)</option>{companies.map(co=><option key={co} value={co}>{co}</option>)}</select></div>
+      <div><label style={FLS}>📅 Desde</label><input type="date" value={from} onChange={e=>setFrom(e.target.value)} style={{...IS,padding:'8px 11px',fontSize:13}}/></div>
+      <div><label style={FLS}>📅 Hasta</label><input type="date" value={to} onChange={e=>setTo(e.target.value)} style={{...IS,padding:'8px 11px',fontSize:13}}/></div>
+      {hasF&&<button onClick={()=>{setFco('ALL');setFrom('');setTo('');setSearch('');}} style={{gridColumn:'1 / -1',justifySelf:'start',background:'transparent',border:'none',color:C.accent,fontSize:12.5,fontWeight:600,cursor:'pointer',padding:0,fontFamily:"'Archivo',sans-serif"}}>✕ Limpiar filtros</button>}
+    </div>
+    {!filtered.length?(<div style={{textAlign:'center',padding:'50px 20px',color:C.textFaint,border:'1px dashed '+C.border,borderRadius:10}}><div style={{fontSize:32,marginBottom:10,opacity:.4}}>📋</div><p style={{fontSize:14}}>{!requisitions.length?'Aún no has creado requisiciones.':'Ninguna requisición coincide con los filtros.'}</p></div>):(
+    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {filtered.map(r=>(<div key={r.folio} style={{border:'1px solid '+C.border,borderRadius:10,background:C.panel,overflow:'hidden'}}>
+        <div onClick={()=>setExp(exp===r.folio?null:r.folio)} style={{display:'grid',gridTemplateColumns:'auto 1fr auto auto auto',gap:16,alignItems:'center',padding:'13px 16px',cursor:'pointer'}}>
+          <span style={{fontFamily:"'Spline Sans Mono',monospace",fontSize:13.5,fontWeight:600,color:C.accent}}>{r.folio}</span>
+          <div style={{minWidth:0}}><div style={{fontSize:14,fontWeight:600,color:C.text}}>{r.requester}</div><div style={{fontSize:12,color:C.textDim,marginTop:1}}>{r.isInternal?<span style={{color:C.accent}}>Interna – Ingeniería</span>:r.company}{' · '+r.items.length+' parte'+(r.items.length===1?'':'s')}</div></div>
+          <span style={{fontSize:13,color:C.textDim,fontFamily:"'Spline Sans Mono',monospace"}}>{fmtDate(r.date)}</span>
+          <button onClick={e=>{e.stopPropagation();downloadPDF(r);}} style={{background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:7,padding:'6px 11px',color:C.text,fontSize:12.5,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>⬇ PDF</button>
+          <button onClick={e=>{e.stopPropagation();if(window.confirm('¿Eliminar la requisición '+r.folio+'?'))onDelete(r.folio);}} style={{background:'transparent',border:'none',cursor:'pointer',color:C.red,fontSize:15,opacity:.7}}>🗑</button>
+        </div>
+        {exp===r.folio&&(<div style={{borderTop:'1px solid '+C.border,padding:16,background:C.bg,animation:'fadeIn .15s ease'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 24px',marginBottom:14,fontSize:13}}>
+            <DR label="Aprueba" value={r.approver}/>
+            <DR label="Entrega" value={r.delivery}/>
+            <DR label="Observaciones" value={r.observations||'–'} full/>
+          </div>
+          <div style={{border:'1px solid '+C.border,borderRadius:8,overflow:'hidden'}}>
+            <div style={{display:'grid',gridTemplateColumns:'60px 100px 1fr',background:C.panel2,padding:'7px 12px',fontSize:10.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:C.textDim}}><span>Cant.</span><span>No. Parte</span><span>Descripción</span></div>
+            {r.items.map((it,i)=>(<div key={i} style={{display:'grid',gridTemplateColumns:'60px 100px 1fr',padding:'7px 12px',fontSize:13,color:C.text,borderTop:'1px solid '+C.border}}><span>{it.qty}</span><span style={{fontFamily:"'Spline Sans Mono',monospace",color:it.partNumber?C.text:C.textFaint}}>{it.partNumber||'–'}</span><span>{it.description}</span></div>))}
+          </div>
+        </div>)}
+      </div>))}
+    </div>)}
+  </div>);
+}
+
+// ─── App principal ────────────────────────────────────────────────────────────
+function App(){
+  const[loaded,setLoaded]=useState(false);
+  const[requisitions,setRequisitions]=useState([]);
+  const[companies,setCompanies]=useState([]);
+  const[counter,setCounter]=useState(0);
+  const[tab,setTab]=useState('new');
+  const[dbErr,setDbErr]=useState('');
+  useEffect(()=>{(async()=>{try{const reqs=await dbGetAll();const cos=await dbGetMeta('companies',['Constructora del Norte','Inmobiliaria Pacífico']);const cnt=await dbGetMeta('counter',0);setRequisitions(reqs);setCompanies(cos);setCounter(cnt);setLoaded(true);}catch(e){setDbErr('No se pudo conectar con la base de datos Supabase. Verifica tu conexión a internet o la configuración del cliente.');setLoaded(true);}})();},[]);
+  const nextFolio=makeFolio(counter+1);
+  async function handleSave(data){
+    const nc=counter+1,folio=makeFolio(nc),req={...data,folio,createdAt:Date.now()};
+    try{await dbPut(req);await dbSetMeta('counter',nc);setRequisitions(p=>[...p,req]);setCounter(nc);downloadPDF(req);setTab('history');}catch(e){alert('Error al guardar: '+e);}
+  }
+  async function handleAddCo(name){if(companies.includes(name))return;const next=[...companies,name].sort();setCompanies(next);try{await dbSetMeta('companies',next);}catch(e){}}
+  async function handleDel(folio){try{await dbDel(folio);setRequisitions(p=>p.filter(r=>r.folio!==folio));}catch(e){alert('Error al eliminar: '+e);}}
+  if(!loaded)return<div id="loading">Cargando base de datos…</div>;
+  const tabs=[{id:'new',label:'Nueva requisición',icon:'📝'},{id:'history',label:'Consultar',icon:'🔍'}];
+  return(<div style={{minHeight:'100vh',background:C.bg,color:C.text,paddingBottom:60}}>
+    <header style={{borderBottom:'1px solid '+C.border,background:C.panel,padding:'16px 0',marginBottom:28}}>
+      <div style={{maxWidth:920,margin:'0 auto',padding:'0 24px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:38,height:38,borderRadius:9,background:C.accent,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>📦</div>
+          <div><h1 style={{fontSize:17,fontWeight:800,letterSpacing:'-.3px'}}>Dashboard de Requisiciones</h1><p style={{fontSize:11.5,color:C.textDim,marginTop:1}}>Departamento de Ingeniería · Uso personal</p></div>
+        </div>
+      </div>
+    </header>
+    <div style={{maxWidth:920,margin:'0 auto',padding:'0 24px'}}>
+      {dbErr&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid '+C.red,borderRadius:8,padding:'10px 14px',marginBottom:18,fontSize:13,color:C.red}}>{dbErr}</div>}
+      <div style={{display:'flex',gap:4,marginBottom:24,background:C.panel,padding:5,borderRadius:11,border:'1px solid '+C.border,width:'fit-content'}}>
+        {tabs.map(t=>{const a=tab===t.id;return(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13.5,fontWeight:700,fontFamily:"'Archivo',sans-serif",background:a?C.accent:'transparent',color:a?C.bg:C.textDim,transition:'all .15s'}}><span>{t.icon}</span>{t.label}{t.id==='history'&&requisitions.length>0&&<span style={{background:a?'rgba(0,0,0,.2)':C.panel2,color:a?C.bg:C.textDim,fontSize:11,fontWeight:700,padding:'1px 7px',borderRadius:20}}>{requisitions.length}</span>}</button>);} )}
+      </div>
+      <div style={{background:C.panel,border:'1px solid '+C.border,borderRadius:14,padding:28}}>
+        {tab==='new'?<NewForm companies={companies} onAddCompany={handleAddCo} onSave={handleSave} nextFolio={nextFolio}/>:<History requisitions={requisitions} companies={companies} onDelete={handleDel}/>}
+      </div>
+      <p style={{textAlign:'center',fontSize:11.5,color:C.textFaint,marginTop:20}}>Base de datos Supabase ☁️ · Los datos se comparten entre todos los dispositivos · El PDF se descarga directo a tu carpeta de descargas</p>
+    </div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

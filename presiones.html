@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Caídas de Presión · PIPRO</title>
+<script src="logo_b64.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;font-family:Arial,sans-serif;background:#0f0f14;color:#e0e0e0}
+body{padding:16px;overflow-y:auto}
+
+.card{background:#15151E;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;margin-bottom:14px}
+.card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:.04em;text-transform:uppercase}
+.card-badge{font-size:10px;background:#C8102E;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700}
+
+.grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g5{grid-template-columns:repeat(5,1fr)}
+
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select{
+  background:#0f0f14;border:1px solid rgba(255,255,255,.12);border-radius:6px;
+  color:#e0e0e0;font-size:13px;padding:7px 10px;width:100%;
+  outline:none;transition:border-color .15s;font-family:Arial,sans-serif;
+}
+.field input:focus,.field select:focus{border-color:#C8102E}
+
+/* Material toggle */
+.mat-toggle{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);width:fit-content}
+.mat-btn{padding:6px 16px;font-size:12px;font-weight:700;font-family:Arial,sans-serif;border:none;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.05);color:rgba(255,255,255,.5)}
+.mat-btn.active{background:#C8102E;color:#fff}
+.mat-btn:not(.active):hover{background:rgba(255,255,255,.1);color:#fff}
+
+.result-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:#0f0f14;border-radius:8px;border:1px solid rgba(255,255,255,.06)}
+.ri{display:flex;flex-direction:column;gap:2px;min-width:90px}
+.rl{font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em}
+.rv{font-size:15px;font-weight:700;color:#fff}
+.rv.good{color:#22c55e}
+.rv.warn{color:#f59e0b}
+.rv.bad{color:#ef4444}
+.rs{font-size:10px;color:rgba(255,255,255,.3)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:Arial,sans-serif;transition:all .15s;white-space:nowrap}
+.btn-red{background:#C8102E;color:#fff}.btn-red:hover{background:#a50d26}
+.btn-ghost{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1)}.btn-ghost:hover{background:rgba(255,255,255,.12)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-del{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2)}.btn-del:hover{background:rgba(239,68,68,.22)}
+
+.btbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+.btbl th{padding:6px 6px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
+.btbl td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.btbl tr:last-child td{border-bottom:none}
+.btbl input,.btbl select{background:#0f0f14;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e0e0e0;font-size:12px;padding:4px 6px;width:100%;outline:none;font-family:Arial,sans-serif}
+.btbl input:focus,.btbl select:focus{border-color:#C8102E}
+
+.acc-panel{background:#0a0a10;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px;margin-top:8px}
+.acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.acc-item{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;background:#15151E;border-radius:6px}
+.acc-name{font-size:11px;color:rgba(255,255,255,.6);flex:1}
+.acc-ctr{display:flex;align-items:center;gap:4px}
+.acc-ctr button{width:22px;height:22px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+.acc-ctr button:hover{background:rgba(200,16,46,.3);border-color:#C8102E}
+.acc-ctr span{min-width:22px;text-align:center;font-size:12px;font-weight:700;color:#fff}
+.tacc-btn{font-size:10px;color:#C8102E;cursor:pointer;background:none;border:none;padding:0;font-family:Arial,sans-serif;text-decoration:underline;white-space:nowrap}
+
+.vbar{height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;margin:5px 0}
+.vfill{height:100%;border-radius:4px;transition:width .4s;background:#22c55e}
+.vfill.warn{background:#f59e0b}
+.vfill.bad{background:#ef4444}
+
+.ctbl{width:100%;border-collapse:collapse;font-size:12px}
+.ctbl th{padding:7px 8px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
+.ctbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.ctbl input{background:#0f0f14;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e0e0e0;font-size:12px;padding:4px 7px;outline:none;font-family:Arial,sans-serif}
+.ctbl input[type="text"]{width:140px}
+.ctbl input[type="number"]{width:80px}
+.ctbl input:focus{border-color:#C8102E}
+
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.tag-ok{background:rgba(34,197,94,.15);color:#22c55e}
+.tag-warn{background:rgba(245,158,11,.15);color:#f59e0b}
+.tag-bad{background:rgba(239,68,68,.15);color:#ef4444}
+
+.rec{font-size:10px;color:#22c55e;font-weight:700;margin-top:2px}
+.divider{height:1px;background:rgba(255,255,255,.06);margin:12px 0}
+.note{font-size:10px;color:rgba(255,255,255,.3);line-height:1.6}
+h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+
+/* PIPRO highlight */
+.pipro-badge{font-size:10px;background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3);padding:2px 8px;border-radius:10px;font-weight:700}
+
+@media(max-width:900px){.g4,.g5{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:550px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ════════════ DATOS DEL PROYECTO ════════════ -->
+<div class="card" style="padding:14px 16px;margin-bottom:10px">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+    <span style="font-size:13px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em">Datos del Proyecto</span>
+    <button class="btn btn-red" onclick="generarPDF()" style="gap:8px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar PDF
+    </button>
+  </div>
+  <div class="grid g3">
+    <div class="field"><label>Cliente</label>
+      <input type="text" id="pdf-cliente" placeholder="Nombre del cliente"/></div>
+    <div class="field"><label>Proyecto / Descripción</label>
+      <input type="text" id="pdf-proyecto" placeholder="Nombre o número de proyecto"/></div>
+    <div class="field"><label>Elaborado por</label>
+      <input type="text" id="pdf-elaborado" placeholder="Nombre del ingeniero"/></div>
+  </div>
+</div>
+
+<!-- ════════════ MATERIAL SELECTOR ════════════ -->
+<div class="card" style="padding:12px 16px;margin-bottom:10px">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <span style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Material de tubería:</span>
+    <div class="mat-toggle">
+      <button class="mat-btn active" id="mat-acero" onclick="setMaterial('acero')">Otros materiales</button>
+      <button class="mat-btn" id="mat-pipro" onclick="setMaterial('pipro')">PIPRO Aluminio</button>
+    </div>
+    <span id="mat-info" class="note" style="margin:0"></span>
+  </div>
+
+  <!-- Tabla catálogo PIPRO — visible solo cuando se selecciona PIPRO -->
+  <div id="pipro-catalog" style="display:none;margin-top:14px">
+    <div style="font-size:11px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+      Catálogo Tubería PIPRO Aluminio — Aleación 6063 T5 · Presión máx. 16 bar
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(96,165,250,.2)">
+            <th style="padding:5px 10px;text-align:left;color:rgba(96,165,250,.7);font-weight:700;white-space:nowrap">Diámetro</th>
+            <th style="padding:5px 10px;text-align:left;color:rgba(96,165,250,.7);font-weight:700">Código</th>
+            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">D exterior (mm)</th>
+            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">d interior (mm)</th>
+            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">Espesor (mm)</th>
+            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">L barra (mm)</th>
+          </tr>
+        </thead>
+        <tbody id="pipro-tbl-body"></tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:6px">Rugosidad superficial aluminio PIPRO: ε = 0.0015 mm (interior tratado con alumilita)</p>
+  </div>
+</div>
+
+<!-- ════════════ COMPRESOR ════════════ -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Datos del Compresor</span>
+  </div>
+  <div class="grid g5">
+    <div class="field"><label>Caudal compresor (SCFM)</label>
+      <input type="number" id="scfm" value="100" min="1" oninput="recalcAll()"/></div>
+    <div class="field"><label>Potencia compresor (HP)</label>
+      <input type="number" id="hp" value="25" min="1" oninput="recalcAll()"/></div>
+    <div class="field"><label>Presión de trabajo (psi man.)</label>
+      <input type="number" id="psi" value="100" min="1" oninput="recalcAll()"/></div>
+    <div class="field"><label>Temperatura descarga (°F)</label>
+      <input type="number" id="tempF" value="95" oninput="recalcAll()"/></div>
+    <div class="field"><label>Altitud planta (m s.n.m.)</label>
+      <input type="number" id="altitud" value="2240" min="0" oninput="recalcAll()"/></div>
+  </div>
+  <div class="grid g4" style="margin-top:10px">
+    <div class="field"><label>Diámetro descarga compresor</label>
+      <select id="diam_desc" onchange="recalcAll()"></select></div>
+    <div class="field"><label>Rugosidad de la red</label>
+      <select id="rugosidad" onchange="recalcAll()">
+        <option value="0.046">Acero negro / galvanizado nuevo (0.046 mm)</option>
+        <option value="0.15">Acero galvanizado usado (0.15 mm)</option>
+        <option value="0.5">Acero corroído (0.5 mm)</option>
+        <option value="0.015">Acero inoxidable (0.015 mm)</option>
+        <option value="0.0015">Cobre / PVC / Plástico liso (0.0015 mm)</option>
+      </select></div>
+  </div>
+  <div class="result-row">
+    <div class="ri"><span class="rl">ACFM (flujo real a presión)</span><span class="rv" id="r-acfm">—</span></div>
+    <div class="ri"><span class="rl">Densidad del aire</span><span class="rv" id="r-rho">—</span></div>
+    <div class="ri"><span class="rl">P atm en altitud</span><span class="rv" id="r-patm">—</span></div>
+    <div class="ri"><span class="rl">Vel. en descarga</span><span class="rv" id="r-vdesc">—</span><span class="rs" id="r-vdesc-ref"></span></div>
+    <div class="ri"><span class="rl">Viscosidad dinámica</span><span class="rv" id="r-mu">—</span></div>
+    <div class="ri"><span class="rl">Potencia nominal</span><span class="rv" id="r-kw">—</span><span class="rs">kW</span></div>
+  </div>
+</div>
+
+<!-- ════════════ CABEZAL ════════════ -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Cabezal — Línea Principal</span>
+    <span class="card-badge">Caudal total del compresor</span>
+    <span id="cab-mat-badge" class="pipro-badge" style="display:none">PIPRO Aluminio</span>
+  </div>
+  <div class="grid g4">
+    <div class="field"><label>Diámetro cabezal</label>
+      <select id="cab_diam" onchange="recalcCabezal()"></select>
+      <div class="rec" id="cab_rec"></div></div>
+    <div class="field"><label>Longitud total (m)</label>
+      <input type="number" id="cab_long" value="30" min="0.1" step="0.5" oninput="recalcCabezal()"/></div>
+  </div>
+  <div style="margin-top:10px">
+    <button class="tacc-btn" onclick="togglePanel('acc-cab')">+ Accesorios del cabezal</button>
+    <div id="acc-cab" style="display:none">
+      <div class="acc-panel"><div class="acc-grid" id="acc-grid-cab"></div></div>
+    </div>
+  </div>
+  <div class="result-row">
+    <div class="ri"><span class="rl">Velocidad</span><span class="rv" id="cab-v">—</span><span class="rs">m/s</span></div>
+    <div class="ri"><span class="rl">Reynolds</span><span class="rv" id="cab-re">—</span><span class="rs" id="cab-reg">—</span></div>
+    <div class="ri"><span class="rl">Factor fricción f</span><span class="rv" id="cab-f">—</span></div>
+    <div class="ri"><span class="rl">L. equiv. accesorios</span><span class="rv" id="cab-leq">—</span><span class="rs">m</span></div>
+    <div class="ri"><span class="rl">ΔP total</span><span class="rv" id="cab-dp">—</span><span class="rs" id="cab-dp-bar">—</span></div>
+    <div class="ri" style="min-width:120px"><span class="rl">%ΔP / P trabajo</span><span class="rv" id="cab-pct">—</span><span class="rs">límite recom.: 5%</span></div>
+    <div class="ri"><span class="rl">Potencia extra (ΔP)</span><span class="rv" id="cab-hp-extra">—</span><span class="rs" id="cab-kw-extra">—</span></div>
+  </div>
+</div>
+
+<!-- ════════════ BAJADAS ════════════ -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Bajadas / Puntos de Uso</span>
+    <span class="card-badge">Caudal por maquinaria / herramienta</span>
+    <span id="baj-mat-badge" class="pipro-badge" style="display:none">PIPRO Aluminio</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="btbl">
+      <thead><tr>
+        <th>Máquina / Punto</th>
+        <th>CFM consumo</th>
+        <th style="min-width:80px">F. Simultaneidad</th>
+        <th>CFM efectivo</th>
+        <th>Longitud (m)</th>
+        <th style="min-width:140px">Diámetro</th>
+        <th>Vel. m/s</th>
+        <th>ΔP psi</th>
+        <th>%ΔP</th>
+        <th>Diám. rec.</th>
+        <th>Acc.</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="bajadas-body"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button class="btn btn-red btn-sm" onclick="addBajada()">+ Agregar bajada</button>
+    <button class="btn btn-ghost btn-sm" onclick="addBajadaPreset()">+ Desde herramienta típica</button>
+  </div>
+
+  <div class="divider"></div>
+  <h3>Verificación de Capacidad Global</h3>
+  <div class="result-row" style="margin-top:0">
+    <div class="ri"><span class="rl">Demanda total efectiva</span><span class="rv" id="ver-dem">—</span><span class="rs">CFM</span></div>
+    <div class="ri"><span class="rl">Capacidad compresor</span><span class="rv" id="ver-cap">—</span><span class="rs">SCFM</span></div>
+    <div class="ri"><span class="rl">Utilización</span><span class="rv" id="ver-pct">—</span></div>
+    <div class="ri" style="flex:2;min-width:180px">
+      <span class="rl">Estado de la red</span>
+      <div class="vbar"><div class="vfill" id="ver-bar" style="width:0%"></div></div>
+      <span class="rs" id="ver-msg">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ COMPARATIVO CAMPO ════════════ -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Comparativo Campo vs. Calculado</span>
+  </div>
+  <p class="note" style="margin-bottom:12px">
+    Registra las presiones medidas con manómetro en campo. El sistema calcula la ΔP real y la compara con el modelo teórico para diagnosticar fugas, incrustaciones o subdimensionamiento.
+  </p>
+  <div style="overflow-x:auto">
+    <table class="ctbl">
+      <thead><tr>
+        <th>Tramo / Punto</th>
+        <th>P inicio medida (psi)</th>
+        <th>P fin medida (psi)</th>
+        <th>ΔP campo (psi)</th>
+        <th>ΔP calculada (psi)</th>
+        <th>Desviación</th>
+        <th>Diagnóstico</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="campo-body"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:8px">
+    <button class="btn btn-ghost btn-sm" onclick="addCampoRow('Punto de medición','')">+ Agregar punto</button>
+  </div>
+  <p class="note" style="margin-top:10px">
+    Desviación &lt;10%: modelo coincide · &gt;10% campo &gt; calculado: posibles fugas / incrustaciones · campo &lt; calculado: caudal real menor al asumido o instrumento descalibrado
+  </p>
+</div>
+
+<script>
+// ── CATÁLOGOS ─────────────────────────────────────────────────────────
+// ID en metros para cálculo directo
+const TUBERIAS_ACERO = [
+  {label:'1/2" (DN15)',   idM:0.622*0.0254,  info:''},
+  {label:'3/4" (DN20)',   idM:0.824*0.0254,  info:''},
+  {label:'1" (DN25)',     idM:1.049*0.0254,  info:''},
+  {label:'1-1/4" (DN32)',idM:1.380*0.0254,  info:''},
+  {label:'1-1/2" (DN40)',idM:1.610*0.0254,  info:''},
+  {label:'2" (DN50)',     idM:2.067*0.0254,  info:''},
+  {label:'2-1/2" (DN65)',idM:2.469*0.0254,  info:''},
+  {label:'3" (DN80)',     idM:3.068*0.0254,  info:''},
+  {label:'4" (DN100)',   idM:4.026*0.0254,  info:''},
+  {label:'6" (DN150)',   idM:6.065*0.0254,  info:''},
+];
+
+// Datos reales del catálogo PIPRO (d = diámetro interior en mm)
+const TUBERIAS_PIPRO = [
+  {label:'20/3/4"  — d=20.5 mm',  idM:0.0205,  codigo:'920600', odMm:23.5,  esp:1.5},
+  {label:'25/1"    — d=25.5 mm',  idM:0.0255,  codigo:'925600', odMm:28.5,  esp:1.5},
+  {label:'40/1½"  — d=41 mm',    idM:0.041,   codigo:'940600', odMm:44,    esp:1.5},
+  {label:'50/2"    — d=50 mm',    idM:0.050,   codigo:'950600', odMm:54,    esp:2.0},
+  {label:'65/2½"  — d=68.4 mm',  idM:0.0684,  codigo:'965600', odMm:73,    esp:2.3},
+  {label:'80/3"    — d=84.2 mm',  idM:0.0842,  codigo:'980600', odMm:89,    esp:2.4},
+  {label:'100/4"  — d=103 mm',   idM:0.103,   codigo:'91B600', odMm:108,   esp:2.5},
+  {label:'150/6"  — d=142.5 mm', idM:0.1425,  codigo:'91W600', odMm:148,   esp:2.75},
+];
+
+// Accesorios genéricos (Otros materiales)
+const ACC_GENERAL = [
+  {n:'Codo 90° radio largo',    leD:16},
+  {n:'Codo 90° radio corto',    leD:30},
+  {n:'Codo 45°',                leD:16},
+  {n:'Tee paso directo',        leD:20},
+  {n:'Tee paso lateral',        leD:60},
+  {n:'Válvula de bola',         leD:3},
+  {n:'Válvula mariposa',        leD:45},
+  {n:'Válvula de globo',        leD:340},
+  {n:'Reducción concéntrica',   leD:10},
+  {n:'Filtro (elemento limpio)',leD:75},
+  {n:'Unión / Niple',           leD:2},
+];
+
+// Accesorios del catálogo PIPRO (piezas existentes en catálogo)
+const ACC_PIPRO = [
+  {n:'Conector tubo a tubo',          leD:2},
+  {n:'Codo 90°',                      leD:18},
+  {n:'Codo roscado macho',            leD:20},
+  {n:'Codo roscado hembra',           leD:20},
+  {n:'Te — paso directo',             leD:20},
+  {n:'Te — paso lateral',             leD:60},
+  {n:'Te reducida — paso directo',    leD:20},
+  {n:'Te reducida — paso lateral',    leD:60},
+  {n:'Conector de reducción',         leD:10},
+  {n:'Bajada rápida',                 leD:60},
+  {n:'Válvula de acero inoxidable',   leD:3},
+  {n:'Conexión bridada',              leD:2},
+];
+
+function getACC() {
+  return curMat === 'pipro' ? ACC_PIPRO : ACC_GENERAL;
+}
+// Alias para compatibilidad interna
+const ACC = ACC_GENERAL;
+
+const PRESETS = [
+  {n:'Pistola impacto 1/2"', cfm:6},
+  {n:'Pistola impacto 3/4"', cfm:12},
+  {n:'Pulidora angular',     cfm:30},
+  {n:'Taladro neumático',    cfm:4},
+  {n:'Pistola de pintura',   cfm:8},
+  {n:'Martillo neumático',   cfm:35},
+  {n:'Soplador',             cfm:3},
+  {n:'Herramienta de torque',cfm:15},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let curMat  = 'acero';   // 'acero' | 'pipro'
+let bCount  = 0;
+let cabAcc  = new Array(ACC.length).fill(0);
+let bAcc    = {};
+
+function getCatalog() {
+  return curMat === 'pipro' ? TUBERIAS_PIPRO : TUBERIAS_ACERO;
+}
+
+// ── PIPRO CATALOG TABLE ───────────────────────────────────────────────
+function buildPiproCatalogTable() {
+  const tbody = document.getElementById('pipro-tbl-body');
+  tbody.innerHTML = '';
+  TUBERIAS_PIPRO.forEach((t, i) => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = 'none';
+    tr.style.background   = i % 2 === 0 ? 'rgba(96,165,250,.04)' : 'transparent';
+    tr.innerHTML = `
+      <td style="padding:5px 10px;color:#60a5fa;font-weight:700;white-space:nowrap">${t.label.split('—')[0].trim()}</td>
+      <td style="padding:5px 10px;color:rgba(255,255,255,.5);font-family:monospace">${t.codigo}</td>
+      <td style="padding:5px 10px;text-align:right;color:#e0e0e0">${(t.odMm).toFixed(1)}</td>
+      <td style="padding:5px 10px;text-align:right;color:#22c55e;font-weight:700">${(t.idM*1000).toFixed(1)}</td>
+      <td style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.6)">${t.esp}</td>
+      <td style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.4)">5800</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── MATERIAL TOGGLE ───────────────────────────────────────────────────
+function setMaterial(mat) {
+  curMat = mat;
+  document.getElementById('mat-acero').classList.toggle('active', mat === 'acero');
+  document.getElementById('mat-pipro').classList.toggle('active', mat === 'pipro');
+
+  const isPipro = mat === 'pipro';
+
+  // Auto-set roughness for aluminum
+  if (isPipro) {
+    document.getElementById('rugosidad').value = '0.0015';
+    document.getElementById('mat-info').textContent = 'Rugosidad ajustada automáticamente: aluminio PIPRO 0.0015 mm';
+  } else {
+    document.getElementById('rugosidad').value = '0.046';
+    document.getElementById('mat-info').textContent = '';
+  }
+
+  // Show/hide PIPRO catalog table
+  document.getElementById('pipro-catalog').style.display = isPipro ? 'block' : 'none';
+
+  // Show/hide PIPRO badges
+  document.getElementById('cab-mat-badge').style.display = isPipro ? '' : 'none';
+  document.getElementById('baj-mat-badge').style.display = isPipro ? '' : 'none';
+
+  // Rebuild pipe selects AND accessory grids with correct catalog
+  rebuildAllSelects();
+  rebuildAllAccGrids();
+  recalcAll();
+}
+
+function rebuildSelect(selId, selectedIdM) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  const cat = getCatalog();
+  // remember current index before rebuild
+  const prevIdx = parseInt(sel.value) || 0;
+  sel.innerHTML = '';
+  cat.forEach((t,i) => sel.add(new Option(t.label, i)));
+  sel.value = Math.min(prevIdx, cat.length - 1);
+}
+
+function rebuildAllSelects() {
+  rebuildSelect('diam_desc');
+  rebuildSelect('cab_diam');
+  document.querySelectorAll('[id^="bdiam-"]').forEach(sel => {
+    rebuildSelect(sel.id);
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+function init() {
+  // Populate initial selects (acero default)
+  ['diam_desc','cab_diam'].forEach(id => {
+    const sel = document.getElementById(id);
+    TUBERIAS_ACERO.forEach((t,i) => sel.add(new Option(t.label, i)));
+  });
+  document.getElementById('diam_desc').value = 3; // 1-1/4"
+  document.getElementById('cab_diam').value  = 4; // 1-1/2"
+
+  buildPiproCatalogTable();
+  buildAccGrid('acc-grid-cab', 'cab', cabAcc);
+  addBajada();
+  addCampoRow('Cabezal principal','');
+  recalcAll();
+}
+
+// ── ACC GRID ──────────────────────────────────────────────────────────
+function buildAccGrid(containerId, prefix, qty) {
+  const g = document.getElementById(containerId);
+  if (!g) return;
+  g.innerHTML = '';
+  const accList = getACC();
+  // Reset qty array length to match current catalog
+  qty.length = accList.length;
+  for (let i = 0; i < accList.length; i++) if (qty[i] === undefined) qty[i] = 0;
+  accList.forEach((a, i) => {
+    const d = document.createElement('div');
+    d.className = 'acc-item';
+    d.innerHTML = `<span class="acc-name">${a.n}</span>
+      <div class="acc-ctr">
+        <button onclick="chAcc('${prefix}',${i},-1)">−</button>
+        <span id="ac-${prefix}-${i}">${qty[i]||0}</span>
+        <button onclick="chAcc('${prefix}',${i},1)">+</button>
+      </div>`;
+    g.appendChild(d);
+  });
+}
+
+function rebuildAllAccGrids() {
+  // Reset qty arrays to match new catalog length
+  const n = getACC().length;
+  cabAcc = new Array(n).fill(0);
+  buildAccGrid('acc-grid-cab', 'cab', cabAcc);
+  Object.keys(bAcc).forEach(id => {
+    bAcc[id] = new Array(n).fill(0);
+    buildAccGrid(`acc-grid-b${id}`, String(id), bAcc[id]);
+  });
+}
+
+function chAcc(prefix, i, d) {
+  if (prefix === 'cab') {
+    cabAcc[i] = Math.max(0, (cabAcc[i]||0) + d);
+    document.getElementById(`ac-cab-${i}`).textContent = cabAcc[i];
+    recalcCabezal();
+  } else {
+    const id = parseInt(prefix);
+    bAcc[id][i] = Math.max(0, (bAcc[id][i]||0) + d);
+    document.getElementById(`ac-${prefix}-${i}`).textContent = bAcc[id][i];
+    recalcBajada(id);
+  }
+}
+
+function togglePanel(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── BAJADAS ───────────────────────────────────────────────────────────
+function addBajada(preset) {
+  const id   = ++bCount;
+  bAcc[id]   = new Array(ACC.length).fill(0);
+  const tbody = document.getElementById('bajadas-body');
+  const cat   = getCatalog();
+  const opts  = cat.map((t,i) => `<option value="${i}">${t.label}</option>`).join('');
+
+  const tr = document.createElement('tr');
+  tr.id = `br-${id}`;
+  tr.innerHTML = `
+    <td><input type="text" value="${preset ? preset.n : 'Punto '+id}" style="width:120px" oninput="recalcBajada(${id})"/></td>
+    <td><input type="number" id="bcfm-${id}" value="${preset ? preset.cfm : 10}" min="0.1" style="width:65px" oninput="recalcBajada(${id})"/></td>
+    <td><input type="number" id="bfs-${id}"  value="0.8" min="0.1" max="1" step="0.05" style="width:58px" oninput="recalcBajada(${id})"/></td>
+    <td style="font-weight:700;color:#C8102E"><span id="bcfme-${id}">—</span></td>
+    <td><input type="number" id="blong-${id}" value="5" min="0.1" style="width:58px" oninput="recalcBajada(${id})"/></td>
+    <td><select id="bdiam-${id}" onchange="recalcBajada(${id})">${opts}</select>
+        <div class="rec" id="brec-${id}"></div></td>
+    <td><span id="bv-${id}">—</span></td>
+    <td><span id="bdp-${id}">—</span></td>
+    <td><span id="bpct-${id}">—</span></td>
+    <td style="font-size:10px;color:#22c55e;white-space:nowrap"><span id="brd-${id}">—</span></td>
+    <td><button class="tacc-btn" onclick="togglePanel('bacc-${id}')">Acc</button></td>
+    <td><button class="btn btn-del btn-sm" onclick="removeBajada(${id})">✕</button></td>`;
+  tbody.appendChild(tr);
+
+  const trAcc = document.createElement('tr');
+  trAcc.id = `bacc-${id}`;
+  trAcc.style.display = 'none';
+  trAcc.innerHTML = `<td colspan="12" style="padding:8px 4px">
+    <div class="acc-panel"><div class="acc-grid" id="acc-grid-b${id}"></div></div></td>`;
+  tbody.appendChild(trAcc);
+
+  buildAccGrid(`acc-grid-b${id}`, String(id), bAcc[id]);
+  document.getElementById(`bdiam-${id}`).value = 0;
+  recalcBajada(id);
+  recalcVerif();
+}
+
+function addBajadaPreset() {
+  const names = PRESETS.map((p,i) => `${i+1}. ${p.n} (${p.cfm} CFM)`).join('\n');
+  const sel   = prompt('Selecciona herramienta (número):\n\n' + names);
+  const idx   = parseInt(sel) - 1;
+  if (idx >= 0 && idx < PRESETS.length) addBajada(PRESETS[idx]);
+}
+
+function removeBajada(id) {
+  document.getElementById(`br-${id}`)?.remove();
+  document.getElementById(`bacc-${id}`)?.remove();
+  delete bAcc[id];
+  recalcVerif();
+}
+
+// ── CORE CALC ─────────────────────────────────────────────────────────
+function getBase() {
+  const scfm  = parseFloat(document.getElementById('scfm').value)    || 0;
+  const hp    = parseFloat(document.getElementById('hp').value)      || 0;
+  const psiM  = parseFloat(document.getElementById('psi').value)     || 0;
+  const tempF = parseFloat(document.getElementById('tempF').value)   || 68;
+  const alt   = parseFloat(document.getElementById('altitud').value) || 0;
+  const rugMm = parseFloat(document.getElementById('rugosidad').value) || 0.046;
+
+  const T_K   = (tempF - 32) * 5/9 + 273.15;
+  const P_atm = 101325 * Math.pow(1 - 2.2557e-5 * alt, 5.2559);
+  const P_abs = psiM * 6894.76 + P_atm;
+  const P_std = 101325, T_std = 293.15;
+
+  const Q_std = scfm * 4.71947e-4;
+  const Q_act = Q_std * (P_std / P_abs) * (T_K / T_std);
+
+  const rho = P_abs / (287.05 * T_K);
+  const mu  = 1.716e-5 * Math.pow(T_K / 273.15, 0.76);
+  const kw  = hp * 0.7457;
+
+  return {scfm, hp, kw, psiM, P_atm, P_abs, T_K, Q_act, rho, mu, rugMm};
+}
+
+function calcTramo(Q, diamIdx, longM, accQty, base) {
+  const {P_abs, rho, mu, rugMm, kw} = base;
+  const cat = getCatalog();
+  const D   = cat[diamIdx].idM;
+  const A   = Math.PI * D * D / 4;
+  const v   = A > 0 ? Q / A : 0;
+
+  const Re  = mu > 0 ? rho * v * D / mu : 0;
+  const eps = rugMm / 1000;
+
+  let f;
+  if (Re < 1)         f = 0.02;
+  else if (Re < 2300) f = 64 / Re;
+  else {
+    const x = eps / (3.7 * D) + 5.74 / Math.pow(Re, 0.9);
+    f = x > 0 ? 0.25 / Math.pow(Math.log10(x), 2) : 0.02;
+  }
+
+  const accList = getACC();
+  const L_eq  = accQty.reduce((s, q, i) => s + (q||0) * (accList[i]?.leD||0) * D, 0);
+  const L_tot = longM + L_eq;
+  const dP_Pa = f * (L_tot / D) * (rho * v * v / 2);
+  const pct   = (dP_Pa / P_abs) * 100;
+
+  // Extra power due to pressure drop: kW × (ΔP / P_abs)
+  const extraKw = kw * (dP_Pa / P_abs);
+  const extraHp = extraKw / 0.7457;
+
+  // Recommended diameter: smallest with %ΔP < 5%
+  let recIdx = cat.length - 1;
+  for (let i = 0; i < cat.length; i++) {
+    const Dt = cat[i].idM;
+    const At = Math.PI * Dt * Dt / 4;
+    const vt = Q / At;
+    const Rt = rho * vt * Dt / mu;
+    let ft;
+    if (Rt < 2300) ft = Rt > 1 ? 64/Rt : 0.02;
+    else { const xt = eps/(3.7*Dt)+5.74/Math.pow(Rt,0.9); ft = xt>0?0.25/Math.pow(Math.log10(xt),2):0.02; }
+    const leqt = accQty.reduce((s,q,j) => s + (q||0)*(accList[j]?.leD||0)*Dt, 0);
+    const dPt  = ft * ((longM+leqt)/Dt) * (rho*vt*vt/2);
+    if (dPt/P_abs*100 < 5) { recIdx = i; break; }
+  }
+
+  const regime = Re < 2300 ? 'Laminar' : Re < 4000 ? 'Transición' : 'Turbulento';
+  return {v, Re, f, L_eq, L_tot, dP_Pa, dP_psi:dP_Pa/6894.76, dP_bar:dP_Pa/1e5, pct, recIdx, regime, extraKw, extraHp};
+}
+
+function cV(v)   { return v   <  6 ? 'good' : v   < 12 ? 'warn' : 'bad'; }
+function cP(pct) { return pct <  3 ? 'good' : pct <  5 ? 'warn' : 'bad'; }
+function fmt(n, d=2) { return isFinite(n) ? n.toFixed(d) : '—'; }
+function fmtK(n) { return n > 9999 ? (n/1000).toFixed(1)+'k' : fmt(n,0); }
+
+// ── RECALC COMPRESOR ──────────────────────────────────────────────────
+function recalcCompresor() {
+  const b    = getBase();
+  const dIdx = parseInt(document.getElementById('diam_desc').value) || 0;
+  const cat  = getCatalog();
+  const D    = cat[Math.min(dIdx, cat.length-1)].idM;
+  const A    = Math.PI * D * D / 4;
+  const vDesc = b.Q_act / A;
+
+  document.getElementById('r-acfm').textContent  = fmt(b.Q_act * 2118.88, 1) + ' ACFM';
+  document.getElementById('r-rho').textContent   = fmt(b.rho, 3) + ' kg/m³';
+  document.getElementById('r-patm').textContent  = fmt(b.P_atm/1000, 2) + ' kPa';
+  document.getElementById('r-mu').textContent    = (b.mu * 1e5).toFixed(3) + ' ×10⁻⁵ Pa·s';
+  document.getElementById('r-kw').textContent    = fmt(b.kw, 1);
+  const vEl = document.getElementById('r-vdesc');
+  vEl.textContent = fmt(vDesc, 2) + ' m/s';
+  vEl.className   = 'rv ' + cV(vDesc);
+  document.getElementById('r-vdesc-ref').textContent = cat[Math.min(dIdx, cat.length-1)].label;
+  return b;
+}
+
+// ── RECALC CABEZAL ────────────────────────────────────────────────────
+function recalcCabezal() {
+  const b    = recalcCompresor();
+  const cat  = getCatalog();
+  const dIdx = Math.min(parseInt(document.getElementById('cab_diam').value)||0, cat.length-1);
+  const L    = parseFloat(document.getElementById('cab_long').value) || 0;
+  const r    = calcTramo(b.Q_act, dIdx, L, cabAcc, b);
+
+  const vEl = document.getElementById('cab-v');
+  vEl.textContent = fmt(r.v,2); vEl.className = 'rv '+cV(r.v);
+  document.getElementById('cab-re').textContent  = fmtK(r.Re);
+  document.getElementById('cab-reg').textContent = r.regime;
+  document.getElementById('cab-f').textContent   = r.f.toFixed(4);
+  document.getElementById('cab-leq').textContent = fmt(r.L_eq,2);
+  const dpEl = document.getElementById('cab-dp');
+  dpEl.textContent = fmt(r.dP_psi,3)+' psi'; dpEl.className = 'rv '+cP(r.pct);
+  document.getElementById('cab-dp-bar').textContent = fmt(r.dP_bar,4)+' bar';
+  const pEl = document.getElementById('cab-pct');
+  pEl.textContent = fmt(r.pct,2)+'%'; pEl.className = 'rv '+cP(r.pct);
+  document.getElementById('cab_rec').textContent =
+    r.recIdx !== dIdx ? 'Rec: '+cat[r.recIdx].label : '✓ Diámetro óptimo';
+
+  // Extra power
+  document.getElementById('cab-hp-extra').textContent = fmt(r.extraHp,2)+' HP extra';
+  document.getElementById('cab-kw-extra').textContent = fmt(r.extraKw,2)+' kW extra por ΔP';
+
+  // Sync first campo row
+  const fc = document.querySelector('#campo-body tr');
+  if (fc) { fc.dataset.calc = r.dP_psi; recalcCampoRow(fc); }
+}
+
+// ── RECALC BAJADA ─────────────────────────────────────────────────────
+function recalcBajada(id) {
+  const b    = getBase();
+  const cat  = getCatalog();
+  const cfm  = parseFloat(document.getElementById(`bcfm-${id}`).value) || 0;
+  const fs   = parseFloat(document.getElementById(`bfs-${id}`).value)  || 1;
+  const cfmE = cfm * fs;
+  const L    = parseFloat(document.getElementById(`blong-${id}`).value)|| 0;
+  const dIdx = Math.min(parseInt(document.getElementById(`bdiam-${id}`).value)||0, cat.length-1);
+
+  document.getElementById(`bcfme-${id}`).textContent = fmt(cfmE,1)+' CFM';
+
+  const Q_act = cfmE * 4.71947e-4 * (101325/b.P_abs) * (b.T_K/293.15);
+  const r = calcTramo(Q_act, dIdx, L, bAcc[id], b);
+
+  const vEl = document.getElementById(`bv-${id}`);
+  vEl.textContent = fmt(r.v,2);
+  vEl.style.color = r.v<6?'#22c55e':r.v<12?'#f59e0b':'#ef4444';
+
+  document.getElementById(`bdp-${id}`).textContent  = fmt(r.dP_psi,3);
+  const pEl = document.getElementById(`bpct-${id}`);
+  pEl.textContent = fmt(r.pct,2)+'%';
+  pEl.style.color = r.pct<3?'#22c55e':r.pct<5?'#f59e0b':'#ef4444';
+  document.getElementById(`brd-${id}`).textContent  = cat[r.recIdx].label;
+
+  recalcVerif();
+}
+
+// ── VERIFICACIÓN ──────────────────────────────────────────────────────
+function recalcVerif() {
+  const scfm = parseFloat(document.getElementById('scfm').value) || 0;
+  let total  = 0;
+  document.querySelectorAll('[id^="bcfm-"]').forEach(el => {
+    const id  = el.id.split('-')[1];
+    const cfm = parseFloat(el.value) || 0;
+    const fs  = parseFloat(document.getElementById(`bfs-${id}`)?.value) || 1;
+    total += cfm * fs;
+  });
+  const pct = scfm > 0 ? (total/scfm)*100 : 0;
+  const cls = pct < 80 ? '' : pct < 100 ? 'warn' : 'bad';
+  const msg = pct < 80  ? 'Capacidad suficiente'
+            : pct < 100 ? 'Capacidad al límite — revisar'
+            : '⚠ Demanda supera la capacidad del compresor';
+
+  document.getElementById('ver-dem').textContent = fmt(total,1)+' CFM';
+  document.getElementById('ver-cap').textContent = scfm+' SCFM';
+  const pEl = document.getElementById('ver-pct');
+  pEl.textContent = fmt(pct,1)+'%'; pEl.className = 'rv '+cls;
+  const bar = document.getElementById('ver-bar');
+  bar.style.width = Math.min(pct,100)+'%'; bar.className = 'vfill '+cls;
+  document.getElementById('ver-msg').textContent = msg;
+}
+
+// ── CAMPO ─────────────────────────────────────────────────────────────
+function addCampoRow(label, calc) {
+  const tbody = document.getElementById('campo-body');
+  const tr = document.createElement('tr');
+  tr.dataset.calc = calc;
+  tr.innerHTML = `
+    <td><input type="text" value="${label}" oninput="recalcCampoRow(this.closest('tr'))"/></td>
+    <td><input type="number" placeholder="—" oninput="recalcCampoRow(this.closest('tr'))"/></td>
+    <td><input type="number" placeholder="—" oninput="recalcCampoRow(this.closest('tr'))"/></td>
+    <td class="dc">—</td><td class="cc">—</td><td class="dd">—</td><td class="dg">—</td>
+    <td><button class="btn btn-del btn-sm" onclick="this.closest('tr').remove()">✕</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function recalcCampoRow(tr) {
+  const inputs = tr.querySelectorAll('input[type="number"]');
+  const pIni   = parseFloat(inputs[0]?.value);
+  const pFin   = parseFloat(inputs[1]?.value);
+  const calc   = parseFloat(tr.dataset.calc);
+
+  const dpC = isFinite(pIni) && isFinite(pFin) ? pIni - pFin : NaN;
+  tr.querySelector('.dc').textContent = isFinite(dpC) ? fmt(dpC,3)+' psi' : '—';
+  tr.querySelector('.cc').textContent = isFinite(calc) ? fmt(calc,3)+' psi' : '—';
+
+  if (isFinite(dpC) && isFinite(calc) && calc > 0) {
+    const desv = ((dpC - calc)/calc)*100;
+    tr.querySelector('.dd').textContent = (desv>=0?'+':'')+fmt(desv,1)+'%';
+    let diag;
+    if (Math.abs(desv) < 10) diag = '<span class="tag tag-ok">Coincide con modelo</span>';
+    else if (desv > 10)      diag = '<span class="tag tag-warn">Posibles fugas / incrustaciones</span>';
+    else                     diag = '<span class="tag tag-bad">Caudal real menor al asumido</span>';
+    tr.querySelector('.dg').innerHTML = diag;
+  } else {
+    tr.querySelector('.dd').textContent = '—';
+    tr.querySelector('.dg').textContent = '—';
+  }
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────
+function generarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const PW = 210, PH = 297, ML = 12, MR = 12;
+  const CW = PW - ML - MR;
+
+  // Palette minimalista
+  const RED  = [200,16,46];
+  const DARK = [30,30,38];
+  const MID  = [90,90,100];
+  const SUB  = [150,150,158];
+  const LINE = [220,220,225];
+  const TBL_HEAD_BG = [45,45,55];
+  const TBL_HEAD_TX = [255,255,255];
+  const TBL_ALT     = [248,248,250];
+
+  // ── helpers ──────────────────────────────────────────────────────
+  function hline(yy, r=RED, w=0.4) {
+    doc.setDrawColor(...r); doc.setLineWidth(w);
+    doc.line(ML, yy, PW-MR, yy);
+  }
+
+  function secTitle(title, yy) {
+    yy = checkPage(yy, 22);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.setTextColor(...RED);
+    doc.text(title.toUpperCase(), ML, yy);
+    hline(yy+1.5, RED, 0.3);
+    doc.setTextColor(...DARK);
+    return yy + 5;
+  }
+
+  function checkPage(yy, needed=20) {
+    if (yy + needed > PH - 14) { doc.addPage(); yy = 22; }
+    return yy;
+  }
+
+  function tbl(startY, head, body, colStyles) {
+    doc.autoTable({
+      startY,
+      head: head ? [head] : undefined,
+      body,
+      theme: 'plain',
+      headStyles: {
+        fillColor: TBL_HEAD_BG, textColor: TBL_HEAD_TX,
+        fontSize: 6.8, fontStyle:'bold',
+        cellPadding: [2, 2.5],
+      },
+      bodyStyles: { fontSize: 7, cellPadding: [1.6, 2.5], textColor: DARK },
+      alternateRowStyles: { fillColor: TBL_ALT },
+      columnStyles: colStyles || {},
+      tableLineColor: LINE, tableLineWidth: 0.15,
+      margin: { left: ML, right: MR },
+    });
+    return doc.lastAutoTable.finalY + 4;
+  }
+
+  // ── recolectar datos ─────────────────────────────────────────────
+  const matLabel  = curMat === 'pipro' ? 'PIPRO Aluminio — Aleación 6063 T5' : 'Otros materiales';
+  const rugSel    = document.getElementById('rugosidad');
+  const rugLabel  = rugSel.options[rugSel.selectedIndex]?.text.split('(')[0].trim() || '';
+  const cliente   = document.getElementById('pdf-cliente').value   || '—';
+  const proyecto  = document.getElementById('pdf-proyecto').value  || '—';
+  const elaborado = document.getElementById('pdf-elaborado').value || '—';
+  const fecha     = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+
+  // ── ENCABEZADO ───────────────────────────────────────────────────
+  // Franja roja delgada superior
+  doc.setFillColor(...RED);
+  doc.rect(0, 0, PW, 1.5, 'F');
+
+  const logo = window.LOGO_GD || null;
+  const LOGO_W = 36, LOGO_H = 14;
+  if (logo) {
+    try { doc.addImage(logo, 'PNG', ML, 4, LOGO_W, LOGO_H); } catch(e){}
+  }
+
+  // Título a la derecha del logo
+  const tx = ML + LOGO_W + 10;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.setTextColor(...DARK);
+  doc.text('Memoria de Cálculo', tx, 10);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  doc.setTextColor(...MID);
+  doc.text('Sistema de Distribución de Aire Comprimido', tx, 14.5);
+  doc.text(`Material: ${matLabel}`, tx, 18.5);
+
+  // Línea separadora
+  let y = 23;
+  hline(y, LINE, 0.3);
+  y += 4;
+
+  // ── DATOS DEL PROYECTO ───────────────────────────────────────────
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.2);
+  const col2 = ML + CW/2;
+
+  const infoItems = [
+    ['Cliente',       cliente,   'Proyecto',  proyecto],
+    ['Elaborado por', elaborado, 'Fecha',     fecha],
+  ];
+  infoItems.forEach(row => {
+    doc.setFont('helvetica','bold'); doc.setTextColor(...SUB);
+    doc.text(row[0], ML, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+    doc.text(row[1], ML+28, y);
+    doc.setFont('helvetica','bold'); doc.setTextColor(...SUB);
+    doc.text(row[2], col2, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+    doc.text(row[3], col2+28, y);
+    y += 5;
+  });
+
+  hline(y, LINE, 0.2);
+  y += 6;
+
+  // ── DATOS DEL COMPRESOR ──────────────────────────────────────────
+  y = secTitle('Datos del Compresor', y);
+  const descLabel = document.getElementById('diam_desc').selectedOptions[0]?.text || '';
+  y = tbl(y,
+    ['Parámetro','Valor','Parámetro','Valor'],
+    [
+      ['Caudal nominal',      document.getElementById('scfm').value+' SCFM',
+       'Caudal real (ACFM)',  document.getElementById('r-acfm').textContent],
+      ['Potencia',            document.getElementById('hp').value+' HP · '+document.getElementById('r-kw').textContent+' kW',
+       'Densidad del aire',   document.getElementById('r-rho').textContent],
+      ['Presión de trabajo',  document.getElementById('psi').value+' psi man.',
+       'P atm (altitud)',     document.getElementById('r-patm').textContent],
+      ['Temperatura descarga',document.getElementById('tempF').value+' °F',
+       'Altitud planta',      document.getElementById('altitud').value+' m s.n.m.'],
+      ['Diám. descarga',      descLabel,
+       'Vel. en descarga',    document.getElementById('r-vdesc').textContent],
+      ['Rugosidad',           rugLabel, '', ''],
+    ],
+    {0:{fontStyle:'bold',cellWidth:38,textColor:MID},1:{cellWidth:CW/2-38},2:{fontStyle:'bold',cellWidth:38,textColor:MID},3:{}}
+  );
+
+  // ── CABEZAL ──────────────────────────────────────────────────────
+  y = secTitle('Cabezal — Línea Principal', y);
+  const cabLabel  = document.getElementById('cab_diam').selectedOptions[0]?.text || '';
+  const accList   = getACC();
+  const accCabStr = accList.map((a,i) => cabAcc[i]>0 ? `${cabAcc[i]}× ${a.n}` : null).filter(Boolean).join(' · ') || 'Ninguno';
+
+  y = tbl(y,
+    ['Parámetro','Valor','Parámetro','Valor'],
+    [
+      ['Diámetro seleccionado', cabLabel,
+       'Diámetro recomendado',  document.getElementById('cab_rec').textContent],
+      ['Longitud tubería',      document.getElementById('cab_long').value+' m',
+       'L. equiv. accesorios',  document.getElementById('cab-leq').textContent+' m'],
+      ['Velocidad',             document.getElementById('cab-v').textContent+' m/s',
+       'Reynolds / Régimen',    document.getElementById('cab-re').textContent+' — '+document.getElementById('cab-reg').textContent],
+      ['Factor fricción f',     document.getElementById('cab-f').textContent,
+       'ΔP total',              document.getElementById('cab-dp').textContent+' · '+document.getElementById('cab-dp-bar').textContent],
+      ['%ΔP / P trabajo',       document.getElementById('cab-pct').textContent+' (límite 5%)',
+       'Potencia extra por ΔP', document.getElementById('cab-hp-extra').textContent],
+      ['Accesorios',            accCabStr, '', ''],
+    ],
+    {0:{fontStyle:'bold',cellWidth:38,textColor:MID},1:{cellWidth:CW/2-38},2:{fontStyle:'bold',cellWidth:38,textColor:MID},3:{}}
+  );
+
+  // ── BAJADAS ──────────────────────────────────────────────────────
+  y = secTitle('Bajadas / Puntos de Uso', y);
+  const bajRows = [];
+  document.querySelectorAll('[id^="bcfm-"]').forEach(el => {
+    const id    = el.id.split('-')[1];
+    const brow  = document.getElementById(`br-${id}`);
+    if (!brow) return;
+    const dSel  = document.getElementById(`bdiam-${id}`);
+    bajRows.push([
+      brow.querySelector('input[type="text"]')?.value || '',
+      document.getElementById(`bcfme-${id}`)?.textContent || '',
+      document.getElementById(`bfs-${id}`)?.value || '',
+      (document.getElementById(`blong-${id}`)?.value || '')+' m',
+      dSel?.selectedOptions[0]?.text.split('—')[0].trim() || '',
+      document.getElementById(`bv-${id}`)?.textContent+' m/s' || '',
+      document.getElementById(`bdp-${id}`)?.textContent+' psi' || '',
+      document.getElementById(`bpct-${id}`)?.textContent || '',
+      document.getElementById(`brd-${id}`)?.textContent.split('—')[0].trim() || '',
+    ]);
+  });
+
+  y = tbl(y,
+    ['Punto / Máquina','CFM efect.','F.Sim.','Long.','Diámetro','Velocidad','ΔP','%ΔP','Rec.'],
+    bajRows.length ? bajRows : [['Sin datos','','','','','','','','']],
+    {0:{cellWidth:30},1:{cellWidth:17},2:{cellWidth:12},3:{cellWidth:14},
+     4:{cellWidth:28},5:{cellWidth:18},6:{cellWidth:17},7:{cellWidth:12},8:{}}
+  );
+
+  // ── VERIFICACIÓN ─────────────────────────────────────────────────
+  y = secTitle('Verificación de Capacidad Global', y);
+  y = tbl(y, null,
+    [
+      ['Demanda total efectiva', document.getElementById('ver-dem').textContent,
+       'Capacidad compresor',    document.getElementById('ver-cap').textContent],
+      ['Utilización',            document.getElementById('ver-pct').textContent,
+       'Estado',                 document.getElementById('ver-msg').textContent],
+    ],
+    {0:{fontStyle:'bold',cellWidth:38,textColor:MID},1:{cellWidth:CW/2-38},2:{fontStyle:'bold',cellWidth:38,textColor:MID},3:{}}
+  );
+
+  // ── COMPARATIVO CAMPO ────────────────────────────────────────────
+  const campoRows = [];
+  document.querySelectorAll('#campo-body tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const label  = inputs[0]?.value || '';
+    if (!label) return;
+    campoRows.push([
+      label,
+      inputs[1]?.value || '—',
+      inputs[2]?.value || '—',
+      tr.querySelector('.dc')?.textContent || '—',
+      tr.querySelector('.cc')?.textContent || '—',
+      tr.querySelector('.dd')?.textContent || '—',
+      tr.querySelector('.dg')?.textContent || '—',
+    ]);
+  });
+  if (campoRows.length) {
+    y = secTitle('Comparativo Campo vs. Calculado', y);
+    y = tbl(y,
+      ['Tramo / Punto','P inicio (psi)','P fin (psi)','ΔP campo','ΔP calc.','Desviación','Diagnóstico'],
+      campoRows, {}
+    );
+  }
+
+  // ── CATÁLOGO PIPRO (si aplica) ───────────────────────────────────
+  if (curMat === 'pipro') {
+    y = secTitle('Referencia Catálogo PIPRO Aluminio', y);
+    y = tbl(y,
+      ['Diámetro','Código','D ext. (mm)','d int. (mm)','Espesor (mm)','L barra (mm)'],
+      TUBERIAS_PIPRO.map(t => [
+        t.label.split('—')[0].trim(), t.codigo,
+        t.odMm.toFixed(1), (t.idM*1000).toFixed(1), t.esp, '5800',
+      ]), {}
+    );
+  }
+
+  // ── PIE DE PÁGINA ────────────────────────────────────────────────
+  const total = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    hline(PH - 9, LINE, 0.2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+    doc.setTextColor(...SUB);
+    doc.text('Gardner Denver · PIPRO  —  Cálculo hidráulico de red de aire comprimido', ML, PH-5);
+    doc.text(`${p} / ${total}`, PW-MR, PH-5, {align:'right'});
+  }
+
+  // ── GUARDAR ──────────────────────────────────────────────────────
+  const proy = (document.getElementById('pdf-proyecto').value || 'calculo').replace(/\s+/g,'-');
+  doc.save(`MemoriaCalculo_${proy}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+// ── MASTER ────────────────────────────────────────────────────────────
+function recalcAll() {
+  recalcCabezal();
+  document.querySelectorAll('[id^="bcfm-"]').forEach(el => {
+    recalcBajada(parseInt(el.id.split('-')[1]));
+  });
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Generador de Gantt · Gardner Denver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --rojo:#7F1D1D;--rojo-m:#991B1B;--rojo-v:#B91C1C;
+  --azul:#1E3A5F;--azul-m:#1D4ED8;--azul-v:#2563EB;
+  --bg:#0A0A0F;--bg2:#12121A;--bg3:#1A1A26;
+  --card:rgba(255,255,255,.04);--card-b:rgba(255,255,255,.07);
+  --txt:#E4E4F0;--txt2:#9999B3;--txt3:#555570;--borde:#252538;--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.5}
+h1,h2,h3{font-family:'Syne',sans-serif}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--rojo-m);border-radius:3px}
+.header{background:linear-gradient(90deg,var(--rojo),#6B1111);padding:14px 28px;display:flex;align-items:center;gap:16px;box-shadow:0 4px 32px rgba(127,29,29,.4);position:sticky;top:0;z-index:100}
+.header-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#fff;letter-spacing:-.5px}
+.header-div{width:1px;height:22px;background:rgba(255,255,255,.25)}
+.header-sub{font-size:12px;color:rgba(255,255,255,.75);font-weight:500}
+.header-steps{margin-left:auto;display:flex;gap:4px}
+.step-pill{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;background:rgba(255,255,255,.07);color:rgba(255,255,255,.35);border:1px solid transparent;transition:.2s}
+.step-pill.active{background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3)}
+.content{max-width:980px;margin:0 auto;padding:36px 20px}
+.card{background:var(--card);border:1px solid var(--card-b);border-radius:var(--r);padding:18px 20px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:700;color:var(--rojo-v);margin-bottom:12px;letter-spacing:.06em;text-transform:uppercase}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;font-family:inherit}
+.btn-rojo{background:linear-gradient(135deg,var(--rojo-v),var(--rojo-m));color:#fff;box-shadow:0 4px 16px rgba(185,28,28,.35)}
+.btn-rojo:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(185,28,28,.45)}
+.btn-azul{background:linear-gradient(135deg,var(--azul-m),var(--azul));color:#fff;box-shadow:0 4px 16px rgba(29,78,216,.35)}
+.btn-azul:hover{transform:translateY(-1px)}
+.btn-verde{background:linear-gradient(135deg,#16A34A,#15803D);color:#fff;box-shadow:0 4px 16px rgba(21,128,61,.3)}
+.btn-verde:hover{transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--txt2);border:1px solid rgba(255,255,255,.1)}
+.btn-ghost:hover{background:rgba(255,255,255,.09);color:var(--txt)}
+.btn-icon{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);color:var(--txt2);padding:5px 9px;border-radius:7px;cursor:pointer;font-size:13px;transition:.15s;font-family:inherit}
+.btn-icon:hover{background:rgba(255,255,255,.12)}
+label.lbl{font-size:11px;color:var(--txt3);display:block;margin-bottom:4px;font-weight:500}
+input,select,textarea{width:100%;padding:8px 11px;border-radius:8px;font-size:13px;font-family:inherit;background:rgba(0,0,0,.3);border:1px solid var(--borde);color:var(--txt);outline:none;transition:.15s}
+input:focus,select:focus{border-color:var(--rojo-v);box-shadow:0 0 0 2px rgba(185,28,28,.15)}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+select option{background:#1A1A26}
+.hint{font-size:10px;color:var(--txt3);margin-top:3px}
+.chip{padding:5px 11px;border-radius:7px;font-size:11px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:var(--txt3);transition:.15s;font-family:inherit;font-weight:500}
+.chip.av{background:rgba(22,163,74,.18);border-color:rgba(22,163,74,.45);color:#4ADE80;font-weight:700}
+.chip.aa{background:rgba(202,138,4,.18);border-color:rgba(202,138,4,.45);color:#FBBF24;font-weight:700}
+.chip.ar{background:rgba(185,28,28,.2);border-color:rgba(185,28,28,.5);color:#F87171;font-weight:700}
+.alert{border-radius:10px;padding:10px 16px;margin-bottom:16px;font-size:13px}
+.ae{background:#450A0A;border:1px solid var(--rojo-v);color:#FCA5A5}
+.ai{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);color:#93C5FD}
+.ag{background:rgba(22,163,74,.07);border:1px solid rgba(22,163,74,.25);color:#4ADE80}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.fx{display:flex;align-items:center;gap:8px}
+.fsb{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.fw{display:flex;flex-wrap:wrap;gap:8px}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb12{margin-bottom:12px}
+.home{max-width:820px;margin:0 auto;padding:60px 20px;text-align:center}
+.home h1{font-size:34px;font-weight:800;color:#fff;margin-bottom:10px;letter-spacing:-.5px}
+.home>p{color:var(--txt2);font-size:15px;margin-bottom:48px}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:left}
+.mcard{background:var(--card);border-radius:18px;padding:36px 28px;cursor:pointer;transition:all .2s;border:2px solid transparent}
+.mcard.mr{border-color:rgba(185,28,28,.3)}
+.mcard.mr:hover{border-color:rgba(185,28,28,.7);background:rgba(185,28,28,.06);transform:translateY(-3px);box-shadow:0 12px 40px rgba(185,28,28,.2)}
+.mcard.ma{border-color:rgba(29,78,216,.3)}
+.mcard.ma:hover{border-color:rgba(29,78,216,.7);background:rgba(29,78,216,.06);transform:translateY(-3px);box-shadow:0 12px 40px rgba(29,78,216,.2)}
+.micon{font-size:48px;margin-bottom:18px;display:block}
+.mtitle{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+.mdesc{font-size:13px;color:var(--txt2);line-height:1.6;margin-bottom:20px}
+.mcta{display:inline-block;padding:8px 18px;border-radius:9px;font-size:13px;font-weight:700;color:#fff}
+.mcta.mr{background:linear-gradient(135deg,var(--rojo-v),var(--rojo-m))}
+.mcta.ma{background:linear-gradient(135deg,var(--azul-m),var(--azul))}
+.mhdr{padding:14px 28px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 28px rgba(0,0,0,.3);position:sticky;top:0;z-index:99}
+.mhdr.mr{background:linear-gradient(90deg,var(--rojo-m),var(--rojo))}
+.mhdr.ma{background:linear-gradient(90deg,var(--azul),#0F2B4A)}
+.sep{width:1px;height:22px;background:rgba(255,255,255,.2)}
+.lcard{border-radius:var(--r);padding:14px 16px;background:var(--card);border:1px solid var(--card-b);border-left:3px solid var(--rojo-v);margin-bottom:8px}
+.lcard.lv{border-left-color:#16A34A}
+.lcard.lo{border-left-color:#CA8A04}
+.lprev{margin-top:8px;font-size:11px;color:var(--txt3);font-style:italic;background:rgba(0,0,0,.22);border-radius:6px;padding:5px 10px;font-family:'DM Mono',monospace}
+.miles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.mile{background:rgba(185,28,28,.09);border:1px solid rgba(185,28,28,.27);border-radius:11px;padding:12px;text-align:center}
+.mile .ico{font-size:18px;margin-bottom:4px}
+.mile .lbl2{font-size:10px;color:var(--txt2);margin-bottom:2px}
+.mile .val{font-size:13px;font-weight:700;color:#fff;font-family:'Syne',sans-serif}
+.dur{background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.27);border-radius:11px;padding:12px 18px;display:flex;align-items:center;gap:12px;margin:0 0 14px}
+.dur .num{font-weight:700;color:#4ADE80;font-size:15px;font-family:'Syne',sans-serif}
+.dur .sub2{font-size:11px;color:var(--txt3);margin-top:2px}
+.gtbl{background:rgba(255,255,255,.02);border-radius:var(--r);overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.ghdr{display:grid;grid-template-columns:3fr 90px 90px 100px 55px;padding:8px 14px;background:rgba(185,28,28,.15);font-size:10px;font-weight:700;color:#F87171;text-transform:uppercase;letter-spacing:.06em}
+.gph{padding:8px 14px;background:rgba(30,58,95,.6);font-size:12px;font-weight:700;color:#93C5FD;border-top:1px solid rgba(255,255,255,.08)}
+.grow{display:grid;grid-template-columns:3fr 90px 90px 100px 55px;padding:9px 14px;font-size:12px;color:#CCCCE0;border-top:1px solid rgba(255,255,255,.04)}
+.grow:nth-child(even){background:rgba(255,255,255,.012)}
+.grow .gname{font-weight:500;color:var(--txt);line-height:1.35}
+.grow .gdate{color:var(--txt3);font-size:11px;padding-top:2px;font-family:'DM Mono',monospace}
+.grow .gdias{font-weight:700;color:#F87171;padding-top:2px;font-family:'Syne',sans-serif}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
+.badge.bl{background:rgba(22,163,74,.15);color:#4ADE80}
+.badge.bo{background:rgba(234,179,8,.15);color:#FBBF24}
+.badge.bp{background:rgba(245,158,11,.15);color:#FBBF24}
+.stat-row{display:flex;gap:20px;font-size:13px;color:var(--txt2);flex-wrap:wrap}
+.stat-row strong{color:#fff}
+.tq-lbl{font-weight:600;color:var(--txt);margin-bottom:3px;font-size:13px}
+.tq-sub{font-size:11px;color:var(--txt3);margin-bottom:8px}
+.dz{border:2px dashed rgba(185,28,28,.5);border-radius:16px;padding:60px 40px;text-align:center;cursor:pointer;background:rgba(127,29,29,.04);transition:.2s}
+.dz:hover{border-color:var(--rojo-v);background:rgba(127,29,29,.07)}
+.dz .dico{font-size:44px;margin-bottom:12px}
+.dz .dtitle{font-size:16px;font-weight:700;color:#fff;margin-bottom:6px;font-family:'Syne',sans-serif}
+.dz .dsub{font-size:12px;color:var(--txt3)}
+.fase-l{border-radius:var(--r);padding:14px 16px;background:var(--card);border:1px solid rgba(29,78,216,.25);border-left:3px solid var(--azul-m);margin-bottom:12px}
+.fase-lhdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.arow{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px;border-left:3px solid rgba(29,78,216,.3);margin-bottom:6px}
+.arow.apr{border-left-color:#F59E0B;background:rgba(245,158,11,.04)}
+.ghdr-a{display:grid;grid-template-columns:3fr 100px 100px 100px 55px;padding:8px 14px;background:rgba(29,78,216,.2);font-size:10px;font-weight:700;color:#93C5FD;text-transform:uppercase;letter-spacing:.06em}
+.gph-a{padding:8px 14px;background:rgba(30,58,95,.7);font-size:12px;font-weight:700;color:#93C5FD;border-top:1px solid rgba(255,255,255,.08)}
+.grow-a{display:grid;grid-template-columns:3fr 100px 100px 100px 55px;padding:9px 14px;font-size:12px;color:#CCCCE0;border-top:1px solid rgba(255,255,255,.04)}
+.grow-a:nth-child(even){background:rgba(255,255,255,.012)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .3s ease both}
+@media(max-width:600px){.mgrid,.g2,.g3,.miles{grid-template-columns:1fr}.header-steps{display:none}.ghdr,.grow{grid-template-columns:2fr 80px 55px}}
+</style>
+</head>
+<body>
+
+<div class="header" id="main-header">
+  <div class="header-logo">Gardner Denver</div>
+  <div class="header-div"></div>
+  <div class="header-sub" id="header-sub">Generador de Diagramas de Gantt</div>
+  <div class="header-steps" id="header-steps"></div>
+</div>
+<div id="app"></div>
+
+<script>
+// ─── CONSTANTES ───────────────────────────────────────────────────────────────
+const KPI={100:{libre:5,ocupada:2.5,label:'100mm'},80:{libre:5,ocupada:2.5,label:'80mm'},65:{libre:6,ocupada:3,label:'65mm'},50:{libre:8,ocupada:4,label:'50mm'},40:{libre:8,ocupada:4,label:'40mm'},25:{libre:10,ocupada:5,label:'25mm'},20:{libre:10,ocupada:5,label:'20mm'}};
+const DIAM=[100,80,65,50,40,25,20];
+const FEST=['2025-01-01','2025-02-03','2025-03-17','2025-05-01','2025-09-16','2025-11-17','2025-12-25','2026-01-01','2026-02-02','2026-03-16','2026-05-01','2026-09-16','2026-11-16','2026-12-25'];
+const ATIPO=['Instalación de data loggers','Monitoreo activo (data loggers en sitio)','Desinstalación y recolección de data loggers','Entrega de resultados','Desfase / traslado','Prórroga – Análisis de datos','Otro (especificar)'];
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+let ST={modulo:null,
+  T:{paso:'upload',carg:false,err:'',cot:{num:'',cli:''},lotes:[],proy:{titulo:'',empresa:'',responsable:'',cotizacion:''},fechaOC:'',extras:'',paralelo:false,finMes:false,tareas:[],linea:null},
+  L:{paso:'config',err:'',proy:{titulo:'Estudio de Aire – Colocación de Data Loggers',empresa:'',responsable:''},fases:[],resultado:null}};
+let _id=1; function nId(){return _id++;}
+
+// ─── FECHAS ───────────────────────────────────────────────────────────────────
+function dISO(d){return d instanceof Date?d.toISOString().slice(0,10):String(d||'');}
+function esFS(d){const v=d.getDay();return v===0||v===6;}
+function esFt(d,ex=[]){const s=dISO(d);return FEST.includes(s)||ex.includes(s);}
+function esH(d,ex=[]){return !esFS(d)&&!esFt(d,ex);}
+function addH(base,n,ex=[]){let d=new Date(base),a=0;while(a<n){d.setDate(d.getDate()+1);if(esH(d,ex))a++;}return d;}
+function cntH(i,f){let d=new Date(i),c=0;while(d<=f){if(esH(d))c++;d.setDate(d.getDate()+1);}return c;}
+function deStr(s){if(!s)return null;const[y,m,dd]=s.split('-').map(Number);return new Date(y,m-1,dd);}
+function fmt(d){if(!d)return'';if(typeof d==='string')d=deStr(d);return d?d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):''}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function nomT(lo){const etq=KPI[lo.diametro]?.label||lo.diametro+'mm',z=(lo.zona||'').trim();return z?`Suministro e instalación de tubería y accesorios PIPRO ${etq} en la zona ${z}`:`Suministro e instalación de tubería y accesorios PIPRO ${etq}`;}
+
+// ─── CSV ──────────────────────────────────────────────────────────────────────
+function csvEsc(v){const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`  :s;}
+function csvRow(cols){return cols.map(csvEsc).join(',');}
+
+function exportCSV(){
+  const{proy,tareas}=ST.T;
+  const lines=[csvRow([proy.titulo||'Proyecto']),csvRow([`Empresa: ${proy.empresa||''}`,``,`No. Cotización: ${proy.cotizacion||''}`]),csvRow([`Responsable: ${proy.responsable||''}`]),'',csvRow(['ACTIVIDAD / TAREA','ZONA','CONDICIÓN ÁREA','INICIO','FIN','DÍAS HÁBILES'])];
+  tareas.forEach(t=>{if(t.esFase)lines.push(csvRow([t.nombre]));else{const c=t.areaLibre===true?'Área libre':t.areaLibre===false?'Zona ocupada':(t.cond||'');lines.push(csvRow([t.nombre,t.zona||'',c,fmt(t.inicio),fmt(t.fin),t.dias||'']));}});
+  lines.push('',csvRow([`Generado: ${new Date().toLocaleDateString('es-MX')} | Lun-Vie | Festivos MX excluidos`]));
+  dlTxt(lines.join('\n'),`Gantt_${(proy.titulo||'Proyecto').replace(/\s+/g,'_').slice(0,40)}.csv`);
+}
+
+function exportCSVL(){
+  const{proy,fases}=ST.L;
+  const lines=[csvRow([proy.titulo]),csvRow([`Empresa: ${proy.empresa}`]),csvRow([`Responsable: ${proy.responsable}`]),'',csvRow(['FASE','ACTIVIDAD','UBICACIÓN','INICIO','FIN','DÍAS','OBS'])];
+  fases.forEach(f=>{lines.push(csvRow([f.nombre,'','','','','','']));f.actividades.forEach(a=>{const nom=a.nombre==='Otro (especificar)'?(a.custom||a.nombre):a.nombre;lines.push(csvRow(['',nom,f.planta,fmt(a.inicio),fmt(a.fin),a.dias||'',a.prorroga?'Prórroga':'']));});});
+  dlTxt(lines.join('\n'),`Gantt_Logger_${(proy.empresa||'Proyecto').replace(/\s+/g,'_')}.csv`);
+}
+
+function dlTxt(content,name){const b=new Blob(['﻿'+content],{type:'text/csv;charset=utf-8;'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render(){document.getElementById('app').innerHTML=buildHTML();bindEv();updHeader();}
+
+function updHeader(){
+  const steps=document.getElementById('header-steps');
+  const sub=document.getElementById('header-sub');
+  if(!ST.modulo){steps.innerHTML='';sub.textContent='Generador de Diagramas de Gantt';return;}
+  if(ST.modulo==='tuberias'){
+    sub.textContent='🔧 Instalación de Tubería AIRWYN';
+    const ps=['upload','lotes','config','resultado'],lb=['Subir PDF','Lotes','Configurar','Resultado'];
+    const idx=ps.indexOf(ST.T.paso);
+    steps.innerHTML=lb.map((l,i)=>`<div class="step-pill ${i===idx?'active':''}">${l}</div>`).join('');
+  }else{
+    sub.textContent='💡 Estudio de Aire – Data Loggers';
+    const ps=['config','resultado'],lb=['Configurar','Resultado'];
+    const idx=ps.indexOf(ST.L.paso);
+    steps.innerHTML=lb.map((l,i)=>`<div class="step-pill ${i===idx?'active':''}">${l}</div>`).join('');
+  }
+}
+
+function buildHTML(){
+  if(!ST.modulo)return buildHome();
+  if(ST.modulo==='tuberias')return buildT();
+  return buildL();
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────────
+function buildHome(){return `<div class="home fu">
+  <h1>¿Qué tipo de Gantt necesitas?</h1>
+  <p>Selecciona el módulo correspondiente a tu proyecto</p>
+  <div class="mgrid">
+    <div class="mcard mr" onclick="selMod('tuberias')">
+      <span class="micon">🔧</span>
+      <div class="mtitle">Instalación de Tubería</div>
+      <div class="mdesc">Sistema AIRWYN de aluminio. Calcula tiempos por diámetro, zona y condición del área. Exporta CSV para convertir a Excel profesional.</div>
+      <span class="mcta mr">Abrir módulo →</span>
+    </div>
+    <div class="mcard ma" onclick="selMod('loggers')">
+      <span class="micon">💡</span>
+      <div class="mtitle">Estudio de Aire</div>
+      <div class="mdesc">Colocación de data loggers por planta y fase. Gestiona instalación, monitoreo, recolección y entrega de resultados.</div>
+      <span class="mcta ma">Abrir módulo →</span>
+    </div>
+  </div>
+  <p style="margin-top:40px;font-size:12px;color:var(--txt3)">Descarga el CSV y pégalo en Claude para obtener el Excel profesional con colores y barras de Gantt.</p>
+</div>`;}
+
+// ─── MÓDULO TUBERÍAS ──────────────────────────────────────────────────────────
+function buildT(){const T=ST.T;return `
+<div class="mhdr mr">
+  <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="volver()">← Inicio</button>
+  <div class="sep"></div>
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#fff">🔧 Instalación de Tubería AIRWYN</div>
+</div>
+<div class="content fu">
+  ${T.err?`<div class="alert ae">⚠️ ${T.err}</div>`:''}
+  ${T.paso==='upload'?buildTUp():T.paso==='lotes'?buildTLotes():T.paso==='config'?buildTCfg():T.linea?buildTRes():''}
+</div>`;}
+
+function buildTUp(){const T=ST.T;return `
+<h2 style="font-size:24px;margin-bottom:6px">Sube la cotización en PDF</h2>
+<p style="color:var(--txt2);font-size:13px;margin-bottom:24px">La IA extrae las cantidades de tubería por diámetro automáticamente.</p>
+<div class="dz" id="dz" onclick="document.getElementById('fi').click()">
+  <div class="dico">${T.carg?'⚙️':'📄'}</div>
+  ${T.carg?`<div class="dtitle" style="color:#F87171">Analizando PDF con IA…</div><div class="dsub">Unos segundos…</div>`:`<div class="dtitle">Arrastra el PDF o haz clic para seleccionar</div><div class="dsub">Cotización Gardner Denver – COT-xxxxx</div>`}
+</div>
+<input type="file" id="fi" accept=".pdf" style="display:none"/>
+<div class="card mt16"><span style="font-size:13px;color:var(--txt3)">¿Sin PDF? </span><button class="btn btn-ghost" style="margin-left:8px;font-size:12px" onclick="ST.T.paso='lotes';render()">Capturar manualmente →</button></div>`;}
+
+function buildTLotes(){const T=ST.T;return `
+<div class="fsb mb12">
+  <div>
+    <h2 style="font-size:24px;margin-bottom:4px">Lotes de instalación</h2>
+    <p style="color:var(--txt2);font-size:13px">Cada lote = diámetro + zona.${T.cot.num?` · <span style="color:#F87171">${T.cot.num}</span>`:''}</p>
+  </div>
+  <button class="btn btn-rojo" onclick="addLote()">+ Agregar lote</button>
+</div>
+${!T.lotes.length?`<div class="card" style="text-align:center;padding:36px;color:var(--txt3)">Sin lotes. Agrega uno o sube el PDF.</div>`:''}
+<div>${T.lotes.map((lo,i)=>buildLoteCard(lo,i)).join('')}</div>
+${T.lotes.length?`<div class="card mt12" style="background:rgba(185,28,28,.06)">
+  <div style="font-size:11px;font-weight:700;color:#F87171;margin-bottom:6px">Resumen</div>
+  <div class="stat-row"><div>Lotes: <strong>${T.lotes.length}</strong></div><div>Tubos: <strong>${T.lotes.reduce((s,l)=>s+l.tubos,0)}</strong></div><div>≈ metros: <strong>${(T.lotes.reduce((s,l)=>s+l.tubos,0)*5.8).toFixed(0)}m</strong></div></div>
+</div>`:''}
+<div class="card mt12">
+  <div class="card-title">Información del proyecto</div>
+  <div class="g2">
+    <div><label class="lbl">Título</label><input value="${esc(T.proy.titulo)}" oninput="ST.T.proy.titulo=this.value"/></div>
+    <div><label class="lbl">Empresa</label><input value="${esc(T.proy.empresa)}" oninput="ST.T.proy.empresa=this.value"/></div>
+    <div><label class="lbl">Responsable</label><input value="${esc(T.proy.responsable)}" oninput="ST.T.proy.responsable=this.value"/></div>
+    <div><label class="lbl">No. Cotización</label><input value="${esc(T.proy.cotizacion)}" oninput="ST.T.proy.cotizacion=this.value"/></div>
+  </div>
+</div>
+<div class="fx mt16" style="gap:8px">
+  <button class="btn btn-ghost" onclick="ST.T.paso='upload';render()">← Regresar</button>
+  <button class="btn btn-rojo" onclick="irCfg()">Continuar →</button>
+</div>`;}
+
+function buildLoteCard(lo,idx){
+  const t=lo.areaLibre?KPI[lo.diametro].libre:KPI[lo.diametro].ocupada;
+  const d=lo.tubos>0?Math.ceil(lo.tubos/t):0;
+  const cl=lo.areaLibre?'lv':'lo';
+  return `<div class="lcard ${cl}" id="lc${lo.id}">
+  <div class="fw" style="gap:8px">
+    <div style="min-width:20px;padding-top:26px;color:var(--txt3);font-size:12px;font-weight:700">${idx+1}</div>
+    <div style="min-width:100px"><label class="lbl">Diámetro</label><select onchange="updL(${lo.id},'diametro',Number(this.value))">${DIAM.map(dm=>`<option value="${dm}"${dm===lo.diametro?' selected':''}>${KPI[dm].label}</option>`).join('')}</select></div>
+    <div style="flex:1;min-width:140px"><label class="lbl">Zona / Área</label><input placeholder='"A", "Nave 1"' value="${esc(lo.zona)}" oninput="updL(${lo.id},'zona',this.value)"/></div>
+    <div style="min-width:80px"><label class="lbl">Tubos</label><input type="number" min="0" value="${lo.tubos===0?'':lo.tubos}" placeholder="0" oninput="updL(${lo.id},'tubos',this.value===''?0:Math.max(0,parseInt(this.value)||0))" style="text-align:center;font-weight:700"/></div>
+    <div style="min-width:148px"><label class="lbl">Condición</label><div class="fw mt8" style="gap:5px"><button class="chip ${lo.areaLibre?'av':''}" onclick="updL(${lo.id},'areaLibre',true)">✓ Libre</button><button class="chip ${!lo.areaLibre?'aa':''}" onclick="updL(${lo.id},'areaLibre',false)">🔧 Ocupada</button></div></div>
+    <div style="min-width:68px;text-align:center;padding-top:18px">
+      <div style="font-size:10px;color:var(--txt3)">≈ días</div>
+      <div style="font-size:26px;font-weight:800;line-height:1;color:${lo.areaLibre?'#4ADE80':'#FBBF24'};font-family:'Syne',sans-serif">${d||'–'}</div>
+      <div style="font-size:10px;color:var(--txt3)">${t} t/día</div>
+    </div>
+    <div class="fx" style="gap:5px;padding-top:24px">
+      <button class="btn-icon" style="color:#818CF8" onclick="dupL(${lo.id})">⧉</button>
+      <button class="btn-icon" style="color:#F87171" onclick="delL(${lo.id})">✕</button>
+    </div>
+  </div>
+  <div class="lprev">📐 ${nomT(lo)}</div>
+</div>`;}
+
+function buildTCfg(){const T=ST.T;return `
+<h2 style="font-size:24px;margin-bottom:6px">Configuración</h2>
+<p style="color:var(--txt2);font-size:13px;margin-bottom:20px">Estas respuestas determinan los tiempos calculados.</p>
+<div class="card">
+  <div class="card-title">📅 Fechas</div>
+  <div class="g2">
+    <div><label class="lbl">Fecha de Orden de Compra</label><input type="date" value="${T.fechaOC}" oninput="ST.T.fechaOC=this.value"/><div class="hint">A partir de aquí se calculan almacén, entrega e inicio.</div></div>
+    <div><label class="lbl">Festivos adicionales (opcional)</label><input value="${esc(T.extras)}" placeholder="2026-05-15, 2026-06-01" oninput="ST.T.extras=this.value"/><div class="hint">Separados por coma. Festivos MX ya incluidos.</div></div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-title">🏭 Logística</div>
+  <div class="tq-lbl">¿La salida de material cae en fin de mes?</div>
+  <div class="tq-sub">Los cierres de mes generan retrasos en almacén (+3 días hábiles)</div>
+  <div class="fw"><button class="chip ${!T.finMes?'ar':''}" onclick="ST.T.finMes=false;render()">No → 10 días hábiles</button><button class="chip ${T.finMes?'ar':''}" onclick="ST.T.finMes=true;render()">Sí → 13 días hábiles</button></div>
+</div>
+<div class="card">
+  <div class="card-title">⚙️ Secuencia</div>
+  <div class="tq-lbl">¿Los lotes se instalan en paralelo o secuencialmente?</div>
+  <div class="tq-sub">Paralelo = todos inician al mismo tiempo. Secuencial = uno termina y arranca el siguiente.</div>
+  <div class="fw"><button class="chip ${!T.paralelo?'ar':''}" onclick="ST.T.paralelo=false;render()">Secuencial – un lote a la vez</button><button class="chip ${T.paralelo?'ar':''}" onclick="ST.T.paralelo=true;render()">Paralelo – varios lotes</button></div>
+</div>
+<div class="card">
+  <div class="card-title">📋 Lotes a programar</div>
+  ${[...T.lotes].sort((a,b)=>b.diametro-a.diametro).map((l,i)=>{const t=l.areaLibre?KPI[l.diametro].libre:KPI[l.diametro].ocupada;return`<div style="display:flex;gap:9px;align-items:center;font-size:12px;color:var(--txt2);padding:7px 10px;background:rgba(0,0,0,.2);border-radius:7px;border-left:3px solid ${l.areaLibre?'#16A34A':'#CA8A04'};margin-bottom:5px"><span style="color:var(--txt3);min-width:16px">${i+1}.</span><span style="flex:1">${nomT(l)}</span><span style="color:var(--txt3)">${l.tubos} t</span><span style="font-weight:700;color:${l.areaLibre?'#4ADE80':'#FBBF24'};font-family:'Syne',sans-serif">≈${Math.ceil(l.tubos/t)}d</span></div>`;}).join('')}
+</div>
+<div class="fx" style="gap:8px"><button class="btn btn-ghost" onclick="ST.T.paso='lotes';render()">← Regresar</button><button class="btn btn-rojo" onclick="calcT()">🗓️ Generar Gantt</button></div>`;}
+
+function buildTRes(){const T=ST.T;return `
+<div class="fsb mb12">
+  <div><h2 style="font-size:24px;margin:0">Diagrama de Gantt</h2><div style="color:var(--txt2);font-size:13px;margin-top:3px">${esc(T.proy.titulo)}</div></div>
+  <div class="fx" style="gap:8px"><button class="btn btn-ghost" onclick="ST.T.paso='config';render()">← Ajustar</button><button class="btn btn-verde" onclick="exportCSV()">⬇ Descargar CSV</button></div>
+</div>
+<div class="alert ai">💡 <strong>Para el Excel profesional:</strong> Descarga el CSV y pégalo en Claude. Lo convierto al formato profesional con barras de Gantt y colores Gardner Denver.</div>
+<div class="miles">
+  ${[['📋','Orden de compra',T.linea.oc],['📦','Salida almacén',T.linea.sa],['🔧','Inicio instalación',T.linea.it],['✅','Fin estimado',T.linea.ef]].map(([ic,lb,d])=>`<div class="mile"><div class="ico">${ic}</div><div class="lbl2">${lb}</div><div class="val">${fmt(d)}</div></div>`).join('')}
+</div>
+<div class="dur"><span style="font-size:20px">📅</span><div><div class="num">Duración total: ${cntH(T.linea.oc,T.linea.ef)} días hábiles</div><div class="sub2">${T.paralelo?'Paralelo':'Secuencial'} · ${T.lotes.length} lotes · Lunes–Viernes · Festivos MX excluidos</div></div></div>
+<div class="gtbl">
+  <div class="ghdr"><div>Actividad</div><div>Inicio</div><div>Fin</div><div>Condición</div><div>Días</div></div>
+  ${T.tareas.map(t=>t.esFase?`<div class="gph">${esc(t.nombre)}</div>`:`<div class="grow"><div class="gname">${esc(t.nombre)}</div><div class="gdate">${fmt(t.inicio)}</div><div class="gdate">${fmt(t.fin)}</div><div>${t.areaLibre!==undefined?`<span class="badge ${t.areaLibre?'bl':'bo'}">${t.areaLibre?'✓ Libre':'🔧 Ocupada'}</span>`:''}</div><div class="gdias">${t.dias}</div></div>`).join('')}
+</div>
+<div style="margin-top:10px;font-size:10px;color:var(--txt3);text-align:center">Festivos MX excluidos · Lunes–Viernes · Mayor → menor diámetro</div>`;}
+
+// ─── MÓDULO LOGGERS ───────────────────────────────────────────────────────────
+function buildL(){const L=ST.L;return `
+<div class="mhdr ma">
+  <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="volver()">← Inicio</button>
+  <div class="sep"></div>
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#fff">💡 Estudio de Aire – Data Loggers</div>
+</div>
+<div class="content fu">
+  ${L.err?`<div class="alert ae">⚠️ ${L.err}</div>`:''}
+  ${L.paso==='config'?buildLCfg():L.resultado?buildLRes():''}
+</div>`;}
+
+function buildLCfg(){const L=ST.L;return `
+<h2 style="font-size:24px;color:#93C5FD;margin-bottom:6px">Configuración del estudio</h2>
+<p style="color:var(--txt2);font-size:13px;margin-bottom:20px">Configura el proyecto y las actividades por fase.</p>
+<div class="card" style="border-color:rgba(29,78,216,.3)">
+  <div class="card-title" style="color:#93C5FD">📋 Información del proyecto</div>
+  <div class="g3">
+    <div><label class="lbl">Título del estudio</label><input value="${esc(L.proy.titulo)}" oninput="ST.L.proy.titulo=this.value"/></div>
+    <div><label class="lbl">Empresa / Cliente</label><input value="${esc(L.proy.empresa)}" oninput="ST.L.proy.empresa=this.value"/></div>
+    <div><label class="lbl">Responsable</label><input value="${esc(L.proy.responsable)}" oninput="ST.L.proy.responsable=this.value"/></div>
+  </div>
+</div>
+<div>${L.fases.map((f,i)=>buildFase(f,i)).join('')}</div>
+<button class="btn btn-ghost mt12" style="width:100%;border:2px dashed rgba(29,78,216,.4);color:#93C5FD;padding:12px" onclick="addFase()">+ Agregar fase</button>
+<div class="fx mt16"><button class="btn btn-azul" onclick="calcL()">🗓️ Generar Gantt de Data Loggers</button></div>`;}
+
+function buildFase(f,fi){return `<div class="fase-l" id="fl${f.id}">
+<div class="fase-lhdr">
+  <input value="${esc(f.nombre)}" oninput="updF(${f.id},'nombre',this.value)" style="width:110px;font-weight:700;color:#93C5FD"/>
+  <span style="color:var(--txt3);font-size:13px">Planta:</span>
+  <input value="${esc(f.planta)}" placeholder="Cemex Huichapan…" oninput="updF(${f.id},'planta',this.value)" style="flex:1"/>
+  ${ST.L.fases.length>1?`<button class="btn-icon" style="color:#F87171" onclick="delF(${f.id})">✕ Fase</button>`:''}
+</div>
+<div>${f.actividades.map((a,ai)=>buildAct(f.id,a,ai,f.actividades.length)).join('')}</div>
+<button class="btn btn-ghost mt8" style="font-size:12px;padding:6px 14px" onclick="addAct(${f.id})">+ Actividad</button>
+</div>`;}
+
+function buildAct(fid,a,ai,tot){const pr=a.prorroga||a.nombre.includes('Prórroga');return `<div class="arow ${pr?'apr':''}" id="ac${fid}_${a.id}">
+<div style="min-width:18px;padding-top:26px;color:var(--txt3);font-size:11px;font-weight:700">${ai+1}</div>
+<div style="flex:2;min-width:200px">
+  <label class="lbl">Actividad</label>
+  <select onchange="updA(${fid},${a.id},'nombre',this.value)">${ATIPO.map(t=>`<option value="${esc(t)}"${t===a.nombre?' selected':''}>${esc(t)}</option>`).join('')}</select>
+  ${a.nombre==='Otro (especificar)'?`<input value="${esc(a.custom||'')}" placeholder="Escribe la actividad…" oninput="updA(${fid},${a.id},'custom',this.value)" style="margin-top:6px"/>`:''}
+</div>
+<div style="min-width:120px"><label class="lbl">Inicio</label><input type="date" value="${a.inicio||''}" oninput="updA(${fid},${a.id},'inicio',this.value)"/></div>
+<div style="min-width:120px"><label class="lbl">Fin</label><input type="date" value="${a.fin||''}" oninput="updA(${fid},${a.id},'fin',this.value)"/></div>
+<div style="min-width:60px"><label class="lbl">Días</label><input type="number" min="1" value="${a.dias||1}" oninput="updA(${fid},${a.id},'dias',parseInt(this.value)||1)" style="text-align:center;font-weight:700"/></div>
+${tot>1?`<button class="btn-icon" style="color:#F87171;margin-top:22px" onclick="delA(${fid},${a.id})">✕</button>`:''}
+</div>`;}
+
+function buildLRes(){const L=ST.L;return `
+<div class="fsb mb12">
+  <div><h2 style="font-size:24px;margin:0;color:#93C5FD">Diagrama de Gantt</h2><div style="color:var(--txt2);font-size:13px;margin-top:3px">${esc(L.proy.titulo)} – ${esc(L.proy.empresa)}</div></div>
+  <div class="fx" style="gap:8px"><button class="btn btn-ghost" onclick="ST.L.paso='config';render()">← Ajustar</button><button class="btn btn-verde" onclick="exportCSVL()">⬇ Descargar CSV</button></div>
+</div>
+<div class="alert ai mb12">💡 <strong>Para el Excel profesional:</strong> Descarga el CSV y pégalo en Claude. Lo convierto al formato profesional con barras por fase y colores.</div>
+<div class="gtbl">
+  <div class="ghdr-a"><div>Actividad</div><div>Ubicación</div><div>Inicio</div><div>Fin</div><div>Días</div></div>
+  ${L.resultado.map(t=>t.esFase?`<div class="gph-a">${esc(t.nombre)}</div>`:`<div class="grow-a" ${t.prorroga?'style="background:rgba(245,158,11,.06)"':''}><div style="font-weight:500;color:${t.prorroga?'#FBBF24':'var(--txt)'};font-style:${t.prorroga?'italic':'normal'}">${esc(t.nombre)}${t.prorroga?' <span class="badge bp">⏰ Prórroga</span>':''}</div><div class="gdate">${esc(t.zona||'')}</div><div class="gdate">${fmt(t.inicio)}</div><div class="gdate">${fmt(t.fin)}</div><div style="font-weight:700;color:#60A5FA;font-family:'Syne',sans-serif">${t.dias}</div></div>`).join('')}
+</div>`;}
+
+// ─── ACCIONES ─────────────────────────────────────────────────────────────────
+function selMod(m){
+  ST.modulo=m;
+  if(m==='loggers'&&ST.L.fases.length===0) ST.L.fases=[{id:nId(),nombre:'FASE 1',planta:'',actividades:[{id:nId(),nombre:'Instalación de data loggers',inicio:'',fin:'',dias:1,prorroga:false}]}];
+  render();
+}
+function volver(){ST.modulo=null;render();}
+function irCfg(){if(!ST.T.lotes.length){ST.T.err='Agrega al menos un lote.';render();return;}ST.T.err='';ST.T.paso='config';render();}
+
+function addLote(){ST.T.lotes.push({id:nId(),diametro:65,zona:'',tubos:0,areaLibre:true});render();}
+function updL(id,k,v){const l=ST.T.lotes.find(x=>x.id===id);if(l)l[k]=v;render();}
+function delL(id){ST.T.lotes=ST.T.lotes.filter(x=>x.id!==id);render();}
+function dupL(id){const i=ST.T.lotes.findIndex(x=>x.id===id);const lo=ST.T.lotes[i];const c={...lo,id:nId(),zona:lo.zona?lo.zona+' B':''};ST.T.lotes.splice(i+1,0,c);render();}
+
+function calcT(){
+  const T=ST.T;
+  if(!T.fechaOC){T.err='Ingresa la fecha de Orden de Compra.';render();return;}
+  if(!T.lotes.length){T.err='Agrega al menos un lote.';render();return;}
+  if(T.lotes.some(l=>l.tubos<=0)){T.err='Todos los lotes deben tener tubos > 0.';render();return;}
+  const ex=T.extras.split(',').map(s=>s.trim()).filter(Boolean);
+  const oc=deStr(T.fechaOC),nD=T.finMes?13:10;
+  const sa=addH(oc,nD,ex),ep=addH(sa,1,ex),it=addH(ep,1,ex);
+  const lista=[];
+  lista.push({esFase:true,nombre:'FASE 1 – LOGÍSTICA Y PREPARACIÓN'});
+  lista.push({nombre:'Salida de material de almacén (Gardner Denver → cliente)',dias:nD,inicio:new Date(oc),fin:new Date(sa)});
+  lista.push({nombre:'Entrega y recepción de material en planta',dias:1,inicio:new Date(sa),fin:new Date(ep)});
+  lista.push({esFase:true,nombre:'FASE 2 – SUMINISTRO E INSTALACIÓN DE TUBERÍA'});
+  const ord=[...T.lotes].sort((a,b)=>b.diametro!==a.diametro?b.diametro-a.diametro:(a.zona||'').localeCompare(b.zona||''));
+  let cur=new Date(it),mx=new Date(it);
+  ord.forEach(lo=>{
+    const tasa=lo.areaLibre?KPI[lo.diametro].libre:KPI[lo.diametro].ocupada;
+    const dias=Math.ceil(lo.tubos/tasa);
+    const ini=T.paralelo?new Date(it):new Date(cur);
+    const fin=dias>1?addH(ini,dias-1,ex):new Date(ini);
+    lista.push({nombre:nomT(lo),zona:lo.zona||'',dias,inicio:new Date(ini),fin:new Date(fin),areaLibre:lo.areaLibre,tubos:lo.tubos});
+    if(!T.paralelo)cur=addH(fin,1,ex);
+    if(fin>mx)mx=new Date(fin);
+  });
+  const ps=T.paralelo?addH(mx,1,ex):new Date(cur),pe=addH(ps,1,ex),ef=addH(pe,1,ex);
+  lista.push({esFase:true,nombre:'FASE 3 – CIERRE Y ENTREGA'});
+  lista.push({nombre:'Pruebas de funcionamiento y detección/corrección de fugas',dias:2,inicio:new Date(ps),fin:new Date(pe)});
+  lista.push({nombre:'Entrega final, plano as-built y documentación',dias:1,inicio:new Date(pe),fin:new Date(ef)});
+  T.tareas=lista;T.linea={oc,sa,ep,it,ef};T.err='';T.paso='resultado';render();
+}
+
+function addFase(){const n=ST.L.fases.length+1;ST.L.fases.push({id:nId(),nombre:`FASE ${n}`,planta:'',actividades:[{id:nId(),nombre:'Instalación de data loggers',inicio:'',fin:'',dias:1,prorroga:false}]});render();}
+function updF(id,k,v){const f=ST.L.fases.find(x=>x.id===id);if(f)f[k]=v;}
+function delF(id){ST.L.fases=ST.L.fases.filter(x=>x.id!==id);render();}
+function addAct(fid){const f=ST.L.fases.find(x=>x.id===fid);if(f)f.actividades.push({id:nId(),nombre:'Monitoreo activo (data loggers en sitio)',inicio:'',fin:'',dias:1,prorroga:false});render();}
+function delA(fid,aid){const f=ST.L.fases.find(x=>x.id===fid);if(f)f.actividades=f.actividades.filter(a=>a.id!==aid);render();}
+function updA(fid,aid,k,v){const f=ST.L.fases.find(x=>x.id===fid);if(!f)return;const a=f.actividades.find(x=>x.id===aid);if(a){a[k]=v;if(k==='nombre')a.prorroga=v.includes('Prórroga');}}
+
+function calcL(){
+  const L=ST.L;
+  if(!L.proy.empresa){L.err='Ingresa la empresa.';render();return;}
+  if(!L.proy.responsable){L.err='Ingresa el responsable.';render();return;}
+  for(const f of L.fases){
+    if(!f.planta){L.err=`Ingresa la planta para ${f.nombre}.`;render();return;}
+    for(const a of f.actividades){if(!a.inicio||!a.fin){L.err=`Completa fechas en "${a.nombre}" (${f.nombre}).`;render();return;}}
+  }
+  const tareas=[];
+  L.fases.forEach(f=>{
+    tareas.push({esFase:true,nombre:`${f.nombre} – ${f.planta.toUpperCase()}`});
+    f.actividades.forEach(a=>{const nom=a.nombre==='Otro (especificar)'?(a.custom||a.nombre):a.nombre;tareas.push({nombre:nom,zona:f.planta,inicio:a.inicio,fin:a.fin,dias:a.dias||1,prorroga:a.prorroga||a.nombre.includes('Prórroga')});});
+  });
+  L.resultado=tareas;L.err='';L.paso='resultado';render();
+}
+
+// ─── EVENTOS ──────────────────────────────────────────────────────────────────
+function bindEv(){
+  const dz=document.getElementById('dz');
+  if(dz){
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='#B91C1C';});
+    dz.addEventListener('dragleave',()=>dz.style.borderColor='');
+    dz.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')procPDF(f);});
+  }
+  const fi=document.getElementById('fi');
+  if(fi)fi.addEventListener('change',e=>{if(e.target.files[0])procPDF(e.target.files[0]);});
+}
+
+async function procPDF(file){
+  ST.T.carg=true;render();
+  try{
+    const b64=await new Promise((ok,er)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=er;r.readAsDataURL(file);});
+    // Nota: requiere API key de Anthropic configurada en el servidor
+    alert('La extracción automática de PDF requiere una clave de API de Anthropic.\nUsa "Capturar manualmente" para ingresar los datos.');
+    ST.T.paso='lotes';
+  }catch(e){ST.T.err='Error al procesar PDF: '+e.message;}
+  finally{ST.T.carg=false;render();}
+}
+
+render();
+</script>
+</body>
+</html>
