@@ -36,64 +36,44 @@ const APPROVER="Marco Antonio Millan Ramirez";
 const DELIVERY_DEFAULT="Entrega al Depto. de Ingeniería";
 const C={bg:"#0b0d11",panel:"#13161c",panel2:"#1a1e26",border:"#262b35",borderLight:"#323844",text:"#e8eaed",textDim:"#8b94a3",textFaint:"#5a6270",accent:"#f0b429",accentDim:"#a87d12",green:"#3fb950",red:"#f85149"};
 
-// ─── Capa de datos – Supabase ─────────────────────────────────────────────────
+// ─── IndexedDB (fallback cuando Supabase no está configurado) ────────────────
+const IDB_NAME="RequisicionesDB",IDB_VER=1;
+function openIDB(){return new Promise((res,rej)=>{const r=indexedDB.open(IDB_NAME,IDB_VER);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains('requisitions'))db.createObjectStore('requisitions',{keyPath:'folio'});if(!db.objectStoreNames.contains('meta'))db.createObjectStore('meta',{keyPath:'key'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbGetAll(){const db=await openIDB();return new Promise((res,rej)=>{const tx=db.transaction('requisitions','readonly');const r=tx.objectStore('requisitions').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);});}
+async function idbPut(obj){const db=await openIDB();return new Promise((res,rej)=>{const tx=db.transaction('requisitions','readwrite');tx.objectStore('requisitions').put(obj);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function idbDel(folio){const db=await openIDB();return new Promise((res,rej)=>{const tx=db.transaction('requisitions','readwrite');tx.objectStore('requisitions').delete(folio);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function idbGetMeta(key,fb){const db=await openIDB();return new Promise((res,rej)=>{const tx=db.transaction('meta','readonly');const r=tx.objectStore('meta').get(key);r.onsuccess=()=>res(r.result?r.result.value:fb);r.onerror=()=>rej(r.error);});}
+async function idbSetMeta(key,val){const db=await openIDB();return new Promise((res,rej)=>{const tx=db.transaction('meta','readwrite');tx.objectStore('meta').put({key,value:val});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
 
-/** Obtiene todas las requisiciones ordenadas por fecha descendente */
+const USE_SB=()=>window.SB?.configured===true;
+
+// ─── Capa de datos – Supabase con fallback automático a IndexedDB ─────────────
+
 async function dbGetAll(){
-  const rows = await window.SB.getAll('requisiciones','?order=created_at.desc');
-  return (rows||[]).map(r=>({
-    folio:       r.folio,
-    requester:   r.requester,
-    company:     r.company,
-    isInternal:  r.is_internal,
-    approver:    r.approver,
-    delivery:    r.delivery,
-    observations:r.observations,
-    date:        r.date,
-    items:       r.items||[],
-    createdAt:   new Date(r.created_at).getTime()
-  }));
+  if(!USE_SB()){const rows=await idbGetAll();return rows.sort((a,b)=>b.createdAt-a.createdAt);}
+  const rows=await window.SB.getAll('requisiciones','?order=created_at.desc');
+  return(rows||[]).map(r=>({folio:r.folio,requester:r.requester,company:r.company,isInternal:r.is_internal,approver:r.approver,delivery:r.delivery,observations:r.observations,date:r.date,items:r.items||[],createdAt:new Date(r.created_at).getTime()}));
 }
 
-/** Guarda (o actualiza) una requisición */
 async function dbPut(obj){
-  await window.SB.upsert('requisiciones',[{
-    folio:       obj.folio,
-    requester:   obj.requester,
-    company:     obj.company||'',
-    is_internal: obj.isInternal||false,
-    approver:    obj.approver,
-    delivery:    obj.delivery,
-    observations:obj.observations||'',
-    date:        obj.date,
-    items:       obj.items
-  }],'folio');
+  if(!USE_SB())return idbPut(obj);
+  await window.SB.upsert('requisiciones',[{folio:obj.folio,requester:obj.requester,company:obj.company||'',is_internal:obj.isInternal||false,approver:obj.approver,delivery:obj.delivery,observations:obj.observations||'',date:obj.date,items:obj.items}],'folio');
 }
 
-/** Elimina una requisición por folio */
 async function dbDel(folio){
+  if(!USE_SB())return idbDel(folio);
   await window.SB.delete('requisiciones',{folio});
 }
 
-/** Lee un valor de metadatos (companies → tabla empresas; resto → tabla meta) */
 async function dbGetMeta(key,fb){
-  if(key==='companies'){
-    try{
-      const rows=await window.SB.getAll('empresas','?order=nombre.asc');
-      return rows&&rows.length?rows.map(r=>r.nombre):fb;
-    }catch{return fb;}
-  }
+  if(!USE_SB())return idbGetMeta(key,fb);
+  if(key==='companies'){try{const rows=await window.SB.getAll('empresas','?order=nombre.asc');return rows&&rows.length?rows.map(r=>r.nombre):fb;}catch{return fb;}}
   return window.SB.getMeta(key,fb);
 }
 
-/** Guarda un valor de metadatos */
 async function dbSetMeta(key,val){
-  if(key==='companies'){
-    // Upsert de todas las empresas (nunca borra, solo acumula)
-    const rows=val.map(nombre=>({nombre}));
-    await window.SB.upsert('empresas',rows,'nombre');
-    return;
-  }
+  if(!USE_SB())return idbSetMeta(key,val);
+  if(key==='companies'){await window.SB.upsert('empresas',val.map(nombre=>({nombre})),'nombre');return;}
   await window.SB.setMeta(key,val);
 }
 
@@ -366,7 +346,7 @@ function App(){
   const[counter,setCounter]=useState(0);
   const[tab,setTab]=useState('new');
   const[dbErr,setDbErr]=useState('');
-  useEffect(()=>{(async()=>{try{const reqs=await dbGetAll();const cos=await dbGetMeta('companies',['Constructora del Norte','Inmobiliaria Pacífico']);const cnt=await dbGetMeta('counter',0);setRequisitions(reqs);setCompanies(cos);setCounter(cnt);setLoaded(true);}catch(e){setDbErr('No se pudo conectar con la base de datos Supabase. Verifica tu conexión a internet o la configuración del cliente.');setLoaded(true);}})();},[]);
+  useEffect(()=>{(async()=>{try{const reqs=await dbGetAll();const cos=await dbGetMeta('companies',['Constructora del Norte','Inmobiliaria Pacífico']);const cnt=await dbGetMeta('counter',0);setRequisitions(reqs);setCompanies(cos);setCounter(cnt);setLoaded(true);}catch(e){setDbErr('Error al cargar los datos: '+(e.message||e)+'. Si usas modo incógnito, prueba en una ventana normal.');setLoaded(true);}})();},[]);
   const nextFolio=makeFolio(counter+1);
   async function handleSave(data){
     const nc=counter+1,folio=makeFolio(nc),req={...data,folio,createdAt:Date.now()};
@@ -393,7 +373,7 @@ function App(){
       <div style={{background:C.panel,border:'1px solid '+C.border,borderRadius:14,padding:28}}>
         {tab==='new'?<NewForm companies={companies} onAddCompany={handleAddCo} onSave={handleSave} nextFolio={nextFolio}/>:<History requisitions={requisitions} companies={companies} onDelete={handleDel}/>}
       </div>
-      <p style={{textAlign:'center',fontSize:11.5,color:C.textFaint,marginTop:20}}>Base de datos Supabase ☁️ · Los datos se comparten entre todos los dispositivos · El PDF se descarga directo a tu carpeta de descargas</p>
+      <p style={{textAlign:'center',fontSize:11.5,color:C.textFaint,marginTop:20}}>{USE_SB()?'Base de datos Supabase ☁️ · Datos compartidos entre dispositivos':'Base de datos local (este navegador) · Configura Supabase para sincronizar entre dispositivos'} · El PDF se descarga directo a tu carpeta de descargas</p>
     </div>
   </div>);
 }
