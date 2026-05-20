@@ -7,8 +7,8 @@
 //  3. Copia "anon public"  →  pégalo en SUPABASE_KEY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co'; // ← reemplazar
-const SUPABASE_KEY = 'TU_ANON_KEY_AQUI';                // ← reemplazar
+const SUPABASE_URL = 'https://xtqthjbfcjlrxxyribch.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0cXRoamJmY2pscnh4eXJpYmNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDE3OTMsImV4cCI6MjA5NDg3Nzc5M30.D7udwWwWfdOYosB-q0GTvCexyCXYBlspVWCEo8TbadM';
 
 window.SB = (() => {
   const configured = !SUPABASE_URL.includes('TU_PROYECTO');
