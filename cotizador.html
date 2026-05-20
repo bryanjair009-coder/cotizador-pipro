@@ -312,10 +312,16 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <div class="grid-2">
       <div>
         <label>Empresa / Cliente</label>
-        <input type="text" id="empresa" placeholder="Ej: EATON Corporation" oninput="updateFolio()">
+        <div style="position:relative;">
+          <input type="text" id="empresa" placeholder="Ej: EATON Corporation"
+                 oninput="handleEmpresaInput(this.value); updateFolio()"
+                 onfocus="handleEmpresaInput(this.value)"
+                 autocomplete="off">
+          <div id="cliente-dd" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:200;background:#1a1e2e;border:1px solid #3a4258;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.6);max-height:240px;overflow-y:auto;"></div>
+        </div>
       </div>
       <div>
-        <label>Atención a</label>
+        <label>Atención a <span style="font-size:.75rem;font-weight:400;color:#7a8aaa;">(se llena automáticamente al seleccionar cliente)</span></label>
         <input type="text" id="atencion" placeholder="Ej: Ing. Diego García">
       </div>
     </div>
@@ -2639,7 +2645,65 @@ async function init() {
   populateDiamFilter();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// ── CLIENTES – AUTOCOMPLETE DESDE SUPABASE ───────────────────────────────────
+let _clientesDB = [];
+
+async function loadClientesDB() {
+  if (!window.SB?.configured) return;
+  try {
+    const rows = await window.SB.getAll('clientes', '?order=nombre.asc');
+    _clientesDB = rows || [];
+  } catch(e) { _clientesDB = []; }
+}
+
+function _escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function handleEmpresaInput(val) {
+  const dd = document.getElementById('cliente-dd');
+  if (!dd) return;
+  if (!_clientesDB.length) { dd.style.display = 'none'; return; }
+  const q = (val||'').trim().toLowerCase();
+  const matches = q
+    ? _clientesDB.filter(c => c.nombre.toLowerCase().includes(q)).slice(0, 8)
+    : _clientesDB.slice(0, 8);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map((c, i) =>
+    `<div class="cli-opt" data-idx="${_clientesDB.indexOf(c)}"
+          style="padding:9px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);">
+       <div style="font-weight:600;font-size:13.5px;color:#e8eaed;">${_escHtml(c.nombre)}</div>
+       ${c.contacto ? `<div style="font-size:12px;color:#8b94a3;margin-top:2px;">👤 ${_escHtml(c.contacto)}${c.ciudad ? ' &nbsp;·&nbsp; 📍 ' + _escHtml(c.ciudad) : ''}</div>` : ''}
+     </div>`
+  ).join('');
+  dd.querySelectorAll('.cli-opt').forEach(opt => {
+    opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,.08)');
+    opt.addEventListener('mouseleave', () => opt.style.background = '');
+    // mousedown para que dispare antes del blur del input
+    opt.addEventListener('mousedown', e => {
+      e.preventDefault();
+      selectCliente(_clientesDB[+opt.dataset.idx]);
+    });
+  });
+  dd.style.display = 'block';
+}
+
+function selectCliente(c) {
+  document.getElementById('empresa').value = c.nombre || '';
+  if (c.contacto) document.getElementById('atencion').value = c.contacto;
+  const dd = document.getElementById('cliente-dd');
+  if (dd) dd.style.display = 'none';
+  updateFolio();
+}
+
+// Cerrar dropdown al hacer clic fuera
+document.addEventListener('click', e => {
+  const dd  = document.getElementById('cliente-dd');
+  const inp = document.getElementById('empresa');
+  if (dd && !dd.contains(e.target) && e.target !== inp) dd.style.display = 'none';
+});
+
+document.addEventListener('DOMContentLoaded', () => { init(); loadClientesDB(); });
 </script>
 </body>
 </html>
