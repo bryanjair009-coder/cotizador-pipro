@@ -312,15 +312,27 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <div class="grid-2">
       <div>
         <label>Empresa / Cliente</label>
-        <select id="empresa-select" onchange="onEmpresaSelect(this.value)">
-          <option value="">— Selecciona un cliente —</option>
-          <option value="__otro__">✏️ Escribir nombre manualmente…</option>
-        </select>
-        <input type="text" id="empresa" placeholder="Escribe el nombre de la empresa"
-               oninput="updateFolio()" autocomplete="off" style="display:none;margin-top:6px;">
+        <div style="position:relative;">
+          <div style="display:flex;">
+            <input type="text" id="empresa"
+                   placeholder="Escribe o selecciona un cliente…"
+                   oninput="handleEmpresaInput(this.value,false); updateFolio()"
+                   onkeydown="handleEmpresaKey(event)"
+                   autocomplete="off"
+                   style="border-radius:6px 0 0 6px;border-right:none;flex:1;">
+            <button type="button" id="empresa-btn" onclick="toggleClienteDD()"
+                    title="Ver todos los clientes"
+                    style="border:1.5px solid #ccc;border-left:none;border-radius:0 6px 6px 0;background:#f0f0f0;padding:0 11px;cursor:pointer;font-size:14px;color:#555;transition:background .15s;"
+                    onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f0f0f0'">▾</button>
+          </div>
+          <div id="cliente-dd"
+               style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:200;
+                      background:#fff;border:1.5px solid #ccc;border-radius:6px;
+                      box-shadow:0 6px 24px rgba(0,0,0,.15);max-height:240px;overflow-y:auto;"></div>
+        </div>
       </div>
       <div>
-        <label>Atención a <span style="font-size:.75rem;font-weight:400;color:#7a8aaa;">(se llena automáticamente al seleccionar)</span></label>
+        <label>Atención a <span style="font-size:.75rem;font-weight:400;color:#888;">(se llena solo al seleccionar de la lista)</span></label>
         <input type="text" id="atencion" placeholder="Ej: Ing. Diego García">
       </div>
     </div>
@@ -2644,7 +2656,7 @@ async function init() {
   populateDiamFilter();
 }
 
-// ── CLIENTES – LISTA DESPLEGABLE DESDE SUPABASE ──────────────────────────────
+// ── CLIENTES – COMBO-BOX (AUTOCOMPLETE + LISTA DESPLEGABLE) ─────────────────
 let _clientesDB = [];
 
 async function loadClientesDB() {
@@ -2652,42 +2664,70 @@ async function loadClientesDB() {
   try {
     const rows = await window.SB.getAll('clientes', '?order=nombre.asc');
     _clientesDB = rows || [];
-    const sel = document.getElementById('empresa-select');
-    if (!sel || !_clientesDB.length) return;
-    // Insertar opciones de clientes antes de la última opción "escribir manualmente"
-    const ultimo = sel.options[sel.options.length - 1];
-    _clientesDB.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.nombre;
-      opt.textContent = c.nombre;
-      sel.insertBefore(opt, ultimo);
-    });
   } catch(e) { _clientesDB = []; }
 }
 
-function onEmpresaSelect(val) {
-  const inp     = document.getElementById('empresa');
-  const atencion = document.getElementById('atencion');
-  if (val === '__otro__') {
-    // Modo manual: mostrar campo de texto libre
-    inp.style.display = 'block';
-    inp.value = '';
-    inp.focus();
-    atencion.value = '';
-  } else if (val) {
-    // Cliente seleccionado desde lista: rellenar automáticamente
-    inp.style.display = 'none';
-    inp.value = val;
-    const c = _clientesDB.find(x => x.nombre === val);
-    atencion.value = (c && c.contacto) ? c.contacto : '';
+function _escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// showAll=true: muestra todos (botón ▾); showAll=false: filtra por lo escrito
+function handleEmpresaInput(val, showAll) {
+  const dd = document.getElementById('cliente-dd');
+  if (!dd || !_clientesDB.length) return;
+  const q = (val||'').trim().toLowerCase();
+  const matches = (showAll || !q)
+    ? _clientesDB
+    : _clientesDB.filter(c => c.nombre.toLowerCase().includes(q));
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(c =>
+    `<div class="cli-opt" data-nombre="${_escHtml(c.nombre)}"
+          style="padding:9px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;transition:background .1s;">
+       <div style="font-weight:600;font-size:13.5px;color:#1F1F1F;">${_escHtml(c.nombre)}</div>
+       ${c.contacto ? `<div style="font-size:12px;color:#777;margin-top:2px;">👤 ${_escHtml(c.contacto)}${c.ciudad ? ' · 📍 ' + _escHtml(c.ciudad) : ''}</div>` : ''}
+     </div>`
+  ).join('');
+  dd.querySelectorAll('.cli-opt').forEach(opt => {
+    opt.addEventListener('mouseenter', () => opt.style.background = '#f5f5f5');
+    opt.addEventListener('mouseleave', () => opt.style.background = '');
+    opt.addEventListener('mousedown', e => {
+      e.preventDefault(); // evita que el input pierda foco antes del click
+      const c = _clientesDB.find(x => x.nombre === opt.dataset.nombre);
+      if (c) selectCliente(c);
+    });
+  });
+  dd.style.display = 'block';
+}
+
+function toggleClienteDD() {
+  const dd = document.getElementById('cliente-dd');
+  if (dd && dd.style.display === 'block') {
+    dd.style.display = 'none';
   } else {
-    // Sin selección
-    inp.style.display = 'none';
-    inp.value = '';
-    atencion.value = '';
+    handleEmpresaInput(document.getElementById('empresa').value, true);
+    document.getElementById('empresa').focus();
   }
+}
+
+function handleEmpresaKey(e) {
+  if (e.key === 'Escape') document.getElementById('cliente-dd').style.display = 'none';
+}
+
+function selectCliente(c) {
+  document.getElementById('empresa').value  = c.nombre || '';
+  document.getElementById('atencion').value = c.contacto || '';
+  document.getElementById('cliente-dd').style.display = 'none';
   updateFolio();
 }
+
+// Cerrar dropdown al hacer clic fuera
+document.addEventListener('click', e => {
+  const dd  = document.getElementById('cliente-dd');
+  const inp = document.getElementById('empresa');
+  const btn = document.getElementById('empresa-btn');
+  if (dd && !dd.contains(e.target) && e.target !== inp && e.target !== btn)
+    dd.style.display = 'none';
+});
 
 document.addEventListener('DOMContentLoaded', () => { init(); loadClientesDB(); });
 </script>
