@@ -675,6 +675,58 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
   </div>
 
+  <!-- 5b. SOPORTERÍA ─────────────────────────────────────────────────────────── -->
+  <div class="sec-title">5b. Soportería</div>
+  <div class="card">
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">
+      Ingresa el número de abrazaderas por tipo para calcular los materiales de soportería.
+      La tabla y el PDF de requisición se generan automáticamente (se imprimen por separado, no forman parte de la cotización principal).
+    </p>
+    <div class="grid-3" style="margin-bottom:18px;">
+      <div>
+        <label>🔩 Abrazaderas Aéreas</label>
+        <input type="number" id="sop-aerea" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+      </div>
+      <div>
+        <label>⬜ Abrazaderas PTR</label>
+        <input type="number" id="sop-ptr" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+      </div>
+      <div>
+        <label>📐 Ménsulas</label>
+        <input type="number" id="sop-mens" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+      </div>
+    </div>
+
+    <div id="sop-table-wrap" style="display:none;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
+        <thead>
+          <tr style="background:#f5f5f5;">
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;width:32px;">#</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">No. Parte</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">Descripción</th>
+            <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:60px;">Cant.</th>
+            <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:60px;">Unidad</th>
+            <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:100px;">P. Unit.</th>
+            <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:110px;">Total</th>
+          </tr>
+        </thead>
+        <tbody id="sop-tbody"></tbody>
+        <tfoot>
+          <tr style="background:#fafafa;font-weight:700;">
+            <td colspan="6" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;">TOTAL SOPORTERÍA</td>
+            <td id="sop-total" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;color:#C8102E;"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="text-align:right;">
+        <button class="btn" onclick="downloadSoporteriaPDF()"
+          style="background:#C8102E;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
+          🖨 Descargar Requisición de Soportería (PDF)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 6. GENERAR ──────────────────────────────────────────────────────────────── -->
   <div class="sec-title">6. Generar Cotización</div>
   <div class="card">
@@ -2728,6 +2780,224 @@ document.addEventListener('click', e => {
   if (dd && !dd.contains(e.target) && e.target !== inp && e.target !== btn)
     dd.style.display = 'none';
 });
+
+// ── SOPORTERÍA ────────────────────────────────────────────────────────────────
+
+// Catálogo de materiales de soportería (orden de la tabla)
+const _SOP_MAT = [
+  { np: 'U-CAN-U30-4X2-C16',  desc: 'Unicanal perforado cal 16 de 4x2 (3m)',     precio: 298.62, unidad: 'PZA' },
+  { np: 'ESP-3/8X3-GAL',      desc: 'Esparrago de 3/8" x 3 metros',              precio: 45.63,  unidad: 'PZA' },
+  { np: 'TAQ-C-3/8',          desc: 'Taquete SCI 3/8"',                           precio: 3.00,   unidad: 'PZA' },
+  { np: 'TUE-3/8-GAL',        desc: 'Tuerca Hexagonal 3/8" Galvanizado',          precio: 0.53,   unidad: 'PZA' },
+  { np: 'RPL-3/8-GAL',        desc: 'Rondana Plana 3/8" Galvanizado',             precio: 0.50,   unidad: 'PZA' },
+  { np: 'TUERC-3/8',          desc: 'Tuerca Resorte P/Unicanal Clevis 3/8"',      precio: 5.35,   unidad: 'PZA' },
+  { np: 'C-SC-115-C',         desc: 'Conexión SC-115 Placa Clevis 3/8"',          precio: 11.65,  unidad: 'PZA' },
+  { np: 'PPBCH-1/4 X 3/4',   desc: 'Pija Punta de Broca 1/4"x3/4"',             precio: 1.00,   unidad: 'PZA' },
+  { np: 'PPBCH-3/8X1',        desc: 'Pija Punta de Broca 3/8"x1"',               precio: 1.00,   unidad: 'PZA' },
+  { np: 'TAQ-EXP-3/8-Z',      desc: 'Taquete tipo Z de 3/8"',                    precio: 5.00,   unidad: 'PZA' },
+  { np: 'TCH-3/8X2 1/2-GAL',  desc: 'Tornillo Cab.Hex. 3/8"x2½" Galvanizado',   precio: 2.00,   unidad: 'PZA' },
+  { np: 'TCH-3/8X1-GAL',      desc: 'Tornillo Cab.Hex. 3/8"x1" Galvanizado',     precio: 2.00,   unidad: 'PZA' },
+  { np: 'TCH-3/8X3/4-GAL',    desc: 'Tornillo Cab.Hex. 3/8"x3/4" Galvanizado',   precio: 2.00,   unidad: 'PZA' },
+  { np: 'MOR-PEQ-3/8',        desc: 'Mordaza Clevis Pequeña 3/8"',               precio: 30.00,  unidad: 'PZA' },
+  { np: 'MOR-GDE-3/8',        desc: 'Mordaza Clevis Grande 3/8"',                precio: 30.01,  unidad: 'PZA' },
+  { np: 'C-SC-150-C',         desc: 'Conexión SC-150 Clevis Ángulo 3/8"',        precio: 20.61,  unidad: 'PZA' },
+  { np: 'TCH-3/16X1-1/2-GAL', desc: 'Tornillo Cab.Hex. 3/16"x1½" Galvanizado',  precio: 1.00,   unidad: 'PZA' },
+  { np: 'MP-12',               desc: 'Ménsula de 12" Perforada',                  precio: 0.00,   unidad: 'PZA' },
+  { np: 'RPL-3/16-GAL',        desc: 'Rondana Plana 3/16" Galvanizado',           precio: 0.20,   unidad: 'PZA' },
+  { np: 'TAQ-MAR-1/4',         desc: 'Taquete Mariposa 1/4"x3"',                 precio: 2.00,   unidad: 'PZA' },
+];
+
+// Reglas de cálculo por tipo de abrazadera
+// Para materiales lineales: calc(n) = ceil(n * cm_por_unidad / 300)  (pieza = 3 m = 300 cm)
+// Para materiales de pieza: calc(n) = n * cantidad_por_abrazadera
+const _SOP_TIPOS = {
+  aerea: [
+    { np: 'U-CAN-U30-4X2-C16', calc: n => Math.ceil(n * 30 / 300) },
+    { np: 'ESP-3/8X3-GAL',     calc: n => Math.ceil(n * 15 / 300) },
+    { np: 'TUERC-3/8',         calc: n => n * 2 },
+    { np: 'C-SC-115-C',        calc: n => n * 1 },
+    { np: 'TUE-3/8-GAL',       calc: n => n * 3 },
+    { np: 'RPL-3/8-GAL',       calc: n => n * 4 },
+    { np: 'TAQ-C-3/8',         calc: n => n * 2 },
+    { np: 'PPBCH-1/4 X 3/4',  calc: n => n * 2 },
+  ],
+  ptr: [
+    { np: 'U-CAN-U30-4X2-C16', calc: n => Math.ceil(n * 30 / 300) },
+    { np: 'ESP-3/8X3-GAL',     calc: n => Math.ceil(n * 15 / 300) },
+    { np: 'TUERC-3/8',         calc: n => n * 2 },
+    { np: 'C-SC-115-C',        calc: n => n * 2 },
+    { np: 'TUE-3/8-GAL',       calc: n => n * 4 },
+    { np: 'RPL-3/8-GAL',       calc: n => n * 4 },
+    { np: 'PPBCH-3/8X1',       calc: n => n * 2 },
+  ],
+  mens: [
+    { np: 'U-CAN-U30-4X2-C16', calc: n => Math.ceil(n * 70 / 300) },
+    { np: 'ESP-3/8X3-GAL',     calc: n => Math.ceil(n * 35 / 300) },
+    { np: 'TUERC-3/8',         calc: n => n * 2 },
+    { np: 'C-SC-115-C',        calc: n => n * 4 },
+    { np: 'TUE-3/8-GAL',       calc: n => n * 5 },
+    { np: 'RPL-3/8-GAL',       calc: n => n * 5 },
+    { np: 'TAQ-C-3/8',         calc: n => n * 2 },
+    { np: 'PPBCH-1/4 X 3/4',  calc: n => n * 1 },
+    { np: 'MOR-PEQ-3/8',       calc: n => n * 1 },
+  ],
+};
+
+/** Acumula cantidades por numero_parte dado n abrazaderas de un tipo */
+function _sopAcum(tipo, n, totals) {
+  if (!n) return;
+  (_SOP_TIPOS[tipo] || []).forEach(r => {
+    const q = r.calc(n);
+    totals[r.np] = (totals[r.np] || 0) + q;
+  });
+}
+
+/** Recalcula la tabla de soportería en pantalla */
+function calcSoporteria() {
+  const nA = parseInt(el('sop-aerea').value) || 0;
+  const nP = parseInt(el('sop-ptr').value)   || 0;
+  const nM = parseInt(el('sop-mens').value)  || 0;
+  const wrap = el('sop-table-wrap');
+
+  if (!nA && !nP && !nM) { wrap.style.display = 'none'; return; }
+
+  const totals = {};
+  _sopAcum('aerea', nA, totals);
+  _sopAcum('ptr',   nP, totals);
+  _sopAcum('mens',  nM, totals);
+
+  // Solo mostrar materiales con qty > 0, en el orden de _SOP_MAT
+  const rows = _SOP_MAT.filter(m => (totals[m.np] || 0) > 0)
+                        .map(m => ({ ...m, qty: totals[m.np] }));
+
+  let totalAmt = 0;
+  el('sop-tbody').innerHTML = rows.map((m, i) => {
+    const line = m.qty * m.precio;
+    totalAmt += line;
+    return `<tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:7px 10px;color:#aaa;text-align:center;">${i + 1}</td>
+      <td style="padding:7px 10px;font-family:monospace;font-size:12px;white-space:nowrap;">${m.np}</td>
+      <td style="padding:7px 10px;">${m.desc}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:700;">${m.qty}</td>
+      <td style="padding:7px 10px;text-align:center;color:#888;">${m.unidad}</td>
+      <td style="padding:7px 10px;text-align:right;">${fmt(m.precio)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600;">${fmt(line)}</td>
+    </tr>`;
+  }).join('');
+
+  el('sop-total').textContent = fmt(totalAmt);
+  wrap.style.display = 'block';
+}
+
+/** Genera y descarga el PDF de requisición de soportería */
+function downloadSoporteriaPDF() {
+  const nA = parseInt(el('sop-aerea').value) || 0;
+  const nP = parseInt(el('sop-ptr').value)   || 0;
+  const nM = parseInt(el('sop-mens').value)  || 0;
+
+  if (!nA && !nP && !nM) {
+    toast('⚠️ Ingresa al menos un tipo de abrazadera');
+    return;
+  }
+
+  const totals = {};
+  _sopAcum('aerea', nA, totals);
+  _sopAcum('ptr',   nP, totals);
+  _sopAcum('mens',  nM, totals);
+
+  const rows = _SOP_MAT.filter(m => (totals[m.np] || 0) > 0)
+                        .map(m => ({ ...m, qty: totals[m.np] }));
+  const totalAmt = rows.reduce((s, m) => s + m.qty * m.precio, 0);
+
+  const empresa  = (el('empresa').value  || '').trim() || 'Sin especificar';
+  const atencion = (el('atencion').value || '').trim();
+  const folio    = (el('folio').value    || '').trim() || '—';
+  const fecha    = (el('fecha').value    || '').trim() || new Date().toLocaleDateString('es-MX');
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+  const W = doc.internal.pageSize.getWidth();
+  const RED  = [200, 16, 46];
+  const DARK = [31, 31, 31];
+
+  // — Encabezado rojo —
+  doc.setFillColor(...RED);
+  doc.rect(0, 0, W, 22, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(255, 255, 255);
+  doc.text('GARDNER DENVER  ·  PIPRO', 10, 10);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('REQUISICIÓN DE MATERIALES DE SOPORTERÍA', 10, 17);
+  doc.setFontSize(9);
+  doc.text(`Folio: ${folio}`, W - 10, 10, { align: 'right' });
+  doc.text(`Fecha: ${fecha}`, W - 10, 17, { align: 'right' });
+
+  // — Info cliente —
+  doc.setTextColor(...DARK);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Empresa:', 10, 30);
+  doc.setFont('helvetica', 'normal');
+  doc.text(empresa, 35, 30);
+
+  if (atencion) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Atención:', 10, 36);
+    doc.setFont('helvetica', 'normal');
+    doc.text(atencion, 35, 36);
+  }
+
+  // — Resumen de tipos —
+  const tipos = [
+    nA ? `Aéreas: ${nA}` : '',
+    nP ? `PTR: ${nP}`    : '',
+    nM ? `Ménsulas: ${nM}` : '',
+  ].filter(Boolean).join('   |   ');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Abrazaderas:', W / 2 + 10, 30);
+  doc.setFont('helvetica', 'normal');
+  doc.text(tipos, W / 2 + 10, 36);
+
+  // — Tabla de materiales —
+  const tableBody = rows.map((m, i) => [
+    i + 1,
+    m.np,
+    m.desc,
+    m.qty,
+    m.unidad,
+    fmtPDF(m.precio),
+    fmtPDF(m.qty * m.precio),
+  ]);
+
+  const startY = atencion ? 42 : 37;
+
+  doc.autoTable({
+    startY,
+    head: [['#', 'No. Parte', 'Descripción', 'Cant.', 'Unidad', 'P. Unitario', 'Total MXN']],
+    body: tableBody,
+    foot: [['', '', '', '', '', 'TOTAL', fmtPDF(totalAmt)]],
+    margin: { left: 10, right: 10 },
+    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.5, textColor: [40, 40, 40] },
+    headStyles: { fillColor: RED, textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+    footStyles: { fillColor: [245, 245, 245], textColor: DARK, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [253, 248, 248] },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 8  },
+      1: { font: 'courier', fontSize: 7.5, cellWidth: 36 },
+      2: { cellWidth: 'auto' },
+      3: { halign: 'center', cellWidth: 14 },
+      4: { halign: 'center', cellWidth: 18 },
+      5: { halign: 'right',  cellWidth: 28 },
+      6: { halign: 'right',  cellWidth: 28 },
+    },
+  });
+
+  const safeName = empresa.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
+  doc.save(`Soporteria_${safeName}_${folio}.pdf`);
+  toast('🖨 PDF de soportería descargado');
+}
 
 document.addEventListener('DOMContentLoaded', () => { init(); loadClientesDB(); });
 </script>
