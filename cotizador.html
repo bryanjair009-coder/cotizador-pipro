@@ -596,6 +596,58 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       </div>
     </details>
 
+    <!-- Soportería -->
+    <div class="card" id="sop-section" style="margin-top:12px;">
+      <div class="sec-title" style="margin-top:0;">🔩 Soportería</div>
+      <p style="font-size:13px;color:#666;margin-bottom:16px;">
+        Ingresa el número de abrazaderas por tipo. Las cantidades se calculan automáticamente
+        y pueden ajustarse manualmente. Esta requisición se imprime por separado de la cotización.
+      </p>
+      <div class="grid-3" style="margin-bottom:18px;">
+        <div>
+          <label>🔩 Abrazaderas Aéreas</label>
+          <input type="number" id="sop-aerea" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+        </div>
+        <div>
+          <label>⬜ Abrazaderas PTR</label>
+          <input type="number" id="sop-ptr" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+        </div>
+        <div>
+          <label>📐 Ménsulas</label>
+          <input type="number" id="sop-mens" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+        </div>
+      </div>
+
+      <div id="sop-table-wrap" style="display:none;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
+          <thead>
+            <tr style="background:#f5f5f5;">
+              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:32px;">#</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">No. Parte</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">Descripción</th>
+              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:90px;">Cantidad</th>
+              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:60px;">Unidad</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:100px;">P. Unit.</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:110px;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="sop-tbody"></tbody>
+          <tfoot>
+            <tr style="background:#fafafa;font-weight:700;">
+              <td colspan="6" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;">TOTAL SOPORTERÍA</td>
+              <td id="sop-total" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;color:#C8102E;"></td>
+            </tr>
+          </tfoot>
+        </table>
+        <div style="text-align:right;">
+          <button class="btn" onclick="downloadSoporteriaPDF()"
+            style="background:#C8102E;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
+            🖨 Descargar Requisición de Soportería (PDF)
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Resumen MO -->
     <div class="card" id="mo-resumen">
       <div class="sec-title" style="margin-top:0;">📊 Resumen Programación de Obra</div>
@@ -608,6 +660,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <div class="metric-card" style="background:#fff8e1;border-color:#FFC107;"><div class="metric-label" style="color:#e65100;">Viáticos real</div><div class="metric-value" id="r-viat-real">$0.00</div></div>
         <div class="metric-card" style="background:#fff8e1;border-color:#FF8F00;"><div class="metric-label" style="color:#e65100;">Ganancia viáticos 30%</div><div class="metric-value" id="r-viat-gan">$0.00</div></div>
         <div class="metric-card"><div class="metric-label">Viáticos cobrado</div><div class="metric-value" id="r-viat">$0.00</div></div>
+        <div class="metric-card" style="background:#fff0f3;border-color:#C8102E;"><div class="metric-label" style="color:#C8102E;">🔩 Soportería</div><div class="metric-value" id="r-sop">$0.00</div><div class="metric-delta">Mat. de apoyo</div></div>
         <div class="metric-card highlight"><div class="metric-label">💰 TOTAL M.O.</div><div class="metric-value" id="r-total">$0.00</div></div>
       </div>
     </div>
@@ -671,58 +724,6 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       <div class="cart-totals" id="cart-totals"></div>
       <div style="margin-top:10px;">
         <button class="btn btn-danger btn-sm" onclick="clearCart()">🗑 Limpiar carrito</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 5b. SOPORTERÍA ─────────────────────────────────────────────────────────── -->
-  <div class="sec-title">5b. Soportería</div>
-  <div class="card">
-    <p style="font-size:13px;color:#666;margin-bottom:16px;">
-      Ingresa el número de abrazaderas por tipo para calcular los materiales de soportería.
-      La tabla y el PDF de requisición se generan automáticamente (se imprimen por separado, no forman parte de la cotización principal).
-    </p>
-    <div class="grid-3" style="margin-bottom:18px;">
-      <div>
-        <label>🔩 Abrazaderas Aéreas</label>
-        <input type="number" id="sop-aerea" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
-      </div>
-      <div>
-        <label>⬜ Abrazaderas PTR</label>
-        <input type="number" id="sop-ptr" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
-      </div>
-      <div>
-        <label>📐 Ménsulas</label>
-        <input type="number" id="sop-mens" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
-      </div>
-    </div>
-
-    <div id="sop-table-wrap" style="display:none;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
-        <thead>
-          <tr style="background:#f5f5f5;">
-            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;width:32px;">#</th>
-            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">No. Parte</th>
-            <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">Descripción</th>
-            <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:60px;">Cant.</th>
-            <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:60px;">Unidad</th>
-            <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:100px;">P. Unit.</th>
-            <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:110px;">Total</th>
-          </tr>
-        </thead>
-        <tbody id="sop-tbody"></tbody>
-        <tfoot>
-          <tr style="background:#fafafa;font-weight:700;">
-            <td colspan="6" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;">TOTAL SOPORTERÍA</td>
-            <td id="sop-total" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;color:#C8102E;"></td>
-          </tr>
-        </tfoot>
-      </table>
-      <div style="text-align:right;">
-        <button class="btn" onclick="downloadSoporteriaPDF()"
-          style="background:#C8102E;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
-          🖨 Descargar Requisición de Soportería (PDF)
-        </button>
       </div>
     </div>
   </div>
@@ -2852,62 +2853,118 @@ function _sopAcum(tipo, n, totals) {
   });
 }
 
-/** Recalcula la tabla de soportería en pantalla */
+/** Recalcula la tabla de soportería — muestra TODOS los materiales con inputs editables */
 function calcSoporteria() {
   const nA = parseInt(el('sop-aerea').value) || 0;
   const nP = parseInt(el('sop-ptr').value)   || 0;
   const nM = parseInt(el('sop-mens').value)  || 0;
   const wrap = el('sop-table-wrap');
 
-  if (!nA && !nP && !nM) { wrap.style.display = 'none'; return; }
+  if (!nA && !nP && !nM) {
+    wrap.style.display = 'none';
+    if (el('r-sop')) el('r-sop').textContent = fmt(0);
+    return;
+  }
 
-  const totals = {};
-  _sopAcum('aerea', nA, totals);
-  _sopAcum('ptr',   nP, totals);
-  _sopAcum('mens',  nM, totals);
+  // Cantidades auto-calculadas según tipos
+  const autoQty = {};
+  _sopAcum('aerea', nA, autoQty);
+  _sopAcum('ptr',   nP, autoQty);
+  _sopAcum('mens',  nM, autoQty);
 
-  // Solo mostrar materiales con qty > 0, en el orden de _SOP_MAT
-  const rows = _SOP_MAT.filter(m => (totals[m.np] || 0) > 0)
-                        .map(m => ({ ...m, qty: totals[m.np] }));
+  // Set de partes con regla de cálculo
+  const calcParts = new Set(
+    Object.values(_SOP_TIPOS).flatMap(rules => rules.map(r => r.np))
+  );
 
-  let totalAmt = 0;
-  el('sop-tbody').innerHTML = rows.map((m, i) => {
-    const line = m.qty * m.precio;
-    totalAmt += line;
+  // Preservar ediciones manuales de partes NO calculadas (si la tabla ya existe)
+  const prevManual = {};
+  _SOP_MAT.forEach((m, i) => {
+    if (!calcParts.has(m.np)) {
+      const inp = document.getElementById(`sop-qty-${i}`);
+      if (inp) prevManual[m.np] = parseInt(inp.value) || 0;
+    }
+  });
+
+  // Renderizar TODOS los materiales con inputs editables
+  el('sop-tbody').innerHTML = _SOP_MAT.map((m, i) => {
+    const isCalc = calcParts.has(m.np);
+    const qty    = isCalc ? (autoQty[m.np] || 0) : (prevManual[m.np] || 0);
+    const line   = qty * m.precio;
+    const active = qty > 0;
+    const borderColor = active ? '#C8102E' : '#ccc';
+    const bgColor     = active ? '#fff8f9' : '#fff';
     return `<tr style="border-bottom:1px solid #f0f0f0;">
       <td style="padding:7px 10px;color:#aaa;text-align:center;">${i + 1}</td>
-      <td style="padding:7px 10px;font-family:monospace;font-size:12px;white-space:nowrap;">${m.np}</td>
+      <td style="padding:7px 10px;font-family:monospace;font-size:11.5px;white-space:nowrap;">${m.np}</td>
       <td style="padding:7px 10px;">${m.desc}</td>
-      <td style="padding:7px 10px;text-align:center;font-weight:700;">${m.qty}</td>
-      <td style="padding:7px 10px;text-align:center;color:#888;">${m.unidad}</td>
+      <td style="padding:4px 6px;text-align:center;">
+        <input type="number" id="sop-qty-${i}" min="0" value="${qty}"
+          style="width:74px;padding:5px 6px;border:1.5px solid ${borderColor};border-radius:4px;text-align:center;font-weight:700;font-size:13px;background:${bgColor};"
+          oninput="updateSopRow(${i})">
+      </td>
+      <td style="padding:7px 10px;text-align:center;color:#888;font-size:12px;">${m.unidad}</td>
       <td style="padding:7px 10px;text-align:right;">${fmt(m.precio)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:600;">${fmt(line)}</td>
+      <td id="sop-line-${i}" style="padding:7px 10px;text-align:right;font-weight:${active ? '700' : '400'};color:${active ? '#222' : '#bbb'};">${active ? fmt(line) : '—'}</td>
     </tr>`;
   }).join('');
 
-  el('sop-total').textContent = fmt(totalAmt);
+  updateSopTotal();
   wrap.style.display = 'block';
+}
+
+/** Actualiza una fila individual al editar su input de cantidad */
+function updateSopRow(idx) {
+  const m   = _SOP_MAT[idx];
+  const inp = document.getElementById(`sop-qty-${idx}`);
+  if (!inp) return;
+  const qty  = parseInt(inp.value) || 0;
+  const line = qty * m.precio;
+  const lineEl = document.getElementById(`sop-line-${idx}`);
+  if (lineEl) {
+    lineEl.textContent      = qty > 0 ? fmt(line) : '—';
+    lineEl.style.fontWeight = qty > 0 ? '700' : '400';
+    lineEl.style.color      = qty > 0 ? '#222' : '#bbb';
+  }
+  inp.style.border     = qty > 0 ? '1.5px solid #C8102E' : '1.5px solid #ccc';
+  inp.style.background = qty > 0 ? '#fff8f9' : '#fff';
+  updateSopTotal();
+}
+
+/** Suma las cantidades × precios de todos los inputs actuales */
+function getSopTotal() {
+  return _SOP_MAT.reduce((sum, m, i) => {
+    const inp = document.getElementById(`sop-qty-${i}`);
+    return sum + (inp ? (parseInt(inp.value) || 0) * m.precio : 0);
+  }, 0);
+}
+
+/** Actualiza el total en la tabla y en la tarjeta del resumen */
+function updateSopTotal() {
+  const total = getSopTotal();
+  const sopTotalEl = el('sop-total');
+  if (sopTotalEl) sopTotalEl.textContent = fmt(total);
+  const rSop = el('r-sop');
+  if (rSop) rSop.textContent = fmt(total);
 }
 
 /** Genera y descarga el PDF de requisición de soportería */
 function downloadSoporteriaPDF() {
-  const nA = parseInt(el('sop-aerea').value) || 0;
-  const nP = parseInt(el('sop-ptr').value)   || 0;
-  const nM = parseInt(el('sop-mens').value)  || 0;
+  // Leer cantidades directamente desde los inputs (incluye ajustes manuales)
+  const rows = _SOP_MAT.map((m, i) => {
+    const inp = document.getElementById(`sop-qty-${i}`);
+    return { ...m, qty: inp ? (parseInt(inp.value) || 0) : 0 };
+  }).filter(m => m.qty > 0);
 
-  if (!nA && !nP && !nM) {
-    toast('⚠️ Ingresa al menos un tipo de abrazadera');
+  if (!rows.length) {
+    toast('⚠️ No hay materiales con cantidad mayor a 0');
     return;
   }
 
-  const totals = {};
-  _sopAcum('aerea', nA, totals);
-  _sopAcum('ptr',   nP, totals);
-  _sopAcum('mens',  nM, totals);
-
-  const rows = _SOP_MAT.filter(m => (totals[m.np] || 0) > 0)
-                        .map(m => ({ ...m, qty: totals[m.np] }));
   const totalAmt = rows.reduce((s, m) => s + m.qty * m.precio, 0);
+  const nA = parseInt(el('sop-aerea').value) || 0;
+  const nP = parseInt(el('sop-ptr').value)   || 0;
+  const nM = parseInt(el('sop-mens').value)  || 0;
 
   const empresa  = (el('empresa').value  || '').trim() || 'Sin especificar';
   const atencion = (el('atencion').value || '').trim();
