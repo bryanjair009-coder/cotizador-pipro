@@ -156,24 +156,44 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
   </div>
 </div>
 
-<!-- ════════════ COMPRESOR ════════════ -->
+<!-- ════════════ PLANTA DE COMPRESORES ════════════ -->
 <div class="card">
   <div class="card-header">
-    <span class="card-title">Datos del Compresor</span>
+    <span class="card-title">Planta de Compresores</span>
+    <span class="card-badge" id="comp-count-badge">0 compresores</span>
+    <span class="note" style="margin:0">SCFM total = Σ (Caudal × Factor de carga simultánea)</span>
   </div>
-  <div class="grid g5">
-    <div class="field"><label>Caudal compresor (SCFM)</label>
-      <input type="number" id="scfm" value="100" min="1" oninput="recalcAll()"/></div>
-    <div class="field"><label>Potencia compresor (HP)</label>
-      <input type="number" id="hp" value="25" min="1" oninput="recalcAll()"/></div>
+
+  <!-- Tabla de compresores en paralelo -->
+  <div style="overflow-x:auto">
+    <table class="btbl" id="comp-tbl">
+      <thead><tr>
+        <th>Compresor / ID</th>
+        <th>Potencia (HP)</th>
+        <th>Caudal nominal (SCFM)</th>
+        <th title="Fracción del tiempo que este compresor opera (0–1). Use 1 si siempre está encendido.">Factor de carga <span style="color:#60a5fa;font-size:9px">ⓘ</span></th>
+        <th>SCFM efectivo</th>
+        <th>kW efectivos</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="comp-body"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button class="btn btn-red btn-sm" onclick="addCompresor()">+ Agregar compresor</button>
+    <button class="btn btn-ghost btn-sm" onclick="addCompresorPreset()">+ Desde preset HP</button>
+  </div>
+
+  <div class="divider"></div>
+  <h3>Parámetros de planta (comunes a todos los compresores)</h3>
+
+  <div class="grid g5" style="margin-top:8px">
     <div class="field"><label>Presión de trabajo (psi man.)</label>
       <input type="number" id="psi" value="100" min="1" oninput="recalcAll()"/></div>
     <div class="field"><label>Temperatura descarga (°F)</label>
       <input type="number" id="tempF" value="95" oninput="recalcAll()"/></div>
     <div class="field"><label>Altitud planta (m s.n.m.)</label>
       <input type="number" id="altitud" value="2240" min="0" oninput="recalcAll()"/></div>
-  </div>
-  <div class="grid g4" style="margin-top:10px">
     <div class="field"><label>Diámetro descarga compresor</label>
       <select id="diam_desc" onchange="recalcAll()"></select></div>
     <div class="field"><label>Rugosidad de la red</label>
@@ -185,13 +205,15 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
         <option value="0.0015">Cobre / PVC / Plástico liso (0.0015 mm)</option>
       </select></div>
   </div>
-  <div class="result-row">
+
+  <div class="result-row" style="margin-top:12px">
+    <div class="ri"><span class="rl">SCFM total efectivo</span><span class="rv" id="r-scfm">—</span></div>
     <div class="ri"><span class="rl">ACFM (flujo real a presión)</span><span class="rv" id="r-acfm">—</span></div>
-    <div class="ri"><span class="rl">Densidad del aire</span><span class="rv" id="r-rho">—</span></div>
     <div class="ri"><span class="rl">P atm en altitud</span><span class="rv" id="r-patm">—</span></div>
     <div class="ri"><span class="rl">Vel. en descarga</span><span class="rv" id="r-vdesc">—</span><span class="rs" id="r-vdesc-ref"></span></div>
+    <div class="ri"><span class="rl">Densidad del aire</span><span class="rv" id="r-rho">—</span></div>
     <div class="ri"><span class="rl">Viscosidad dinámica</span><span class="rv" id="r-mu">—</span></div>
-    <div class="ri"><span class="rl">Potencia nominal</span><span class="rv" id="r-kw">—</span><span class="rs">kW</span></div>
+    <div class="ri"><span class="rl">Potencia total efectiva</span><span class="rv" id="r-kw">—</span><span class="rs">kW</span></div>
   </div>
 </div>
 
@@ -379,10 +401,24 @@ const PRESETS = [
 ];
 
 // ── STATE ─────────────────────────────────────────────────────────────
-let curMat  = 'acero';   // 'acero' | 'pipro'
-let bCount  = 0;
-let cabAcc  = new Array(ACC.length).fill(0);
-let bAcc    = {};
+let curMat   = 'acero';   // 'acero' | 'pipro'
+let bCount   = 0;
+let compCount = 0;
+let cabAcc   = new Array(ACC.length).fill(0);
+let bAcc     = {};
+
+// Presets de compresores comunes (HP → SCFM estimado a 100 psi)
+const COMP_PRESETS = [
+  {n:'Compresor  5 HP',   hp:5,   scfm:18 },
+  {n:'Compresor 10 HP',   hp:10,  scfm:35 },
+  {n:'Compresor 15 HP',   hp:15,  scfm:52 },
+  {n:'Compresor 20 HP',   hp:20,  scfm:70 },
+  {n:'Compresor 25 HP',   hp:25,  scfm:100},
+  {n:'Compresor 30 HP',   hp:30,  scfm:120},
+  {n:'Compresor 50 HP',   hp:50,  scfm:200},
+  {n:'Compresor 75 HP',   hp:75,  scfm:300},
+  {n:'Compresor 100 HP',  hp:100, scfm:400},
+];
 
 function getCatalog() {
   return curMat === 'pipro' ? TUBERIAS_PIPRO : TUBERIAS_ACERO;
@@ -468,8 +504,63 @@ function init() {
 
   buildPiproCatalogTable();
   buildAccGrid('acc-grid-cab', 'cab', cabAcc);
+  addCompresor({n:'Compresor 1', hp:25, scfm:100}); // compresor por defecto
   addBajada();
   addCampoRow('Cabezal principal','');
+  recalcAll();
+}
+
+// ── COMPRESORES EN PARALELO ───────────────────────────────────────────
+function addCompresor(preset) {
+  const id   = ++compCount;
+  const tbody = document.getElementById('comp-body');
+  const tr    = document.createElement('tr');
+  tr.id = `cr-${id}`;
+  tr.innerHTML = `
+    <td><input type="text" value="${preset ? preset.n : 'Compresor ' + id}"
+         style="width:130px" oninput="recalcAll()"/></td>
+    <td><input type="number" id="comp-hp-${id}"
+         value="${preset ? preset.hp : 25}" min="0.1" style="width:68px"
+         oninput="updateCompRow(${id})"/></td>
+    <td><input type="number" id="comp-scfm-${id}"
+         value="${preset ? preset.scfm : 100}" min="0.1" style="width:68px"
+         oninput="updateCompRow(${id})"/></td>
+    <td><input type="number" id="comp-fc-${id}"
+         value="1.00" min="0" max="1" step="0.05" style="width:60px"
+         title="1 = siempre encendido · 0.8 = 80% del tiempo · etc."
+         oninput="updateCompRow(${id})"/></td>
+    <td style="font-weight:700;color:#22c55e;white-space:nowrap">
+        <span id="comp-scfme-${id}">—</span></td>
+    <td style="color:#60a5fa;white-space:nowrap">
+        <span id="comp-kw-${id}">—</span></td>
+    <td><button class="btn btn-del btn-sm" onclick="removeCompresor(${id})">✕</button></td>`;
+  tbody.appendChild(tr);
+  updateCompRow(id);
+}
+
+function addCompresorPreset() {
+  const names = COMP_PRESETS.map((p, i) =>
+    `${i + 1}. ${p.n.trim()} — ${p.scfm} SCFM`).join('\n');
+  const sel = prompt('Selecciona compresor (número):\n\n' + names);
+  const idx = parseInt(sel) - 1;
+  if (idx >= 0 && idx < COMP_PRESETS.length) addCompresor(COMP_PRESETS[idx]);
+}
+
+function removeCompresor(id) {
+  document.getElementById(`cr-${id}`)?.remove();
+  recalcAll();
+}
+
+function updateCompRow(id) {
+  const scfm  = parseFloat(document.getElementById(`comp-scfm-${id}`)?.value) || 0;
+  const hp    = parseFloat(document.getElementById(`comp-hp-${id}`)?.value)   || 0;
+  const fc    = parseFloat(document.getElementById(`comp-fc-${id}`)?.value)   ?? 1;
+  const scfmE = scfm * fc;
+  const kw    = hp * fc * 0.7457;
+  const eEl   = document.getElementById(`comp-scfme-${id}`);
+  const kEl   = document.getElementById(`comp-kw-${id}`);
+  if (eEl) eEl.textContent = scfmE.toFixed(1) + ' SCFM';
+  if (kEl) kEl.textContent = kw.toFixed(1) + ' kW';
   recalcAll();
 }
 
@@ -579,26 +670,41 @@ function removeBajada(id) {
 
 // ── CORE CALC ─────────────────────────────────────────────────────────
 function getBase() {
-  const scfm  = parseFloat(document.getElementById('scfm').value)    || 0;
-  const hp    = parseFloat(document.getElementById('hp').value)      || 0;
-  const psiM  = parseFloat(document.getElementById('psi').value)     || 0;
-  const tempF = parseFloat(document.getElementById('tempF').value)   || 68;
-  const alt   = parseFloat(document.getElementById('altitud').value) || 0;
+  const psiM  = parseFloat(document.getElementById('psi').value)      || 0;
+  const tempF = parseFloat(document.getElementById('tempF').value)    || 68;
+  const alt   = parseFloat(document.getElementById('altitud').value)  || 0;
   const rugMm = parseFloat(document.getElementById('rugosidad').value) || 0.046;
+
+  // Suma todos los compresores en paralelo (caudal × factor de carga)
+  let totalScfm = 0, totalHp = 0, totalKw = 0;
+  const compList = [];
+  document.querySelectorAll('[id^="comp-scfm-"]').forEach(el => {
+    const cid   = el.id.replace('comp-scfm-', '');
+    const scfm  = parseFloat(el.value) || 0;
+    const hp    = parseFloat(document.getElementById(`comp-hp-${cid}`)?.value) || 0;
+    const fc    = parseFloat(document.getElementById(`comp-fc-${cid}`)?.value) ?? 1;
+    const scfmE = scfm * fc;
+    const kw    = hp * fc * 0.7457;
+    totalScfm += scfmE;
+    totalHp   += hp * fc;
+    totalKw   += kw;
+    compList.push({scfm, hp, fc, scfmE, kw});
+  });
+  if (totalScfm < 0.01) totalScfm = 0.01;   // evitar div/0
 
   const T_K   = (tempF - 32) * 5/9 + 273.15;
   const P_atm = 101325 * Math.pow(1 - 2.2557e-5 * alt, 5.2559);
   const P_abs = psiM * 6894.76 + P_atm;
   const P_std = 101325, T_std = 293.15;
 
-  const Q_std = scfm * 4.71947e-4;
+  const Q_std = totalScfm * 4.71947e-4;
   const Q_act = Q_std * (P_std / P_abs) * (T_K / T_std);
 
   const rho = P_abs / (287.05 * T_K);
   const mu  = 1.716e-5 * Math.pow(T_K / 273.15, 0.76);
-  const kw  = hp * 0.7457;
 
-  return {scfm, hp, kw, psiM, P_atm, P_abs, T_K, Q_act, rho, mu, rugMm};
+  return {scfm: totalScfm, hp: totalHp, kw: totalKw,
+          psiM, P_atm, P_abs, T_K, Q_act, rho, mu, rugMm, compList};
 }
 
 function calcTramo(Q, diamIdx, longM, accQty, base) {
@@ -662,6 +768,12 @@ function recalcCompresor() {
   const A    = Math.PI * D * D / 4;
   const vDesc = b.Q_act / A;
 
+  // Badge con número de compresores activos
+  const n = b.compList.length;
+  const badge = document.getElementById('comp-count-badge');
+  if (badge) badge.textContent = n + (n === 1 ? ' compresor activo' : ' compresores activos');
+
+  document.getElementById('r-scfm').textContent  = fmt(b.scfm, 1) + ' SCFM';
   document.getElementById('r-acfm').textContent  = fmt(b.Q_act * 2118.88, 1) + ' ACFM';
   document.getElementById('r-rho').textContent   = fmt(b.rho, 3) + ' kg/m³';
   document.getElementById('r-patm').textContent  = fmt(b.P_atm/1000, 2) + ' kPa';
@@ -735,7 +847,8 @@ function recalcBajada(id) {
 
 // ── VERIFICACIÓN ──────────────────────────────────────────────────────
 function recalcVerif() {
-  const scfm = parseFloat(document.getElementById('scfm').value) || 0;
+  const b    = getBase();
+  const scfm = b.scfm;   // SCFM total de todos los compresores activos
   let total  = 0;
   document.querySelectorAll('[id^="bcfm-"]').forEach(el => {
     const id  = el.id.split('-')[1];
@@ -747,10 +860,10 @@ function recalcVerif() {
   const cls = pct < 80 ? '' : pct < 100 ? 'warn' : 'bad';
   const msg = pct < 80  ? 'Capacidad suficiente'
             : pct < 100 ? 'Capacidad al límite — revisar'
-            : '⚠ Demanda supera la capacidad del compresor';
+            : '⚠ Demanda supera la capacidad total de la planta';
 
   document.getElementById('ver-dem').textContent = fmt(total,1)+' CFM';
-  document.getElementById('ver-cap').textContent = scfm+' SCFM';
+  document.getElementById('ver-cap').textContent = fmt(scfm,1)+' SCFM';
   const pEl = document.getElementById('ver-pct');
   pEl.textContent = fmt(pct,1)+'%'; pEl.className = 'rv '+cls;
   const bar = document.getElementById('ver-bar');
@@ -912,23 +1025,52 @@ function generarPDF() {
   hline(y, LINE, 0.2);
   y += 6;
 
-  // ── DATOS DEL COMPRESOR ──────────────────────────────────────────
-  y = secTitle('Datos del Compresor', y);
+  // ── PLANTA DE COMPRESORES ────────────────────────────────────────
+  y = secTitle('Planta de Compresores', y);
+  const bPDF      = getBase();
   const descLabel = document.getElementById('diam_desc').selectedOptions[0]?.text || '';
+
+  // Tabla de compresores individuales
+  const compRows = [];
+  document.querySelectorAll('[id^="comp-scfm-"]').forEach(el => {
+    const cid   = el.id.replace('comp-scfm-', '');
+    const row   = document.getElementById(`cr-${cid}`);
+    if (!row) return;
+    const nombre = row.querySelector('input[type="text"]')?.value || `Compresor ${cid}`;
+    const scfm   = parseFloat(el.value) || 0;
+    const hp     = parseFloat(document.getElementById(`comp-hp-${cid}`)?.value) || 0;
+    const fc     = parseFloat(document.getElementById(`comp-fc-${cid}`)?.value) ?? 1;
+    compRows.push([
+      nombre,
+      hp.toFixed(0) + ' HP',
+      scfm.toFixed(0) + ' SCFM',
+      fc.toFixed(2),
+      (scfm * fc).toFixed(1) + ' SCFM',
+      (hp * fc * 0.7457).toFixed(1) + ' kW',
+    ]);
+  });
+  y = tbl(y,
+    ['Compresor','Potencia','Caudal nominal','F. carga','SCFM efectivo','kW efectivos'],
+    compRows.length ? compRows : [['—','—','—','—','—','—']],
+    {0:{cellWidth:38},1:{cellWidth:20,halign:'right'},2:{cellWidth:26,halign:'right'},
+     3:{cellWidth:16,halign:'center'},4:{cellWidth:26,halign:'right'},5:{halign:'right'}}
+  );
+
+  // Totales y parámetros de planta
   y = tbl(y,
     ['Parámetro','Valor','Parámetro','Valor'],
     [
-      ['Caudal nominal',      document.getElementById('scfm').value+' SCFM',
-       'Caudal real (ACFM)',  document.getElementById('r-acfm').textContent],
-      ['Potencia',            document.getElementById('hp').value+' HP · '+document.getElementById('r-kw').textContent+' kW',
-       'Densidad del aire',   document.getElementById('r-rho').textContent],
-      ['Presión de trabajo',  document.getElementById('psi').value+' psi man.',
-       'P atm (altitud)',     document.getElementById('r-patm').textContent],
-      ['Temperatura descarga',document.getElementById('tempF').value+' °F',
-       'Altitud planta',      document.getElementById('altitud').value+' m s.n.m.'],
-      ['Diám. descarga',      descLabel,
-       'Vel. en descarga',    document.getElementById('r-vdesc').textContent],
-      ['Rugosidad',           rugLabel, '', ''],
+      ['SCFM total efectivo',  bPDF.scfm.toFixed(1)+' SCFM',
+       'Caudal real (ACFM)',   document.getElementById('r-acfm').textContent],
+      ['Potencia total efectiva', bPDF.kw.toFixed(1)+' kW ('+bPDF.hp.toFixed(0)+' HP)',
+       'Densidad del aire',    document.getElementById('r-rho').textContent],
+      ['Presión de trabajo',   document.getElementById('psi').value+' psi man.',
+       'P atm (altitud)',      document.getElementById('r-patm').textContent],
+      ['Temperatura descarga', document.getElementById('tempF').value+' °F',
+       'Altitud planta',       document.getElementById('altitud').value+' m s.n.m.'],
+      ['Diám. descarga',       descLabel,
+       'Vel. en descarga',     document.getElementById('r-vdesc').textContent],
+      ['Rugosidad',            rugLabel, '', ''],
     ],
     {0:{fontStyle:'bold',cellWidth:38,textColor:MID},1:{cellWidth:CW/2-38},2:{fontStyle:'bold',cellWidth:38,textColor:MID},3:{}}
   );
