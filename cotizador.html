@@ -112,6 +112,20 @@ input[type=number]::-webkit-inner-spin-button{opacity:1;}
 }
 .radio-btn.selected{border-color:var(--gd-red);background:var(--gd-red);color:#fff;}
 
+/* ── CATEGORY CHIPS ──────────────────────────────────────────────────────────── */
+.cat-divider{height:1px;background:#e8e8e8;margin:14px 0 12px;}
+.cat-label{font-size:.78rem;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.cat-group{display:flex;gap:8px;flex-wrap:wrap;}
+.cat-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border:2px solid #ddd;border-radius:20px;cursor:pointer;
+  font-size:.83rem;background:#fff;transition:all .18s;font-weight:600;
+  color:#555;user-select:none;
+}
+.cat-btn:hover{border-color:#aaa;color:#333;}
+.cat-btn.selected{border-color:var(--gd-red);background:var(--gd-red);color:#fff;}
+.cat-btn .cat-icon{font-size:1rem;line-height:1;}
+
 /* ── FOLIO BOX ───────────────────────────────────────────────────────────────── */
 .folio-box{
   background:var(--gd-gray);border-left:4px solid var(--gd-red);
@@ -304,6 +318,27 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       <div class="radio-btn" id="tipo-it" onclick="setTipo('it')">📦 Sin Mano de Obra (IT)</div>
       <div class="radio-btn selected" id="tipo-ip" onclick="setTipo('ip')">🔧 Con Mano de Obra (IP)</div>
     </div>
+
+    <div class="cat-divider"></div>
+    <div class="cat-label">Categoría de Material</div>
+    <div class="cat-group" id="cat-group">
+      <div class="cat-btn selected" id="cat-pipro"     onclick="setCatMat('pipro')">
+        <span class="cat-icon">🔵</span> PIPRO Aluminio
+      </div>
+      <div class="cat-btn" id="cat-electrico"  onclick="setCatMat('electrico')">
+        <span class="cat-icon">⚡</span> Material Eléctrico
+      </div>
+      <div class="cat-btn" id="cat-acero"      onclick="setCatMat('acero')">
+        <span class="cat-icon">🔩</span> Acero / Galvanizado
+      </div>
+      <div class="cat-btn" id="cat-pvc"        onclick="setCatMat('pvc')">
+        <span class="cat-icon">🟢</span> PVC / Plástico
+      </div>
+      <div class="cat-btn" id="cat-general"    onclick="setCatMat('general')">
+        <span class="cat-icon">📦</span> Materiales Generales
+      </div>
+    </div>
+    <div id="cat-nota" style="margin-top:8px;font-size:.78rem;color:#888;display:none;"></div>
   </div>
 
   <!-- 2. DATOS DEL CLIENTE ────────────────────────────────────────────────────── -->
@@ -880,9 +915,91 @@ const COSTO_GENNIE_MES      = 65000.0;
 const COSTO_ELEVADOR_MES    = 30000.0;
 const COSTO_PLAT_TIJERA_MES = 56000.0;
 
+// ── TEXTOS POR CATEGORÍA DE MATERIAL ──────────────────────────────────────────
+const CAT_TEXTS = {
+  pipro: {
+    label: 'PIPRO Aluminio',
+    asunto_ip: ['Cotización de tubería importada en aluminio', 'con servicio de instalación.'],
+    asunto_it: ['Cotización de tubería importada en aluminio', 'sin servicio de instalación.'],
+    intro: (is_ip, desc) => `Por este medio le informo el alcance y costo ${is_ip ? 'para la instalación' : ''} de tubería de aluminio AIRWYN${desc ? ', ' + desc + ',' : ''} de acuerdo con la información proporcionada por el cliente.`,
+    obj_intro: 'La instalación correcta y el buen funcionamiento se encuentren dentro de los parámetros recomendados de eficiencia. La utilización e instalación de tubería de aluminio importado AIRWYN para sistemas de aire comprimido cuenta con ventajas como:',
+    obj_bullets: [
+      'Rendimiento óptimo de las máquinas y utillajes al contar con un cociente de fricción bajo y menor pérdida de presión que la tubería de acero al carbón.',
+      'Protección duradera a sus equipos al no presentar corrosión interna, garantizando calidad de aire limpio.',
+      'Ahorro de energía al tener un flujo de aire más laminar y por lo tanto menor caída de presión (máximo 5%).',
+      'Tiempo de instalación menor que en acero al carbón, generando ahorros económicos en mano de obra.',
+      'Derivaciones pueden ser instaladas en 30 minutos con componentes reutilizables.',
+      'Facilidad de realizar modificaciones: fácil de extender, desensamblar y reubicar.',
+      'Garantía de cero fugas de aire comprimido.',
+      'Accesorios que garantizan una mayor durabilidad.',
+    ],
+  },
+  electrico: {
+    label: 'Material Eléctrico',
+    asunto_ip: ['Cotización de material eléctrico', 'con servicio de instalación.'],
+    asunto_it: ['Cotización de material eléctrico', 'sin servicio de instalación.'],
+    intro: (is_ip, desc) => `Por este medio le informo el alcance y costo ${is_ip ? 'para la instalación' : ''} de material eléctrico${desc ? ', ' + desc + ',' : ''} de acuerdo con la información proporcionada por el cliente.`,
+    obj_intro: 'El suministro de material eléctrico de la más alta calidad garantiza el correcto funcionamiento del sistema, con las siguientes ventajas:',
+    obj_bullets: [
+      'Cumplimiento con normas NOM y estándares internacionales de seguridad eléctrica.',
+      'Materiales certificados para instalaciones industriales de alta exigencia.',
+      'Reducción de riesgos eléctricos y mayor durabilidad de las instalaciones.',
+      'Componentes de bajo mantenimiento que reducen costos operativos a largo plazo.',
+      'Compatibilidad total con sistemas trifásicos y monofásicos industriales.',
+      'Soporte técnico especializado de Gardner Denver para la correcta aplicación.',
+    ],
+  },
+  acero: {
+    label: 'Acero / Galvanizado',
+    asunto_ip: ['Cotización de material en acero/galvanizado', 'con servicio de instalación.'],
+    asunto_it: ['Cotización de material en acero/galvanizado', 'sin servicio de instalación.'],
+    intro: (is_ip, desc) => `Por este medio le informo el alcance y costo ${is_ip ? 'para la instalación' : ''} de material en acero galvanizado${desc ? ', ' + desc + ',' : ''} de acuerdo con la información proporcionada por el cliente.`,
+    obj_intro: 'El suministro de tubería y accesorios en acero galvanizado garantiza la robustez y durabilidad del sistema, con las siguientes características:',
+    obj_bullets: [
+      'Alta resistencia mecánica para aplicaciones industriales de alta presión.',
+      'Recubrimiento galvanizado que protege contra la corrosión externa en ambientes agresivos.',
+      'Compatibilidad con roscas estándar NPT para facilidad de instalación y mantenimiento.',
+      'Larga vida útil reduciendo la frecuencia de reemplazos y costos de mantenimiento.',
+      'Disponibilidad en una amplia gama de diámetros y accesorios para cualquier configuración.',
+      'Materiales certificados bajo normas ASTM e ISO para garantía de calidad.',
+    ],
+  },
+  pvc: {
+    label: 'PVC / Plástico',
+    asunto_ip: ['Cotización de material en PVC/plástico', 'con servicio de instalación.'],
+    asunto_it: ['Cotización de material en PVC/plástico', 'sin servicio de instalación.'],
+    intro: (is_ip, desc) => `Por este medio le informo el alcance y costo ${is_ip ? 'para la instalación' : ''} de material en PVC${desc ? ', ' + desc + ',' : ''} de acuerdo con la información proporcionada por el cliente.`,
+    obj_intro: 'El suministro de tubería y accesorios en PVC ofrece una solución económica y eficiente para sistemas de conducción de fluidos, con las siguientes ventajas:',
+    obj_bullets: [
+      'Alta resistencia química a ácidos, álcalis y solventes para entornos industriales específicos.',
+      'Peso ligero que facilita el manejo e instalación reduciendo tiempos de obra.',
+      'Superficie interior lisa que minimiza la pérdida de presión por fricción.',
+      'Sin corrosión ni incrustaciones, garantizando pureza del fluido transportado.',
+      'Facilidad de corte, unión y modificación para adaptarse a cualquier trazo.',
+      'Costo-efectivo con excelente relación precio-desempeño para instalaciones permanentes.',
+    ],
+  },
+  general: {
+    label: 'Materiales Generales',
+    asunto_ip: ['Cotización de materiales industriales', 'con servicio de instalación.'],
+    asunto_it: ['Cotización de materiales industriales', 'sin servicio de instalación.'],
+    intro: (is_ip, desc) => `Por este medio le informo el alcance y costo ${is_ip ? 'para la instalación' : ''} de materiales industriales${desc ? ', ' + desc + ',' : ''} de acuerdo con la información proporcionada por el cliente.`,
+    obj_intro: 'El suministro de materiales industriales de Gardner Denver México garantiza calidad y respaldo técnico en cada proyecto, con los siguientes compromisos:',
+    obj_bullets: [
+      'Materiales seleccionados bajo estrictos estándares de calidad industrial.',
+      'Respaldo técnico especializado para la correcta selección y aplicación de los materiales.',
+      'Amplio inventario disponible para entregas en tiempo y forma según cronograma del cliente.',
+      'Soporte post-venta y garantía en todos los materiales suministrados.',
+      'Asesoría técnica sin costo adicional para optimización del proyecto.',
+      'Compromiso con la satisfacción total del cliente en cada entrega.',
+    ],
+  },
+};
+
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const state = {
   tipo: 'ip',
+  catMat: 'pipro',
   materiales: [],
   carrito: {},
   selectedMat: null,
@@ -999,6 +1116,27 @@ function setTipo(t) {
   el('discount-row').style.display = t==='it' ? '' : 'none';
   updateFolio();
   updateTotales();
+}
+
+// ── CATEGORY SELECTION ────────────────────────────────────────────────────────
+function setCatMat(cat) {
+  state.catMat = cat;
+  // Actualizar chips visuales
+  ['pipro','electrico','acero','pvc','general'].forEach(c => {
+    const btn = el('cat-' + c);
+    if (btn) btn.classList.toggle('selected', c === cat);
+  });
+  // Nota informativa cuando no es PIPRO
+  const nota = el('cat-nota');
+  if (nota) {
+    if (cat === 'pipro') {
+      nota.style.display = 'none';
+      nota.textContent = '';
+    } else {
+      nota.style.display = '';
+      nota.textContent = `ℹ️ Objetivo del PDF adaptado para "${CAT_TEXTS[cat]?.label}". Si agregas piezas PIPRO al carrito, cambia la categoría a PIPRO Aluminio.`;
+    }
+  }
 }
 
 // ── MO CALCULATOR ────────────────────────────────────────────────────────────
@@ -1361,7 +1499,7 @@ function collectData() {
     folio: getFolio(),
     desc_proy: el('desc_proy').value.trim(),
   };
-  return { cliente, items, costo_mo, descuento, mo_res, tipo: state.tipo };
+  return { cliente, items, costo_mo, descuento, mo_res, tipo: state.tipo, catMat: state.catMat };
 }
 
 // ─ EXCEL GENERATOR ────────────────────────────────────────────────────────────
@@ -1386,6 +1524,7 @@ function generatePDF() {
   const ML = 13, HTOP = 24, FBOT = PH - 12;
   const RED = [200, 16, 46], DARK = [30, 30, 38], GRAY = [150, 150, 160], LGRAY = [220, 220, 225];
   const is_ip = d.tipo === 'ip';
+  const catTxt = CAT_TEXTS[d.catMat] || CAT_TEXTS.pipro;
 
   const subtotal_mat = items.reduce((s, it) => s + it.cantidad * it.precio, 0);
   const total_bruto = subtotal_mat + (is_ip ? costo_mo : 0);
@@ -1415,7 +1554,7 @@ function generatePDF() {
   function drawFooter() {
     doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-    doc.text('MANUFACTURERA CENTURY, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
+    doc.text('GARDNER DENVER México, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
     doc.text(cliente.folio || '', PW - ML, FBOT, { align: 'right' });
   }
 
@@ -1466,9 +1605,7 @@ function generatePDF() {
 
   // Asunto (cuadro derecho) — se dibuja PRIMERO para conocer su área
   const boxW = 74, boxH = 15, boxY = HTOP + 1;
-  const asuntoLines = is_ip
-    ? ['Cotización de tubería importada en aluminio', 'con servicio de instalación.']
-    : ['Cotización de tubería importada en aluminio', 'sin servicio de instalación.'];
+  const asuntoLines = is_ip ? catTxt.asunto_ip : catTxt.asunto_it;
   doc.setDrawColor(...RED); doc.setLineWidth(0.5);
   doc.setFillColor(255, 252, 252); doc.roundedRect(PW - ML - boxW, boxY, boxW, boxH, 1, 1, 'FD');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
@@ -1494,25 +1631,14 @@ function generatePDF() {
   if (y < boxBottom) y = boxBottom;
 
   // Párrafo intro
-  const intro = is_ip
-    ? `Por este medio le informo el alcance y costo para la instalación de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`
-    : `Por este medio le informo el alcance y costo de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`;
+  const intro = catTxt.intro(is_ip, cliente.desc_proy);
   y = para(intro, y, 9, DARK, 'normal'); y += 3;
 
   // ── OBJETIVO ─────────────────────────────────────────────────────────────────
   y = secTitle('OBJETIVO', y);
-  y = para('La instalación correcta y el buen funcionamiento se encuentren dentro de los parámetros recomendados de eficiencia. La utilización e instalación de tubería de aluminio importado AIRWYN para sistemas de aire comprimido cuenta con ventajas como:', y, 8.5, [70, 70, 70], 'normal');
+  y = para(catTxt.obj_intro, y, 8.5, [70, 70, 70], 'normal');
   y += 1;
-  [
-    'Rendimiento óptimo de las máquinas y utillajes al contar con un cociente de fricción bajo y menor pérdida de presión que la tubería de acero al carbón.',
-    'Protección duradera a sus equipos al no presentar corrosión interna, garantizando calidad de aire limpio.',
-    'Ahorro de energía al tener un flujo de aire más laminar y por lo tanto menor caída de presión (máximo 5%).',
-    'Tiempo de instalación menor que en acero al carbón, generando ahorros económicos en mano de obra.',
-    'Derivaciones pueden ser instaladas en 30 minutos con componentes reutilizables.',
-    'Facilidad de realizar modificaciones: fácil de extender, desensamblar y reubicar.',
-    'Garantía de cero fugas de aire comprimido.',
-    'Accesorios que garantizan una mayor durabilidad.',
-  ].forEach(b => {
+  catTxt.obj_bullets.forEach(b => {
     const lines = doc.splitTextToSize(b, PW - ML * 2 - 5);
     const lh = 3.8;
     y = checkY(y, lines.length * lh + 1);
@@ -1650,7 +1776,7 @@ function generatePDF() {
   doc.text('Tel: 5555 63 26 11  Ext: 520', ML, y); y += 4;
   if (!is_ip) { doc.text('MARCOANTONIO.MILLAN@GARDNERDENVER.COM', ML, y); y += 4; }
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-  doc.text('MANUFACTURERA CENTURY, S.A. DE C.V.', ML, y); y += 4;
+  doc.text('GARDNER DENVER México, S.A. DE C.V.', ML, y); y += 4;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
   doc.text(is_ip ? 'Departamento de Ingeniería' : 'Departamento de Ingeniería de Tubería', ML, y);
 
@@ -1885,8 +2011,9 @@ function generateWord() {
 }
 
 function buildWordHTML(d) {
-  const {cliente, items, costo_mo, descuento, mo_res, tipo} = d;
+  const {cliente, items, costo_mo, descuento, mo_res, tipo, catMat} = d;
   const is_ip = tipo === 'ip';
+  const catTxt = CAT_TEXTS[catMat] || CAT_TEXTS.pipro;
   const fechaES = cliente.fecha ? formatDateES(cliente.fecha) : '';
   const subtotal = items.reduce((s,i)=>s+i.cantidad*i.precio,0);
   const total_bruto = subtotal + (is_ip?costo_mo:0);
@@ -1895,16 +2022,7 @@ function buildWordHTML(d) {
   const iva = total_neto * 0.16;
   const total_con_iva = total_neto + iva;
 
-  const BENEFITS = [
-    'Rendimiento óptimo de las máquinas y utillajes al contar con un cociente de fricción bajo y tener una pérdida de presión por fricción menor a la que presenta una tubería de acero al carbón.',
-    'Protección duradera a sus equipos al no presentar corrosión interna, garantizando una calidad de aire limpio.',
-    'Ahorro de energía al tener un flujo de aire más laminar y por lo tanto menor caída de presión (máximo 5%).',
-    'Tiempo de instalación en menor tiempo que en una de acero al carbón, generando ahorros económicos en mano de obra.',
-    'Agregar derivaciones puede ser muy costoso con otro material (acero, PVC, etc.) con tubería de aluminio las derivaciones pueden ser instaladas en 30 minutos.',
-    'Facilidad de realizar modificaciones al ser una tubería fácil de extender al sistema existente, fácil desensamble y reubicación con componentes reutilizables.',
-    'Garantía de cero fugas de aire comprimido, generando importantes ahorros económicos.',
-    'Accesorios que garantizan una mayor durabilidad.',
-  ];
+  const BENEFITS = catTxt.obj_bullets;
 
   // ── Logo: read directly from window at call time ───────────────────────────
   const gdLogo = window.LOGO_GD || '';
@@ -1935,9 +2053,7 @@ function buildWordHTML(d) {
   }).join('');
 
   // ── Intro text ─────────────────────────────────────────────────────────────
-  const intro_text = is_ip
-    ? `Por este medio le informo el alcance y costo para la instalación de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`
-    : `Por este medio le informo el alcance y costo de tubería de aluminio AIRWYN${cliente.desc_proy ? ', ' + cliente.desc_proy + ',' : ''} de acuerdo con la información proporcionada por el cliente.`;
+  const intro_text = catTxt.intro(is_ip, cliente.desc_proy);
 
   // ── Cost table (IP only) – compact single rows ─────────────────────────────
   function costRow(label, amount, bg, fc, fw, fs) {
@@ -2050,7 +2166,7 @@ table { border-collapse:collapse; }
     </tr>
     <tr>
       <td style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#666666;">
-        MANUFACTURERA CENTURY, S.A. DE C.V. &nbsp;·&nbsp; Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX
+        GARDNER DENVER México, S.A. DE C.V. &nbsp;·&nbsp; Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX
       </td>
       <td align="right" style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#888888;">${cliente.folio || ''}</td>
     </tr>
@@ -2070,7 +2186,7 @@ table { border-collapse:collapse; }
       <table cellpadding="0" cellspacing="0" style="border:1pt solid #C8102E;border-collapse:collapse;margin-left:auto;">
         <tr><td style="padding:5pt 10pt;background:#FFF8F8;">
           <span style="font-size:8pt;color:#1F1F1F;">
-            <b>Asunto:</b> Cotizacion de tuberia importada<br>en aluminio${is_ip ? ' con servicio de instalacion.' : '.'}
+            <b>Asunto:</b> ${(is_ip ? catTxt.asunto_ip : catTxt.asunto_it).join('<br>')}
           </span>
         </td></tr>
       </table>
@@ -2082,7 +2198,7 @@ table { border-collapse:collapse; }
 
 <!-- ═══ OBJETIVO ════════════════════════════════════════════════════════════ -->
 ${sectionHdr('OBJETIVO')}
-<p style="font-size:8.5pt;margin-bottom:4pt;color:#444444;">La instalacion correcta y el buen funcionamiento se encuentren dentro de los parametros recomendados de eficiencia. La utilizacion e instalacion de tuberia de aluminio importado AIRWYN para sistemas de aire comprimido cuenta con ventajas como:</p>
+<p style="font-size:8.5pt;margin-bottom:4pt;color:#444444;">${catTxt.obj_intro}</p>
 <ul style="margin:0;padding-left:15pt;">${BENEFITS.map(b=>`<li style="font-size:8pt;color:#333333;margin:2pt 0;">${b}</li>`).join('')}</ul>
 
 <!-- ═══ LISTA DE MATERIALES ══════════════════════════════════════════════════ -->
@@ -2135,7 +2251,7 @@ ${is_ip ? P_IP_extra : P_IT_extra}
           <span style="font-size:8pt;color:#555555;">Gerente de Ingenieria</span><br>
           <span style="font-size:8pt;color:#555555;">Tel: 5555 63 26 11 Ext: 520</span><br>
           ${!is_ip ? '<span style="font-size:7.5pt;color:#555555;">MARCOANTONIO.MILLAN@GARDNERDENVER.COM</span><br>' : ''}
-          <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">MANUFACTURERA CENTURY, S.A. DE C.V.</span><br>
+          <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER México, S.A. DE C.V.</span><br>
           <span style="font-size:7.5pt;color:#555555;">${is_ip ? 'Departamento de Ingenieria' : 'Departamento de Ingenieria de Tuberia'}</span>
         </td></tr>
       </table>
