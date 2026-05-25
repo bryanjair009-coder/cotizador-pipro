@@ -1450,7 +1450,12 @@ function generarPDF() {
   const elaborado = document.getElementById('pdf-elaborado').value || '—';
   const fecha     = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
 
-  // ── ENCABEZADO ───────────────────────────────────────────────────
+  // ── RESUMEN EJECUTIVO Y DIAGRAMA (páginas 1 y 2) ─────────────────
+  const bPDF = getBase();
+  crearResumenEjecutivo(bPDF);  // Dibuja en pág. 1 → llama addPage() → pág. 2 activa
+  generarDiagrama();             // Dibuja en pág. 2 → llama addPage() → pág. 3 activa
+
+  // ── ENCABEZADO Memoria de Cálculo (desde página 3) ───────────────
   // Franja roja delgada superior
   doc.setFillColor(...RED);
   doc.rect(0, 0, PW, 1.5, 'F');
@@ -1498,16 +1503,6 @@ function generarPDF() {
 
   hline(y, LINE, 0.2);
   y += 6;
-
-  // Obtener datos de diseño antes de las páginas de resumen
-  const bPDF = getBase();
-
-  // ── RESUMEN EJECUTIVO Y DIAGRAMA ─────────────────────────────────
-  crearResumenEjecutivo(bPDF);
-  generarDiagrama();
-
-  // Reiniciar posición Y después de las páginas de resumen
-  y = 22;
 
   // ── PLANTA DE COMPRESORES ────────────────────────────────────────
   y = secTitle('Planta de Compresores', y);
