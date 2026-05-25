@@ -1228,6 +1228,219 @@ function generarPDF() {
     return doc.lastAutoTable.finalY + 4;
   }
 
+  // ── RESUMEN EJECUTIVO ───────────────────────────────────────────
+  function crearResumenEjecutivo(bData) {
+    doc.setFillColor(...RED);
+    doc.rect(0, 0, PW, 1.5, 'F');
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.setTextColor(...DARK);
+    doc.text('RESUMEN EJECUTIVO', ML, 15);
+    doc.setFontSize(9); doc.setTextColor(...MID);
+    doc.text('Diseño de Red de Aire Comprimido', ML, 20);
+
+    let y = 26;
+    hline(y, LINE, 0.2); y += 4;
+
+    // Datos del proyecto
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal');
+    doc.setTextColor(...SUB);
+    doc.text('PROYECTO:', ML, y);
+    doc.setTextColor(...DARK);
+    doc.text(cliente + ' / ' + proyecto, ML+25, y);
+    y += 4;
+
+    doc.setTextColor(...SUB);
+    doc.text('ELABORADO POR:', ML, y);
+    doc.setTextColor(...DARK);
+    doc.text(elaborado + ' — ' + fecha, ML+25, y);
+    y += 6;
+    hline(y, LINE, 0.2); y += 5;
+
+    // Datos técnicos principales
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.setTextColor(...RED);
+    doc.text('ESPECIFICACIONES TÉCNICAS', ML, y);
+    y += 6;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+    const specs = [
+      ['Compresor:', `${fmt(bData.hp,0)} HP  →  ${fmt(bData.scfm,0)} SCFM  →  ${(bData.Q_act * 2118.88).toFixed(1)} CFM @ ${document.getElementById('psi').value} psi`],
+      ['Presión de diseño:', `${document.getElementById('psi').value} psi man. / ${(bData.P_abs/6894.76).toFixed(1)} psi abs.`],
+      ['Consumo total:', `${(Array.from(document.querySelectorAll('[id^="bcfm-"]')).reduce((sum,el)=>(sum + parseFloat(el.value)||0),0)).toFixed(1)} CFM`],
+      ['Utilización:', `${((Array.from(document.querySelectorAll('[id^="bcfm-"]')).reduce((sum,el)=>(sum + parseFloat(el.value)||0),0)) / (bData.Q_act * 2118.88) * 100).toFixed(1)}%`],
+      ['Material tubería:', matLabel],
+      ['Temperatura:', `${document.getElementById('tempF').value}°F`],
+      ['Altitud:', `${document.getElementById('altitud').value} m s.n.m.`],
+    ];
+
+    specs.forEach(([lbl, val]) => {
+      doc.setTextColor(...SUB); doc.setFont('helvetica','bold');
+      doc.text(lbl, ML, y);
+      doc.setTextColor(...DARK); doc.setFont('helvetica','normal');
+      doc.text(val, ML+35, y);
+      y += 4;
+    });
+
+    y += 3; hline(y, LINE, 0.2); y += 5;
+
+    // Veredicto
+    const cabDp = parseFloat(document.getElementById('cab-dp').textContent?.replace(/[^\d.]/g,'')) || 0;
+    const bajDp = Array.from(document.querySelectorAll('[id^="bdp-"]')).reduce((sum,el)=>(sum + parseFloat(el.textContent?.replace(/[^\d.]/g,''))||0),0);
+    const totalDp = cabDp + bajDp;
+    const psiDes = parseFloat(document.getElementById('psi').value) || 100;
+    const pctLoss = (totalDp / psiDes) * 100;
+
+    const estado = pctLoss < 2 ? '✅ RED EXCELENTE' : pctLoss < 5 ? '⚡ RED ACEPTABLE' : '⚠️ REVISAR DISEÑO';
+    const estadoColor = pctLoss < 2 ? [34,197,94] : pctLoss < 5 ? [245,158,11] : [239,68,68];
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.setTextColor(...estadoColor);
+    doc.text('VEREDICTO: ' + estado, ML, y);
+    y += 5;
+
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+    doc.text(`ΔP Total Red: ${totalDp.toFixed(3)} psi (${pctLoss.toFixed(2)}%)  —  Límite: 5%`, ML, y);
+    y += 4;
+
+    // Barra visual
+    const barW = CW - 20;
+    const barX = ML + 10;
+    doc.setFillColor(220,220,225);
+    doc.rect(barX, y, barW, 4, 'F');
+    const fillW = Math.min((pctLoss / 10) * barW, barW);
+    const fillColor = pctLoss < 2 ? [34,197,94] : pctLoss < 5 ? [245,158,11] : [239,68,68];
+    doc.setFillColor(...fillColor);
+    doc.rect(barX, y, fillW, 4, 'F');
+    y += 6;
+
+    doc.setFontSize(6); doc.setTextColor(...SUB);
+    doc.text('0%', barX-2, y+2); doc.text('2%', barX+(barW*0.2)-2, y+2); doc.text('5%', barX+(barW*0.5)-2, y+2);
+    y += 5;
+
+    // Recomendaciones
+    y += 2; hline(y, LINE, 0.2); y += 4;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.setTextColor(...RED);
+    doc.text('RECOMENDACIONES', ML, y);
+    y += 4;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+    doc.setTextColor(...DARK);
+    const cabDiam = document.getElementById('cab_diam').selectedOptions[0]?.text || '—';
+    const recomText = `• Cabezal: Usar ${cabDiam} con longitud máxima ${document.getElementById('cab_long').value}m\n• Velocidad en cabezal: ${document.getElementById('cab-v').textContent} m/s (límite 4-6 m/s)\n• Bajadas: Diámetros recomendados mostrados en tabla siguiente\n• Accesorios: Incluidos en cálculo de caída de presión\n• Validación: Medir ΔP en campo y comparar con valores teóricos`;
+
+    doc.setFont('helvetica','normal');
+    const lines = recomText.split('\n');
+    lines.forEach(line => {
+      if (y > PH - 20) { doc.addPage(); y = 15; }
+      doc.text(line, ML+2, y);
+      y += 4;
+    });
+
+    y += 4; hline(y, LINE, 0.2); y += 6;
+
+    // Firma
+    doc.setFontSize(7);
+    doc.text('Aprobado por:', ML, y);
+    doc.text('________________', ML+30, y);
+    doc.text('Fecha:', ML+80, y);
+    doc.text('________________', ML+98, y);
+
+    return doc.addPage();
+  }
+
+  // ── DIAGRAMA ESQUEMÁTICO ────────────────────────────────────────
+  function generarDiagrama() {
+    let y = 15;
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.setTextColor(...RED);
+    doc.text('DIAGRAMA DE DISTRIBUCIÓN', ML, y);
+    y += 8;
+
+    // Diagrama visual
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(...DARK);
+
+    const cx = ML + CW/2;
+    const diagX = cx - 50;
+
+    // Compresor
+    doc.setFillColor(255,200,200);
+    doc.rect(diagX, y, 30, 10, 'F');
+    doc.setTextColor(...RED); doc.setFont('helvetica','bold');
+    doc.text('COMPRESOR', diagX+2, y+6); doc.setFontSize(6);
+    doc.text(`${fmt(getBase().hp,0)} HP`, diagX+2, y+9);
+    y += 12;
+
+    // Flecha
+    doc.setDrawColor(...RED); doc.setLineWidth(0.5);
+    doc.line(diagX+15, y, diagX+15, y+5);
+    doc.triangle(diagX+13, y+7, diagX+17, y+7, diagX+15, y+9, 'F');
+    y += 10;
+
+    // Parámetro compresor
+    doc.setFontSize(7); doc.setTextColor(...MID);
+    doc.text(`${fmt(getBase().scfm,0)} SCFM @ 100 psi = ${(getBase().Q_act * 2118.88).toFixed(1)} CFM`, diagX-10, y);
+    y += 5;
+
+    // Cabezal
+    doc.setFillColor(220,220,240);
+    doc.rect(diagX-20, y, 70, 8, 'F');
+    doc.setTextColor(...DARK); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('CABEZAL', diagX+5, y+5.5);
+    doc.setFontSize(6);
+    doc.text(`${document.getElementById('cab_diam').selectedOptions[0]?.text || '—'} × ${document.getElementById('cab_long').value}m`, diagX+25, y+5.5);
+    y += 10;
+
+    // Bajadas
+    const bajadas = [];
+    document.querySelectorAll('[id^="bcfm-"]').forEach(el => {
+      const id = el.id.split('-')[1];
+      const nom = document.getElementById(`br-${id}`)?.querySelector('input')?.value || `Bajada ${id}`;
+      const cfm = parseFloat(el.value) || 0;
+      const diam = document.getElementById(`bdiam-${id}`)?.selectedOptions[0]?.text?.split('—')[0].trim() || '—';
+      const vel = document.getElementById(`bv-${id}`)?.textContent || '—';
+      bajadas.push({nom, cfm, diam, vel});
+    });
+
+    const bajSpacing = CW / (bajadas.length + 1);
+    doc.setFontSize(7);
+
+    // Línea del cabezal con derivaciones
+    doc.setDrawColor(...MID); doc.setLineWidth(1);
+    const cabLineY = y - 2;
+    doc.line(diagX-20, cabLineY, diagX+50, cabLineY);
+
+    bajadas.forEach((b, i) => {
+      const bx = ML + ((i+1) * bajSpacing) - 15;
+
+      // Línea derivada
+      doc.setDrawColor(...MID); doc.setLineWidth(0.5);
+      doc.line(bx, cabLineY, bx, cabLineY+8);
+
+      // Caja bajada
+      doc.setFillColor(240,240,200);
+      doc.rect(bx-12, cabLineY+8, 24, 10, 'F');
+
+      // Texto
+      doc.setTextColor(...DARK); doc.setFont('helvetica','bold');
+      doc.text(b.nom.substring(0,10), bx-10, cabLineY+12);
+      doc.setFontSize(6); doc.setFont('helvetica','normal');
+      doc.text(`${b.cfm.toFixed(1)} CFM`, bx-10, cabLineY+15);
+      doc.text(`${b.diam}`, bx-10, cabLineY+17.5);
+      doc.setFontSize(5);
+      doc.text(`${b.vel} m/s`, bx-10, cabLineY+19.5);
+    });
+
+    y += 35;
+
+    // Tabla resumen de bajadas en la siguiente página
+    doc.addPage();
+    return 15;
+  }
+
   // ── recolectar datos ─────────────────────────────────────────────
   const matLabel  = curMat === 'pipro' ? 'PIPRO Aluminio — Aleación 6063 T5' : 'Otros materiales';
   const rugSel    = document.getElementById('rugosidad');
@@ -1286,9 +1499,18 @@ function generarPDF() {
   hline(y, LINE, 0.2);
   y += 6;
 
+  // Obtener datos de diseño antes de las páginas de resumen
+  const bPDF = getBase();
+
+  // ── RESUMEN EJECUTIVO Y DIAGRAMA ─────────────────────────────────
+  crearResumenEjecutivo(bPDF);
+  generarDiagrama();
+
+  // Reiniciar posición Y después de las páginas de resumen
+  y = 22;
+
   // ── PLANTA DE COMPRESORES ────────────────────────────────────────
   y = secTitle('Planta de Compresores', y);
-  const bPDF = getBase();
 
   // Tabla de compresores individuales
   const compRows = [];
