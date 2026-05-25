@@ -118,6 +118,11 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 
+/* Step badges */
+.step-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#C8102E;color:#fff;font-size:11px;font-weight:900;flex-shrink:0}
+.step-label{display:inline-flex;align-items:center;gap:8px}
+.edu-note{background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.15);border-radius:7px;padding:8px 12px;margin-top:10px;font-size:11px;color:rgba(96,165,250,.8);line-height:1.5}
+.edu-note strong{color:#60a5fa}
 /* Guide Section */
 .guide-card{background:rgba(59,130,246,.08);border:2px solid rgba(96,165,250,.2);border-radius:10px;padding:16px;margin-bottom:14px}
 .guide-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;user-select:none}
@@ -144,17 +149,16 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
     <span class="guide-title">🎓 Guía Paso a Paso: Diseño de Red de Aire Comprimido</span>
     <span class="guide-toggle" id="guide-toggle">▸</span>
   </div>
-  <div class="guide-content" id="guide-content">
+  <div class="guide-content show" id="guide-content">
     <p style="font-size:12px;color:#e0e0e0;margin-bottom:12px;line-height:1.6">
-      <strong>Ejemplo:</strong> Diseñar una red cerrada de aire comprimido para un cliente con consumo de <strong>140 CFM</strong> y compresor de <strong>300 HP</strong>.
-      Los 5 pasos abajo te guiarán a través del proceso. Haz clic en cada interrogación <span style="color:#60a5fa;font-weight:700">[?]</span> para obtener explicaciones detalladas.
+      Llena los campos de cada paso y la herramienta calcula automáticamente. Haz clic en <span style="color:#60a5fa;font-weight:700;border:1px solid rgba(96,165,250,.3);border-radius:50%;padding:0 4px">?</span> para saber qué significa cada dato y dónde obtenerlo.
     </p>
     <div class="guide-steps">
-      <div class="guide-step"><strong>PASO 1:</strong> Especificaciones del Compresor (potencia, SCFM nominal, presión de descarga)</div>
-      <div class="guide-step"><strong>PASO 2:</strong> Parámetros de Red (presión de diseño, temperatura, altitud, rugosidad)</div>
-      <div class="guide-step"><strong>PASO 3:</strong> Diámetro del Cabezal (seleccionar diámetro verificando velocidad)</div>
-      <div class="guide-step"><strong>PASO 4:</strong> Bajadas / Puntos de Uso (analizar cada rama y verificar velocidades)</div>
-      <div class="guide-step"><strong>PASO 5:</strong> Verificación Final (validar ΔP total, pérdidas % y estado de la red)</div>
+      <div class="guide-step"><strong style="color:#60a5fa">① COMPRESORES:</strong> Agrega tu(s) compresor(es). Escribe HP y el SCFM del compresor (dato de la placa o catálogo). El sistema calcula cuánto aire real circule por la red (ACFM).</div>
+      <div class="guide-step"><strong style="color:#60a5fa">② PARÁMETROS DE RED:</strong> Define la presión de trabajo de la red, temperatura del aire y altitud de tu planta. Estos afectan la densidad y velocidad del aire en todos los cálculos.</div>
+      <div class="guide-step"><strong style="color:#60a5fa">③ CABEZAL:</strong> Elige el diámetro de la línea principal. El sistema te muestra la velocidad resultante — debe estar entre 4 y 6 m/s para un diseño correcto.</div>
+      <div class="guide-step"><strong style="color:#60a5fa">④ BAJADAS:</strong> Agrega cada punto de uso (máquina, herramienta) con su consumo en CFM. El sistema recomienda el diámetro de cada bajada automáticamente.</div>
+      <div class="guide-step"><strong style="color:#60a5fa">⑤ RESUMEN FINAL:</strong> Revisa el panel al final de la página. Muestra la ΔP total, % de pérdida y un veredicto: ✅ RED CORRECTA o ⚠️ REVISAR.</div>
     </div>
     <button class="guide-btn" onclick="loadExample()">📚 Cargar Ejemplo: 140 CFM + 300 HP</button>
   </div>
@@ -217,10 +221,11 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 <!-- ════════════ PLANTA DE COMPRESORES ════════════ -->
 <div class="card">
   <div class="card-header">
-    <span class="card-title">Planta de Compresores</span>
+    <span class="step-label"><span class="step-badge">1</span><span class="card-title">Planta de Compresores</span></span>
     <span class="card-badge" id="comp-count-badge">0 compresores</span>
     <span class="note" style="margin:0">SCFM total = Σ (Caudal × Factor de carga simultánea)</span>
   </div>
+  <div class="edu-note">💡 <strong>Qué llenar:</strong> Agrega cada compresor con su potencia (HP), caudal nominal (SCFM del catálogo) y presión de descarga. El sistema suma los caudales y calcula el ACFM real que circula por la red.</div>
 
   <!-- Tabla de compresores en paralelo -->
   <div style="overflow-x:auto">
@@ -247,7 +252,11 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
   </div>
 
   <div class="divider"></div>
-  <h3>Parámetros de planta (comunes — para cálculo de red de distribución)</h3>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <span class="step-badge">2</span>
+    <h3 style="margin:0">Parámetros de Red — Condiciones de Diseño</h3>
+  </div>
+  <p class="edu-note" style="margin-top:0;margin-bottom:10px">💡 <strong>Qué llenar:</strong> Presión de trabajo de la red (psi), temperatura del aire post-enfriador (°F) y altitud de la planta. Estos valores afectan la densidad del aire y la velocidad en toda la red. Los valores por defecto son típicos para México (CDMX).</p>
 
   <div class="grid g4" style="margin-top:8px">
     <div class="field">
@@ -284,10 +293,11 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 <!-- ════════════ CABEZAL ════════════ -->
 <div class="card">
   <div class="card-header">
-    <span class="card-title">Cabezal — Línea Principal</span>
+    <span class="step-label"><span class="step-badge">3</span><span class="card-title">Cabezal — Línea Principal</span></span>
     <span class="card-badge">Caudal total del compresor</span>
     <span id="cab-mat-badge" class="pipro-badge" style="display:none">PIPRO Aluminio</span>
   </div>
+  <div class="edu-note" style="margin-bottom:10px">💡 <strong>Qué hacer:</strong> Selecciona el diámetro del cabezal y escribe la longitud total de la tubería principal. Revisa la velocidad resultante — debe estar entre <strong>4 y 6 m/s</strong>. Si es mayor de 6 m/s, aumenta el diámetro.</div>
   <div class="grid g4">
     <div class="field">
       <label>Diámetro cabezal <span class="tooltip-trigger" onclick="openTooltip('cab-diam')" title="Información">?</span></label>
@@ -346,10 +356,11 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 <!-- ════════════ BAJADAS ════════════ -->
 <div class="card">
   <div class="card-header">
-    <span class="card-title">Bajadas / Puntos de Uso</span>
+    <span class="step-label"><span class="step-badge">4</span><span class="card-title">Bajadas / Puntos de Uso</span></span>
     <span class="card-badge">Caudal por maquinaria / herramienta</span>
     <span id="baj-mat-badge" class="pipro-badge" style="display:none">PIPRO Aluminio</span>
   </div>
+  <div class="edu-note" style="margin-bottom:10px">💡 <strong>Qué hacer:</strong> Agrega cada punto de consumo (máquina, herramienta, zona). Escribe el nombre, cuántos CFM consume y la longitud de esa bajada. La velocidad recomendada en bajadas es <strong>2–4 m/s</strong>. El sistema recomienda el diámetro automáticamente.</div>
   <div style="overflow-x:auto">
     <table class="btbl">
       <thead><tr>
@@ -375,7 +386,10 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
   </div>
 
   <div class="divider"></div>
-  <h3>Verificación de Capacidad Global</h3>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <span class="step-badge">5</span>
+    <h3 style="margin:0">Verificación de Capacidad Global</h3>
+  </div>
   <div class="result-row" style="margin-top:0">
     <div class="ri"><span class="rl">Demanda total efectiva</span><span class="rv" id="ver-dem">—</span><span class="rs">CFM</span></div>
     <div class="ri"><span class="rl">Capacidad compresor</span><span class="rv" id="ver-cap">—</span><span class="rs">SCFM</span></div>
@@ -385,6 +399,58 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
       <div class="vbar"><div class="vfill" id="ver-bar" style="width:0%"></div></div>
       <span class="rs" id="ver-msg">—</span>
     </div>
+  </div>
+</div>
+
+<!-- ════════════ RESUMEN FINAL DE RED ════════════ -->
+<div class="card" id="resumen-card" style="border:2px solid rgba(255,255,255,.07)">
+  <div class="card-header">
+    <span class="step-label"><span class="step-badge" style="background:#22c55e">✓</span><span class="card-title">Resumen Final de Red</span></span>
+    <span class="card-badge" id="rsm-estado-badge" style="background:#374151;font-size:11px">— Agrega datos para ver resultado</span>
+  </div>
+  <div class="grid g4" style="margin-bottom:12px">
+    <div class="ri" style="min-width:100px">
+      <span class="rl">ΔP Cabezal</span>
+      <span class="rv" id="rsm-dp-cab" style="font-size:18px">—</span>
+      <span class="rs">psi</span>
+    </div>
+    <div class="ri" style="min-width:100px">
+      <span class="rl">ΔP Total Bajadas</span>
+      <span class="rv" id="rsm-dp-baj" style="font-size:18px">—</span>
+      <span class="rs">psi</span>
+    </div>
+    <div class="ri" style="min-width:100px">
+      <span class="rl">ΔP Total Red <span class="tooltip-trigger" onclick="openTooltip('delta-p-total')" title="Información">?</span></span>
+      <span class="rv" id="rsm-dp-total" style="font-size:22px;font-weight:900">—</span>
+      <span class="rs">psi</span>
+    </div>
+    <div class="ri" style="min-width:120px">
+      <span class="rl">% Pérdida vs. Presión de Red</span>
+      <span class="rv" id="rsm-pct" style="font-size:22px;font-weight:900">—</span>
+      <span class="rs">límite: 5%</span>
+    </div>
+  </div>
+  <!-- Barra de estado visual -->
+  <div style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.3);margin-bottom:4px">
+      <span>0%</span><span>2%</span><span>5%</span><span>10%</span>
+    </div>
+    <div style="height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden;position:relative">
+      <div id="rsm-bar" style="height:100%;border-radius:6px;background:#22c55e;transition:width .5s,background .3s;width:0%"></div>
+      <!-- Marcadores -->
+      <div style="position:absolute;left:20%;top:0;height:100%;border-right:2px solid rgba(34,197,94,.4)"></div>
+      <div style="position:absolute;left:50%;top:0;height:100%;border-right:2px dashed rgba(245,158,11,.4)"></div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
+      <span style="font-size:10px;color:#22c55e">● &lt;2% Excelente</span>
+      <span style="font-size:10px;color:#f59e0b">● 2–5% Aceptable</span>
+      <span style="font-size:10px;color:#ef4444">● &gt;5% Revisar diseño</span>
+    </div>
+  </div>
+  <!-- Estado general y recomendaciones -->
+  <div id="rsm-recomendaciones" style="display:none">
+    <div class="divider"></div>
+    <div id="rsm-recom-content"></div>
   </div>
 </div>
 
@@ -1008,6 +1074,7 @@ function recalcCabezal() {
 
   // Actualizar análisis comparativo de todos los diámetros
   renderDiamTable();
+  if (typeof updateResumen === 'function') updateResumen();
 }
 
 // ── RECALC BAJADA ─────────────────────────────────────────────────────
@@ -1036,6 +1103,7 @@ function recalcBajada(id) {
   document.getElementById(`brd-${id}`).textContent  = cat[r.recIdx].label;
 
   recalcVerif();
+  if (typeof updateResumen === 'function') updateResumen();
 }
 
 // ── VERIFICACIÓN ──────────────────────────────────────────────────────
@@ -1395,6 +1463,107 @@ function recalcAll() {
   document.querySelectorAll('[id^="bcfm-"]').forEach(el => {
     recalcBajada(parseInt(el.id.split('-')[1]));
   });
+  updateResumen();
+}
+
+function updateResumen() {
+  // Leer ΔP del cabezal
+  const cabDpEl  = document.getElementById('cab-dp');
+  const psiNetEl = document.getElementById('psi');
+  const psiNet   = parseFloat(psiNetEl?.value) || 100;
+
+  // ΔP cabezal — extraer número del texto "X.XX psi"
+  const cabDpText = cabDpEl?.textContent?.replace(/[^\d.]/g, '') || '0';
+  const dpCab = parseFloat(cabDpText) || 0;
+
+  // ΔP de todas las bajadas — sumar span#bdp-N
+  let dpBaj = 0;
+  document.querySelectorAll('[id^="bdp-"]').forEach(el => {
+    const v = parseFloat(el.textContent?.replace(/[^\d.]/g, '')) || 0;
+    dpBaj += v;
+  });
+
+  const dpTotal = dpCab + dpBaj;
+  const pctLoss = psiNet > 0 ? (dpTotal / psiNet * 100) : 0;
+
+  // Actualizar elementos
+  const rsmCab   = document.getElementById('rsm-dp-cab');
+  const rsmBaj   = document.getElementById('rsm-dp-baj');
+  const rsmTotal = document.getElementById('rsm-dp-total');
+  const rsmPct   = document.getElementById('rsm-pct');
+  const rsmBar   = document.getElementById('rsm-bar');
+  const rsmBadge = document.getElementById('rsm-estado-badge');
+  const rsmRec   = document.getElementById('rsm-recomendaciones');
+  const rsmRecContent = document.getElementById('rsm-recom-content');
+  const rsmCard  = document.getElementById('resumen-card');
+
+  if (!rsmCab) return;
+
+  if (dpTotal < 0.01) {
+    // Sin datos
+    rsmCab.textContent = '—'; rsmBaj.textContent = '—';
+    rsmTotal.textContent = '—'; rsmPct.textContent = '—';
+    rsmBar.style.width = '0%';
+    rsmBadge.textContent = '— Agrega datos para ver resultado';
+    rsmBadge.style.background = '#374151';
+    if (rsmRec) rsmRec.style.display = 'none';
+    return;
+  }
+
+  rsmCab.textContent   = dpCab.toFixed(3);
+  rsmBaj.textContent   = dpBaj.toFixed(3);
+  rsmTotal.textContent = dpTotal.toFixed(3);
+  rsmPct.textContent   = pctLoss.toFixed(1) + '%';
+
+  // Barra de estado — escala: 0% = 0, 5% = 50% de la barra, 10% = 100%
+  const barPct = Math.min(pctLoss / 10 * 100, 100);
+  rsmBar.style.width = barPct + '%';
+
+  let estado, badgeColor, barColor, recHtml;
+
+  if (pctLoss < 2) {
+    estado = '✅ RED EXCELENTE';
+    badgeColor = '#15803d'; barColor = '#22c55e';
+    rsmTotal.style.color = '#22c55e'; rsmPct.style.color = '#22c55e';
+    recHtml = `<div style="padding:10px 14px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+      <strong style="color:#22c55e">✅ Diseño correcto</strong> — La caída de presión es <strong>${pctLoss.toFixed(1)}%</strong> de la presión de red, lo que es excelente (límite recomendado: 5%).<br>
+      Los equipos recibirán la presión nominal sin problemas. No es necesario ajustar diámetros.
+    </div>`;
+  } else if (pctLoss < 5) {
+    estado = '⚡ RED ACEPTABLE';
+    badgeColor = '#b45309'; barColor = '#f59e0b';
+    rsmTotal.style.color = '#f59e0b'; rsmPct.style.color = '#f59e0b';
+    recHtml = `<div style="padding:10px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+      <strong style="color:#f59e0b">⚡ Diseño aceptable</strong> — Pérdida de <strong>${pctLoss.toFixed(1)}%</strong> está dentro del límite del 5%, pero es mejorable.<br>
+      <strong>Recomendación:</strong> Considera aumentar un diámetro en el tramo de mayor pérdida, o ajustar la longitud de tuberías.
+    </div>`;
+  } else {
+    estado = '⚠️ REVISAR DISEÑO';
+    badgeColor = '#991b1b'; barColor = '#ef4444';
+    rsmTotal.style.color = '#ef4444'; rsmPct.style.color = '#ef4444';
+    recHtml = `<div style="padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+      <strong style="color:#ef4444">⚠️ Diseño requiere revisión</strong> — La pérdida de <strong>${pctLoss.toFixed(1)}%</strong> supera el límite del 5%. Los equipos recibirán presión insuficiente.<br>
+      <strong>Acciones recomendadas:</strong>
+      <ul style="margin:8px 0 0 16px;line-height:1.8">
+        <li>Aumentar el diámetro del cabezal al siguiente tamaño disponible.</li>
+        <li>Verificar bajadas con mayor ΔP y aumentar su diámetro.</li>
+        <li>Reducir la longitud total de las tuberías si es posible.</li>
+        <li>Revisar accesorios (codos, tees): suman longitud equivalente.</li>
+      </ul>
+    </div>`;
+  }
+
+  rsmBar.style.background = barColor;
+  rsmBadge.textContent = estado;
+  rsmBadge.style.background = badgeColor;
+  if (rsmRec)       rsmRec.style.display = 'block';
+  if (rsmRecContent) rsmRecContent.innerHTML = recHtml;
+  // Resaltar borde del card
+  if (rsmCard) {
+    rsmCard.style.borderColor = pctLoss < 2 ? 'rgba(34,197,94,.3)' :
+                                pctLoss < 5 ? 'rgba(245,158,11,.3)' :
+                                              'rgba(239,68,68,.3)';
+  }
 }
 
 init();
