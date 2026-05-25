@@ -96,11 +96,69 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 /* PIPRO highlight */
 .pipro-badge{font-size:10px;background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3);padding:2px 8px;border-radius:10px;font-weight:700}
 
+/* Tooltip/Modal System */
+.tooltip-trigger{cursor:pointer;color:#60a5fa;font-size:12px;font-weight:700;margin-left:4px;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid rgba(96,165,250,.3);background:rgba(96,165,250,.1);transition:all .15s}
+.tooltip-trigger:hover{background:rgba(96,165,250,.25);border-color:#60a5fa}
+#tooltip-modal{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:9999;align-items:center;justify-content:center}
+#tooltip-modal.show{display:flex}
+.modal-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);animation:fadeIn .2s}
+.modal-card{position:relative;background:#15151E;border:1px solid rgba(255,255,255,.1);border-radius:12px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.8);animation:slideUp .25s}
+.modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
+.modal-header h3{margin:0;font-size:14px;color:#fff}
+.modal-header button{background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-header button:hover{background:rgba(255,255,255,.2)}
+.modal-body{padding:18px}
+.modal-section{margin-bottom:14px}
+.modal-section-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.modal-section-content{font-size:12px;color:#e0e0e0;line-height:1.5}
+.modal-code{background:#0f0f14;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px;font-family:monospace;font-size:11px;color:#a0ff9f;margin:8px 0;overflow-x:auto}
+.modal-list{list-style:none;padding:0;margin:8px 0}
+.modal-list li{padding:4px 0;padding-left:20px;position:relative;color:#e0e0e0;font-size:12px}
+.modal-list li:before{content:'▸';position:absolute;left:0;color:#C8102E}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* Guide Section */
+.guide-card{background:rgba(59,130,246,.08);border:2px solid rgba(96,165,250,.2);border-radius:10px;padding:16px;margin-bottom:14px}
+.guide-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;user-select:none}
+.guide-header:hover{opacity:0.8}
+.guide-title{font-size:13px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.04em;flex:1}
+.guide-toggle{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#60a5fa;transition:transform .2s}
+.guide-toggle.collapsed{transform:rotate(-90deg)}
+.guide-content{display:none;padding-top:12px;border-top:1px solid rgba(96,165,250,.15)}
+.guide-content.show{display:block}
+.guide-steps{display:grid;gap:8px;margin:12px 0}
+.guide-step{padding:10px 12px;background:#15151E;border-left:3px solid #60a5fa;border-radius:4px;font-size:11px;color:rgba(255,255,255,.7);line-height:1.5}
+.guide-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:Arial,sans-serif;background:#60a5fa;color:#fff;transition:all .15s;margin-top:12px}
+.guide-btn:hover{background:#4f9ff0}
+
 @media(max-width:900px){.g4,.g5{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:550px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+
+<!-- ════════════ GUÍA INTERACTIVA ════════════ -->
+<div class="guide-card">
+  <div class="guide-header" onclick="toggleGuide()">
+    <span class="guide-title">🎓 Guía Paso a Paso: Diseño de Red de Aire Comprimido</span>
+    <span class="guide-toggle" id="guide-toggle">▸</span>
+  </div>
+  <div class="guide-content" id="guide-content">
+    <p style="font-size:12px;color:#e0e0e0;margin-bottom:12px;line-height:1.6">
+      <strong>Ejemplo:</strong> Diseñar una red cerrada de aire comprimido para un cliente con consumo de <strong>140 CFM</strong> y compresor de <strong>300 HP</strong>.
+      Los 5 pasos abajo te guiarán a través del proceso. Haz clic en cada interrogación <span style="color:#60a5fa;font-weight:700">[?]</span> para obtener explicaciones detalladas.
+    </p>
+    <div class="guide-steps">
+      <div class="guide-step"><strong>PASO 1:</strong> Especificaciones del Compresor (potencia, SCFM nominal, presión de descarga)</div>
+      <div class="guide-step"><strong>PASO 2:</strong> Parámetros de Red (presión de diseño, temperatura, altitud, rugosidad)</div>
+      <div class="guide-step"><strong>PASO 3:</strong> Diámetro del Cabezal (seleccionar diámetro verificando velocidad)</div>
+      <div class="guide-step"><strong>PASO 4:</strong> Bajadas / Puntos de Uso (analizar cada rama y verificar velocidades)</div>
+      <div class="guide-step"><strong>PASO 5:</strong> Verificación Final (validar ΔP total, pérdidas % y estado de la red)</div>
+    </div>
+    <button class="guide-btn" onclick="loadExample()">📚 Cargar Ejemplo: 140 CFM + 300 HP</button>
+  </div>
+</div>
 
 <!-- ════════════ DATOS DEL PROYECTO ════════════ -->
 <div class="card" style="padding:14px 16px;margin-bottom:10px">
@@ -169,11 +227,11 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
     <table class="btbl" id="comp-tbl">
       <thead><tr>
         <th>Compresor / ID</th>
-        <th>HP</th>
-        <th>SCFM nominal</th>
-        <th title="Fracción 0–1 del tiempo que opera este compresor simultáneamente. 1 = siempre encendido.">F. carga ⓘ</th>
-        <th title="Presión manométrica de descarga de este compresor (psi). Afecta su ACFM y velocidad de descarga.">P. descarga (psi man.) ⓘ</th>
-        <th title="Diámetro de la tubería de descarga propia de este compresor.">Diám. descarga ⓘ</th>
+        <th>HP <span class="tooltip-trigger" onclick="openTooltip('comp-hp')" title="Información">?</span></th>
+        <th>SCFM nominal <span class="tooltip-trigger" onclick="openTooltip('comp-scfm')" title="Información">?</span></th>
+        <th>F. carga <span class="tooltip-trigger" onclick="openTooltip('comp-fc')" title="Información">?</span></th>
+        <th>P. descarga (psi man.) <span class="tooltip-trigger" onclick="openTooltip('comp-psi')" title="Información">?</span></th>
+        <th>Diám. descarga</th>
         <th>SCFM efectivo</th>
         <th>ACFM en descarga</th>
         <th>Vel. descarga</th>
@@ -193,13 +251,16 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 
   <div class="grid g4" style="margin-top:8px">
     <div class="field">
-      <label title="Presión de diseño de la RED de distribución. La velocidad y ΔP en cabezal y bajadas se calculan a esta presión.">Presión de red — diseño (psi man.) ⓘ</label>
+      <label>Presión de red — diseño (psi man.) <span class="tooltip-trigger" onclick="openTooltip('presion-red')" title="Información">?</span></label>
       <input type="number" id="psi" value="100" min="1" oninput="recalcAll()"/></div>
-    <div class="field"><label>Temperatura descarga tras enfriador (°F)</label>
+    <div class="field">
+      <label>Temperatura descarga tras enfriador (°F) <span class="tooltip-trigger" onclick="openTooltip('temperatura')" title="Información">?</span></label>
       <input type="number" id="tempF" value="95" oninput="recalcAll()"/></div>
-    <div class="field"><label>Altitud planta (m s.n.m.)</label>
+    <div class="field">
+      <label>Altitud planta (m s.n.m.) <span class="tooltip-trigger" onclick="openTooltip('altitud')" title="Información">?</span></label>
       <input type="number" id="altitud" value="2240" min="0" oninput="recalcAll()"/></div>
-    <div class="field"><label>Rugosidad de la red</label>
+    <div class="field">
+      <label>Rugosidad de la red <span class="tooltip-trigger" onclick="openTooltip('rugosidad')" title="Información">?</span></label>
       <select id="rugosidad" onchange="recalcAll()">
         <option value="0.046">Acero negro / galvanizado nuevo (0.046 mm)</option>
         <option value="0.15">Acero galvanizado usado (0.15 mm)</option>
@@ -228,10 +289,12 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
     <span id="cab-mat-badge" class="pipro-badge" style="display:none">PIPRO Aluminio</span>
   </div>
   <div class="grid g4">
-    <div class="field"><label>Diámetro cabezal</label>
+    <div class="field">
+      <label>Diámetro cabezal <span class="tooltip-trigger" onclick="openTooltip('cab-diam')" title="Información">?</span></label>
       <select id="cab_diam" onchange="recalcCabezal()"></select>
       <div class="rec" id="cab_rec"></div></div>
-    <div class="field"><label>Longitud total (m)</label>
+    <div class="field">
+      <label>Longitud total (m) <span class="tooltip-trigger" onclick="openTooltip('longitud-tramo')" title="Información">?</span></label>
       <input type="number" id="cab_long" value="30" min="0.1" step="0.5" oninput="recalcCabezal()"/></div>
   </div>
   <div style="margin-top:10px">
@@ -1335,6 +1398,266 @@ function recalcAll() {
 }
 
 init();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TOOLTIP SYSTEM & EDUCATIONAL GUIDE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TOOLTIPS = {
+  "comp-hp": {
+    title: "Potencia del Compresor (HP)",
+    explanation: "Es la potencia del motor del compresor, expresada en caballos de fuerza (HP). Determina la capacidad de caudal (SCFM) que puede producir el compresor. Esta especificación se encuentra en la placa de identificación del equipo.",
+    formula: "SCFM ≈ HP × 4 (aproximación a 100 psi diferencial)",
+    sources: ["Placa de identificación del compresor", "Catálogo del fabricante", "Documento técnico entregado con el equipo"],
+    range: "Típicamente 15–500 HP en aplicaciones industriales",
+    warning: "No confundir potencia del motor (eléctrico) con potencia mecánica entregada. Verificar en placa original del equipo."
+  },
+  "comp-scfm": {
+    title: "Caudal Nominal (SCFM)",
+    explanation: "Caudal en pies cúbicos por minuto bajo condiciones estándar (SCFM: Standard CFM @ 14.7 psia, 68°F). Es el volumen de aire que produce el compresor en condiciones de referencia. NO es el caudal real (ACFM) a la presión de la red.",
+    formula: "SCFM nominal ≈ HP × 4 (regla aproximada para compresores de tornillo de 100 psi)",
+    sources: ["Placa técnica o datasheet del compresor", "Catálogo del fabricante", "Consultar al distribuidor"],
+    range: "Varía según tipo y modelo. Verificar en especificaciones",
+    warning: "Usar SCFM para conversiones a ACFM. SCFM es independiente de la presión de operación; ACFM sí varía con la presión."
+  },
+  "comp-psi": {
+    title: "Presión de Descarga del Compresor (psi man.)",
+    explanation: "Presión manométrica (por encima de la atmósfera) a la cual el compresor descarga el aire. Afecta directamente el ACFM (caudal real) y la velocidad en la tubería de descarga. Debe ser al menos igual o mayor que la presión de diseño de la red.",
+    formula: "P_abs = P_man + 14.7 psia (donde P_abs es presión absoluta)",
+    sources: ["Ajuste del compresor en planta", "Manómetro en línea de descarga", "Set point del control"],
+    range: "85–120 psi man. típico; algunos compresores pueden alcanzar 150 psi",
+    warning: "Presión muy baja → caudal insuficiente. Presión muy alta → consumo de energía innecesario. Ajustar al mínimo necesario para la aplicación."
+  },
+  "comp-fc": {
+    title: "Factor de Carga Simultánea",
+    explanation: "Fracción de tiempo (0–1) que el compresor opera simultáneamente con otros. Un FC de 0.8 significa que este compresor está encendido el 80% del tiempo cuando los demás también funcionan. Reduce el caudal efectivo si el compresor no siempre está operando.",
+    formula: "SCFM efectivo = SCFM nominal × FC",
+    sources: ["Análisis de operación de planta", "Ciclo de carga/descarga observado", "Estimación técnica"],
+    range: "0.5–1.0 típicamente; 1.0 = siempre encendido",
+    warning: "Un FC bajo subestima el caudal disponible en picos. Usar con cuidado; es preferible diseñar para el peor caso (FC=1)."
+  },
+  "presion-red": {
+    title: "Presión de Diseño de la Red (psi man.)",
+    explanation: "Presión manométrica a la cual DESEAS que funcione tu red de distribución. Es el punto de partida para todos los cálculos de velocidad y caída de presión. NO es la presión de descarga del compresor, sino el objetivo de presión en el cabezal/red.",
+    formula: "P_abs = P_man + 14.7 psia (en la altitud local)",
+    sources: ["Especificación del cliente", "Requerimiento de equipos conectados (herramientas, actuadores)", "Normativa industrial"],
+    range: "85–120 psi man. es lo más común; algunas aplicaciones van hasta 150 psi",
+    warning: "Presión muy alta → velocidades altas, ΔP grande, ruido, erosión. Presión muy baja → caudal insuficiente. Balancear según necesidad."
+  },
+  "temperatura": {
+    title: "Temperatura de Descarga (°F)",
+    explanation: "Temperatura del aire DESPUÉS del enfriador (post-cooler) pero antes de la red de distribución. Afecta la densidad del aire (ρ) y la viscosidad (μ), que son críticas para calcular Reynolds y fricción. Temperaturas típicas están en 95–105°F.",
+    formula: "T_K = (T_F - 32) × 5/9 + 273.15; ρ = P / (R × T_K)",
+    sources: ["Especificación del enfriador", "Medición con termómetro infrarrojo", "Estándar de diseño (típicamente 95°F)"],
+    range: "90–110°F típicamente (post-enfriador bien dimensionado)",
+    warning: "Aire muy caliente → menor densidad, velocidades más altas, ΔP mayores. Asegurar enfriamiento adecuado."
+  },
+  "altitud": {
+    title: "Altitud de la Planta (m s.n.m.)",
+    explanation: "Elevación del sitio de la planta sobre el nivel del mar. Afecta la presión atmosférica local, que varía la densidad del aire (ρ). A mayor altitud, menor presión atmosférica → menor densidad → mayores velocidades para el mismo caudal.",
+    formula: "P_atm = 101325 × (1 - 2.2557e-5 × alt)^5.2559 (en Pa)",
+    sources: ["Google Maps / coordenadas GPS", "Datos públicos de altitud", "Especificación en acta de levantamiento"],
+    range: "0 m (nivel del mar) a 3000+ m (zonas altas de México)",
+    warning: "Altitud alta → cálculos más conservadores. Ejemplo: CDMX (2240 m) afecta densidad ~12–15% vs. nivel del mar."
+  },
+  "rugosidad": {
+    title: "Rugosidad de la Tubería (ε, mm)",
+    explanation: "Aspereza interna de la tubería. Afecta el factor de fricción (f) mediante la fórmula de Swamee-Jain. Diferentes materiales tienen diferentes rugosidades. El aire comprimido es sensible a la rugosidad interna.",
+    formula: "f = 0.25 / [log₁₀(ε/(3.7D) + 5.74/Re^0.9)]²",
+    sources: ["Tabla estándar por material (acero, PIPRO, PVC, etc.)", "Especificación de proveedor", "Norma ISO"],
+    range: "Acero: 0.046–0.5 mm; PIPRO aluminio: 0.0015 mm; PVC: 0.0015 mm",
+    warning: "Acero corroído → rugosidad aumenta → ΔP aumenta dramáticamente. Usar material de calidad; verificar rugosidad en el tiempo."
+  },
+  "cab-diam": {
+    title: "Diámetro del Cabezal (Línea Principal)",
+    explanation: "Diámetro interior de la tubería principal (cabezal) que distribuye aire desde el compresor. Determina la velocidad (v = Q/A) y, por lo tanto, la caída de presión (ΔP). Diámetros mayores → velocidades menores → ΔP menor, pero costo más alto.",
+    formula: "Velocidad: v = Q / A, donde A = π(d/2)² = π×D²/4 (m/s)",
+    sources: ["Catálogo de tubería (PIPRO, acero, PVC)", "Cálculo automático (ver recomendación)", "Experiencia en campo"],
+    range: "1–4 pulgadas típicamente para caudales industriales; 2–2.5\" es común para 140–200 CFM",
+    warning: "Diámetro muy pequeño → velocidad alta (>6 m/s) → ruido, erosión, ΔP grande. Verificar siempre la velocidad recomendada (4–6 m/s para cabezal)."
+  },
+  "velocity-limit": {
+    title: "Límites de Velocidad Recomendados",
+    explanation: "Velocidades máximas para minimizar ruido, erosión y pérdidas. Varían según el tipo de línea: cabezal principal admite velocidades más altas que bajadas. Exceder límites causa ruido excesivo y erosión acelerada.",
+    formula: "v = Q / A; límites: 4–6 m/s (cabezal), 2–4 m/s (bajadas)",
+    sources: ["Norma ISO 4414 (sistemas neumáticos)", "Experiencia industrial", "Recomendación de fabricantes"],
+    range: "Cabezal: 4–6 m/s. Bajadas: 2–4 m/s. Líneas de instrumentación: <2 m/s",
+    warning: "Exceder 6 m/s en cabezal → ruido intenso, vibraciones, daño prematuro. Reducir presión o aumentar diámetro."
+  },
+  "longitud-tramo": {
+    title: "Longitud del Tramo (m)",
+    explanation: "Distancia real de tubería que recorre el aire en ese segmento (cabezal, bajada, etc.). Afecta directamente la caída de presión ΔP, que es proporcional a la longitud: mayor longitud → mayor ΔP.",
+    formula: "ΔP ∝ L (directamente proporcional, en Darcy-Weisbach)",
+    sources: ["Plano de planta con dimensiones", "Medición in situ con cinta métrica", "Levantamiento de ingeniería"],
+    range: "Varía según diseño; cabezales típicamente 20–50 m, bajadas 5–20 m",
+    warning: "Longitudes excesivas sin justificación → ΔP grande innecesariamente. Optimizar rutas de tuberías en diseño."
+  },
+  "delta-p-total": {
+    title: "Caída de Presión Total (ΔP)",
+    explanation: "Suma de todas las caídas de presión en la red: en el cabezal, en cada bajada, en accesorios. Se calcula mediante la ecuación de Darcy-Weisbach. La pérdida total debe ser <5% de la presión de diseño.",
+    formula: "ΔP = f × (L/D) × (ρv²/2) [Darcy-Weisbach]",
+    sources: ["Cálculo automático (esta herramienta)", "Manual de ingeniería neumática", "Software especializado"],
+    range: "Ideal: <2% de presión de red. Aceptable: <5%. Crítico: >5%",
+    warning: "ΔP >5% → compresores trabajando excesivamente, energía desperdiciada, equipos no operan a presión nominal. Redimensionar tuberías."
+  },
+  "reynolds": {
+    title: "Número de Reynolds (Re)",
+    explanation: "Número adimensional que indica si el flujo es laminar, en transición o turbulento. Para aire comprimido (altos números), casi siempre es turbulento (Re > 4000). Afecta el factor de fricción f.",
+    formula: "Re = (ρ × v × D) / μ",
+    sources: ["Cálculo automático", "Tablas de viscosidad del aire"],
+    range: "Re < 2300: laminar. 2300–4000: transición. Re > 4000: turbulento",
+    warning: "Para aire comprimido en tuberías, Re es muy alto → siempre turbulento. Use Swamee-Jain para f en este rango."
+  }
+};
+
+function toggleGuide() {
+  const content = document.getElementById('guide-content');
+  const toggle = document.getElementById('guide-toggle');
+  if (content.classList.contains('show')) {
+    content.classList.remove('show');
+    toggle.classList.add('collapsed');
+  } else {
+    content.classList.add('show');
+    toggle.classList.remove('collapsed');
+  }
+}
+
+function openTooltip(key) {
+  const tip = TOOLTIPS[key];
+  if (!tip) {
+    console.warn(`Tooltip not found: ${key}`);
+    return;
+  }
+
+  const modal = document.getElementById('tooltip-modal');
+  const title = document.getElementById('tooltip-title');
+  const content = document.getElementById('tooltip-content');
+
+  title.textContent = tip.title;
+
+  let html = '';
+  if (tip.explanation) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title">📖 Explicación</div>
+      <div class="modal-section-content">${tip.explanation}</div>
+    </div>`;
+  }
+  if (tip.formula) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title">🔢 Fórmula</div>
+      <div class="modal-code">${tip.formula}</div>
+    </div>`;
+  }
+  if (tip.sources && tip.sources.length > 0) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title">📍 Dónde obtener este dato</div>
+      <ul class="modal-list">
+        ${tip.sources.map(s => `<li>${s}</li>`).join('')}
+      </ul>
+    </div>`;
+  }
+  if (tip.range) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title">✅ Rango recomendado</div>
+      <div class="modal-section-content">${tip.range}</div>
+    </div>`;
+  }
+  if (tip.warning) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title">⚠️ Error común / Advertencia</div>
+      <div class="modal-section-content" style="color:#f59e0b">${tip.warning}</div>
+    </div>`;
+  }
+
+  content.innerHTML = html;
+  modal.classList.add('show');
+}
+
+function closeTooltip() {
+  const modal = document.getElementById('tooltip-modal');
+  modal.classList.remove('show');
+}
+
+function loadExample() {
+  // Cargar ejemplo: 140 CFM + 300 HP
+
+  // 1. Agregar compresor de 300 HP
+  if (document.querySelectorAll('[id^="comp-scfm-"]').length === 0) {
+    addCompresor();
+  }
+
+  // Obtener ID del primer compresor
+  const compScfmEl = document.querySelector('[id^="comp-scfm-"]');
+  if (!compScfmEl) return;
+
+  const cid = compScfmEl.id.replace('comp-scfm-', '');
+
+  // Llenar datos del compresor
+  document.getElementById(`comp-hp-${cid}`).value = 300;
+  document.getElementById(`comp-scfm-${cid}`).value = 1200;  // 300 × 4 ≈ 1200 SCFM
+  document.getElementById(`comp-psi-${cid}`).value = 110;    // Presión de descarga para compensar ΔP
+  document.getElementById(`comp-fc-${cid}`).value = 1;
+
+  // Llenar parámetros de red
+  document.getElementById('psi').value = 100;     // Presión de diseño de red
+  document.getElementById('tempF').value = 95;    // Temperatura post-cooler estándar
+  document.getElementById('altitud').value = 2240; // CDMX altitud estándar
+  document.getElementById('rugosidad').value = '0.046'; // Acero negro/galvanizado nuevo
+
+  // Limpiar bajadas existentes y agregar el ejemplo de 140 CFM
+  document.querySelectorAll('[id^="br-"]').forEach(el => {
+    const id = el.id.replace('br-', '');
+    removeBajada(parseInt(id));
+  });
+
+  // Agregar 3 bajadas del ejemplo
+  const bajadas = [
+    { n: 'Sala Maquinado (A)', cfm: 80 },    // 57% del total
+    { n: 'Herramentales (B)', cfm: 40 },     // 29%
+    { n: 'Aire Secador (C)', cfm: 20 }       // 14%
+  ];
+
+  bajadas.forEach(preset => {
+    addBajada(preset);
+  });
+
+  // Recalcular todo
+  recalcAll();
+
+  // Mostrar notificación visual
+  alert('✅ Ejemplo 140 CFM + 300 HP cargado.\n\nObserva cómo se calculan automáticamente:\n• PASO 1: Compresor 300 HP → 1200 SCFM\n• PASO 2: Red a 100 psi, 95°F, altitud 2240m\n• PASO 3: Cabezal con 140 CFM efectivos\n• PASO 4: Tres bajadas (57%, 29%, 14% del total)\n• PASO 5: Verificación final de ΔP total\n\nModifica los valores para aprender cómo afectan los cálculos.');
+
+  // Cerrar la guía
+  const content = document.getElementById('guide-content');
+  const toggle = document.getElementById('guide-toggle');
+  content.classList.remove('show');
+  toggle.classList.add('collapsed');
+}
+
+// Cerrar tooltip al hacer clic en overlay o botón de cerrar
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('tooltip-modal');
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal || e.target.closest('.modal-overlay')) {
+        closeTooltip();
+      }
+    });
+  }
+});
 </script>
+
+<!-- Tooltip Modal -->
+<div id="tooltip-modal">
+  <div class="modal-overlay"></div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="tooltip-title">Parámetro</h3>
+      <button onclick="closeTooltip()" title="Cerrar">✕</button>
+    </div>
+    <div class="modal-body" id="tooltip-content"></div>
+  </div>
+</div>
+
 </body>
 </html>
