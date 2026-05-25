@@ -3076,7 +3076,7 @@ function updateSopTotal() {
 
 /** Genera y descarga el PDF de requisición de soportería */
 function downloadSoporteriaPDF() {
-  // Leer cantidades directamente desde los inputs (incluye ajustes manuales)
+  // ── Leer cantidades desde los inputs (incluye ajustes manuales) ──────────────
   const rows = _SOP_MAT.map((m, i) => {
     const inp = document.getElementById(`sop-qty-${i}`);
     return { ...m, qty: inp ? (parseInt(inp.value) || 0) : 0 };
@@ -3087,6 +3087,7 @@ function downloadSoporteriaPDF() {
     return;
   }
 
+  // ── Datos del documento ───────────────────────────────────────────────────────
   const subtotalAmt = rows.reduce((s, m) => s + m.qty * m.precio, 0);
   const utilidadAmt = subtotalAmt * 0.40;
   const totalAmt    = subtotalAmt + utilidadAmt;
@@ -3094,58 +3095,132 @@ function downloadSoporteriaPDF() {
   const nP = parseInt(el('sop-ptr').value)   || 0;
   const nM = parseInt(el('sop-mens').value)  || 0;
 
-  const empresa  = (el('empresa').value  || '').trim() || 'Sin especificar';
-  const atencion = (el('atencion').value || '').trim();
-  const folio    = (el('folio').value    || '').trim() || '—';
-  const fecha    = (el('fecha').value    || '').trim() || new Date().toLocaleDateString('es-MX');
+  const empresa   = (el('empresa').value   || '').trim() || 'Sin especificar';
+  const atencion  = (el('atencion').value  || '').trim();
+  const descProy  = (el('desc_proy').value || '').trim();
+  const folio     = getFolio() || '—';
+  const fechaRaw  = el('fecha').value || '';
+  const fechaStr  = fechaRaw ? formatDateES(fechaRaw) : new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' });
 
+  // ── Inicializar jsPDF (portrait, letter — igual que cotizador) ───────────────
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
-  const W = doc.internal.pageSize.getWidth();
-  const RED  = [200, 16, 46];
-  const DARK = [31, 31, 31];
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const ML = 13, HTOP = 24, FBOT = PH - 12;
+  const RED   = [200, 16, 46];
+  const DARK  = [30,  30,  38];
+  const GRAY  = [150, 150, 160];
+  const LGRAY = [220, 220, 225];
 
-  // — Encabezado rojo —
-  doc.setFillColor(...RED);
-  doc.rect(0, 0, W, 22, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(255, 255, 255);
-  doc.text('GARDNER DENVER  ·  PIPRO', 10, 10);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('REQUISICIÓN DE MATERIALES DE SOPORTERÍA', 10, 17);
-  doc.setFontSize(9);
-  doc.text(`Folio: ${folio}`, W - 10, 10, { align: 'right' });
-  doc.text(`Fecha: ${fecha}`, W - 10, 17, { align: 'right' });
-
-  // — Info cliente —
-  doc.setTextColor(...DARK);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Empresa:', 10, 30);
-  doc.setFont('helvetica', 'normal');
-  doc.text(empresa, 35, 30);
-
-  if (atencion) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('Atención:', 10, 36);
-    doc.setFont('helvetica', 'normal');
-    doc.text(atencion, 35, 36);
+  // ── Helpers de layout ────────────────────────────────────────────────────────
+  function hline(yy, col, w) {
+    doc.setDrawColor(...(col || LGRAY)); doc.setLineWidth(w || 0.3);
+    doc.line(ML, yy, PW - ML, yy);
+  }
+  function secTitle(title, yy) {
+    if (yy + 14 > FBOT) { doc.addPage(); yy = HTOP; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    doc.setTextColor(...RED);
+    doc.text(title.toUpperCase(), ML, yy);
+    doc.setDrawColor(...RED); doc.setLineWidth(0.35);
+    doc.line(ML, yy + 1.5, PW - ML, yy + 1.5);
+    doc.setTextColor(...DARK);
+    return yy + 6;
+  }
+  function checkY(yy, needed) {
+    if (yy + (needed || 16) > FBOT) { doc.addPage(); yy = HTOP; }
+    return yy;
   }
 
-  // — Resumen de tipos —
-  const tipos = [
+  // ── Encabezado (igual que cotizador) ────────────────────────────────────────
+  function drawHeader() {
+    const logo = window.LOGO_GD || null;
+    const LOGO_W = 32, LOGO_H = 13;
+    if (logo) {
+      try { doc.addImage(logo, 'PNG', ML, 4, LOGO_W, LOGO_H); } catch(e) {}
+    } else {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+      doc.setTextColor(...DARK);
+      doc.text('GARDNER DENVER', ML, 12);
+    }
+    const tx = ML + LOGO_W + 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text('Requisición de Soportería', tx, 10);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text('Gardner Denver México  ·  PIPRO Tubería Neumática', tx, 14.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(folio, PW - ML, 9, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(fechaStr, PW - ML, 14, { align: 'right' });
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+    doc.line(ML, 20, PW - ML, 20);
+  }
+
+  // ── Pie de página ────────────────────────────────────────────────────────────
+  function drawFooter() {
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2);
+    doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+    doc.text('GARDNER DENVER México, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
+    doc.text(folio, PW - ML, FBOT, { align: 'right' });
+  }
+
+  function setupPage() {
+    const pg = doc.internal.getCurrentPageInfo().pageNumber;
+    if (pg > 1) drawHeader();
+  }
+
+  // ── Página 1 ─────────────────────────────────────────────────────────────────
+  drawHeader();
+  let y = HTOP + 2;
+
+  // ── Cuadro ASUNTO (derecha, estilo cotizador) ─────────────────────────────
+  const tiposList = [
     nA ? `Aéreas: ${nA}` : '',
     nP ? `PTR: ${nP}`    : '',
     nM ? `Ménsulas: ${nM}` : '',
-  ].filter(Boolean).join('   |   ');
-  doc.setFont('helvetica', 'bold');
-  doc.text('Abrazaderas:', W / 2 + 10, 30);
-  doc.setFont('helvetica', 'normal');
-  doc.text(tipos, W / 2 + 10, 36);
+  ].filter(Boolean);
+  const boxW = 72, boxH = tiposList.length > 1 ? 19 : 15, boxY = HTOP + 1;
+  doc.setDrawColor(...RED); doc.setLineWidth(0.5);
+  doc.setFillColor(255, 252, 252);
+  doc.roundedRect(PW - ML - boxW, boxY, boxW, boxH, 1, 1, 'FD');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
+  doc.text('Asunto:', PW - ML - boxW + 4, boxY + 5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.8); doc.setTextColor(70, 70, 70);
+  doc.text('Requisición de Materiales de Soportería', PW - ML - boxW + 4, boxY + 9.5);
+  if (tiposList.length) {
+    doc.setFontSize(7); doc.setTextColor(100, 100, 100);
+    doc.text(tiposList.join('  ·  '), PW - ML - boxW + 4, boxY + 14);
+  }
 
-  // — Tabla de materiales —
+  // ── Bloque cliente (izquierda) ────────────────────────────────────────────
+  const leftW = PW - ML * 2 - boxW - 4;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...DARK);
+  const empLines = doc.splitTextToSize(empresa, leftW);
+  doc.text(empLines, ML, y);
+  y += empLines.length * 5.5 + 1;
+  if (atencion) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+    const atLines = doc.splitTextToSize('Atención: ' + atencion, leftW);
+    doc.text(atLines, ML, y);
+    y += atLines.length * 4.5 + 1;
+  }
+  if (descProy) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(80, 80, 90);
+    const dpLines = doc.splitTextToSize('Proyecto: ' + descProy, leftW);
+    doc.text(dpLines, ML, y);
+    y += dpLines.length * 4.2 + 1;
+  }
+  // Garantizar que y quede debajo del cuadro Asunto
+  const boxBottom = boxY + boxH + 4;
+  if (y < boxBottom) y = boxBottom;
+
+  hline(y, LGRAY, 0.2); y += 5;
+
+  // ── LISTA DE MATERIALES ───────────────────────────────────────────────────
+  y = secTitle('LISTA DE MATERIALES DE SOPORTERÍA', y);
+
   const tableBody = rows.map((m, i) => [
     i + 1,
     m.np,
@@ -3156,43 +3231,61 @@ function downloadSoporteriaPDF() {
     fmtPDF(m.qty * m.precio),
   ]);
 
-  const startY = atencion ? 42 : 37;
-
   doc.autoTable({
-    startY,
+    startY: y,
     head: [['#', 'No. Parte', 'Descripción', 'Cant.', 'Unidad', 'P. Unitario', 'Total MXN']],
     body: tableBody,
     foot: [
-      ['', '', '', '', '', 'Subtotal costo', fmtPDF(subtotalAmt)],
-      ['', '', '', '', '', 'Utilidad (40%)', fmtPDF(utilidadAmt)],
+      ['', '', '', '', '', 'Subtotal costo',   fmtPDF(subtotalAmt)],
+      ['', '', '', '', '', 'Utilidad (40%)',    fmtPDF(utilidadAmt)],
       ['', '', '', '', '', 'TOTAL CON UTILIDAD', fmtPDF(totalAmt)],
     ],
-    margin: { left: 10, right: 10 },
-    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.5, textColor: [40, 40, 40] },
-    headStyles: { fillColor: RED, textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
-    footStyles: { fillColor: [245, 245, 245], textColor: DARK, fontStyle: 'bold' },
+    margin: { left: ML, right: ML },
+    styles:    { font: 'helvetica', fontSize: 8.5, cellPadding: 2.5, textColor: [40, 40, 40] },
+    headStyles: { fillColor: RED, textColor: [255,255,255], fontSize: 8, fontStyle: 'bold' },
+    footStyles: { fillColor: [245,245,245], textColor: DARK, fontStyle: 'bold', fontSize: 8.5 },
     alternateRowStyles: { fillColor: [253, 248, 248] },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8  },
-      1: { font: 'courier', fontSize: 7.5, cellWidth: 36 },
+      0: { halign: 'center', cellWidth: 8 },
+      1: { font: 'courier', fontSize: 7.5, cellWidth: 34 },
       2: { cellWidth: 'auto' },
-      3: { halign: 'center', cellWidth: 14 },
-      4: { halign: 'center', cellWidth: 18 },
-      5: { halign: 'right',  cellWidth: 28 },
-      6: { halign: 'right',  cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 13 },
+      4: { halign: 'center', cellWidth: 16 },
+      5: { halign: 'right',  cellWidth: 26 },
+      6: { halign: 'right',  cellWidth: 26 },
     },
     didParseCell(data) {
       if (data.section === 'foot') {
-        if (data.row.index === 1) {                        // Utilidad — verde
-          data.cell.styles.textColor = [30, 120, 30];
-        } else if (data.row.index === 2) {                 // Total — rojo destacado
+        if (data.row.index === 1) {
+          data.cell.styles.textColor = [22, 110, 22];
+        } else if (data.row.index === 2) {
           data.cell.styles.fillColor = [250, 235, 238];
           data.cell.styles.textColor = RED;
           data.cell.styles.fontSize  = 9.5;
+          data.cell.styles.fontStyle = 'bold';
         }
       }
     },
+    didDrawPage() { setupPage(); },
   });
+
+  y = doc.lastAutoTable.finalY + 8;
+
+  // ── FIRMA / CIERRE ────────────────────────────────────────────────────────
+  y = checkY(y, 28);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+  doc.text('Elaborado por:', ML, y); y += 5;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+  doc.text('Ing. Marco Antonio Millan Ramirez', ML, y); y += 4;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+  doc.text('Gerente de Ingeniería  ·  Tel: 5555 63 26 11 Ext: 520', ML, y); y += 3.5;
+  doc.text('GARDNER DENVER México, S.A. DE C.V.  ·  Departamento de Ingeniería', ML, y);
+
+  // ── Pie en todas las páginas ──────────────────────────────────────────────
+  const totalPgs = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPgs; p++) {
+    doc.setPage(p); drawFooter();
+  }
 
   const safeName = empresa.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
   doc.save(`Soporteria_${safeName}_${folio}.pdf`);
