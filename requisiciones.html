@@ -236,12 +236,12 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
 
   async function parseImage(file){
     setImporting(true);
+    setOcrProgress(0);
     try{
+      if(typeof Tesseract==='undefined')throw new Error('La librería OCR no cargó. Revisa tu conexión y recarga la página.');
       const url=URL.createObjectURL(file);
-      const worker=await window.Tesseract.createWorker(['spa','eng'],1,{
-        workerPath:'https://unpkg.com/tesseract.js@4/dist/worker.min.js',
-        langPath:'https://tessdata.projectnaptha.com/4.0.0',
-        corePath:'https://unpkg.com/tesseract.js-core@4/tesseract-core-simd.wasm.js',
+      // Tesseract.js v4 — sin paths manuales, los resuelve desde CDN automáticamente
+      const worker=await Tesseract.createWorker('spa+eng',1,{
         logger:m=>{if(m.status==='recognizing text')setOcrProgress(Math.round((m.progress||0)*100));}
       });
       const{data:{text}}=await worker.recognize(url);
@@ -250,7 +250,10 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
       const items=parseOcrText(text);
       setImportItems(items);
       if(!items.length)setImportError('No se pudo extraer texto. Usa una imagen clara, sin inclinación y con buena resolución.');
-    }catch(err){setImportError('Error OCR: '+err.message);}
+    }catch(err){
+      const msg=err?.message||String(err)||'Error desconocido al iniciar OCR';
+      setImportError('Error OCR: '+msg);
+    }
     setImporting(false);
   }
 
