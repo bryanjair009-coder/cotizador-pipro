@@ -174,13 +174,40 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
   const[date,setDate]=useState(todayISO());
   const[items,setItems]=useState([{qty:'',partNumber:'',description:''}]);
   const[error,setError]=useState('');
+  const[showImport,setShowImport]=useState(false);
+  const[importItems,setImportItems]=useState([]);
+  const[importing,setImporting]=useState(false);
+  const[importError,setImportError]=useState('');
   const ddRef=useRef(null);
+  const fileRef=useRef(null);
   useEffect(()=>{function h(e){if(ddRef.current&&!ddRef.current.contains(e.target))setDdOpen(false);}document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);},[]);
   function updItem(i,k,v){setItems(p=>p.map((it,j)=>j===i?{...it,[k]:v}:it));}
   function addItem(){setItems(p=>[...p,{qty:'',partNumber:'',description:''}]);}
   function rmItem(i){setItems(p=>p.length===1?p:p.filter((_,j)=>j!==i));}
   function addCo(){const n=newCo.trim();if(!n)return;onAddCompany(n);setCompany(n);setNewCo('');setDdOpen(false);}
   function reset(){setRequester('');setIsInternal(false);setCompany('');setDelivery(DELIVERY_DEFAULT);setObs('');setDate(todayISO());setItems([{qty:'',partNumber:'',description:''}]);setError('');}
+  async function handleImportFile(file){
+    if(!file)return;
+    if(file.size>4*1024*1024){setImportError('Archivo demasiado grande (máx. 4 MB). Comprime la imagen e intenta de nuevo.');return;}
+    setImportError('');setImportItems([]);setImporting(true);
+    try{
+      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+      const resp=await fetch('/api/parse-table',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileBase64:b64,mimeType:file.type})});
+      const data=await resp.json();
+      if(!resp.ok)throw new Error(data.error||'Error al procesar');
+      const parsed=(data.items||[]).map(it=>({...it,selected:!it.isPIPRO,qty:String(it.qty||''),partNumber:String(it.partNumber||''),description:String(it.description||'')}));
+      setImportItems(parsed);
+      if(!parsed.length)setImportError('No se encontraron materiales. ¿La imagen muestra una tabla clara?');
+    }catch(e){setImportError(e.message||'Error de conexión con la API');}
+    setImporting(false);
+  }
+  function applyImport(){
+    const sel=importItems.filter(it=>it.selected);
+    if(!sel.length)return;
+    const newRows=sel.map(it=>({qty:it.qty||'1',partNumber:it.partNumber,description:it.description+(it.categoria?` [${it.categoria}]`:'')}));
+    setItems(prev=>{const ne=prev.filter(it=>it.description.trim()||it.qty.trim()||it.partNumber.trim());return ne.length?[...ne,...newRows]:newRows;});
+    setShowImport(false);setImportItems([]);setImportError('');
+  }
   function submit(){
     if(!requester.trim()){setError('Indica el nombre del ingeniero que solicita.');return;}
     if(!isInternal&&!company.trim()){setError('Selecciona una empresa o marca la requisición como interna.');return;}
@@ -231,7 +258,10 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
     <div style={{marginTop:8,marginBottom:16}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
         <label style={{fontSize:11,fontWeight:700,letterSpacing:'0.6px',textTransform:'uppercase',color:C.textDim}}>Partes a Comprar</label>
-        <button onClick={addItem} style={{display:'flex',alignItems:'center',gap:6,background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:7,padding:'6px 12px',color:C.text,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>+ Agregar fila</button>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>setShowImport(true)} style={{display:'flex',alignItems:'center',gap:6,background:'rgba(240,180,41,.1)',border:'1px solid rgba(240,180,41,.3)',borderRadius:7,padding:'6px 12px',color:C.accent,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>📋 Importar tabla</button>
+          <button onClick={addItem} style={{display:'flex',alignItems:'center',gap:6,background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:7,padding:'6px 12px',color:C.text,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>+ Agregar fila</button>
+        </div>
       </div>
       <div style={{border:'1px solid '+C.border,borderRadius:10,overflow:'hidden'}}>
         <div style={{display:'grid',gridTemplateColumns:'80px 1fr 1.6fr 44px',gap:1,background:C.border}}>
@@ -251,6 +281,133 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
       <button onClick={submit} style={{flex:1,background:C.accent,border:'none',borderRadius:9,padding:'13px',color:C.bg,fontSize:14.5,fontWeight:800,cursor:'pointer',fontFamily:"'Archivo',sans-serif",letterSpacing:'0.2px'}}>✓ Guardar requisición y descargar PDF</button>
       <button onClick={reset} style={{background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:9,padding:'13px 20px',color:C.textDim,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>Limpiar</button>
     </div>
+
+    {/* ── Modal Importar Tabla ─────────────────────────────────────── */}
+    {showImport&&(<div style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.8)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={e=>{if(e.target===e.currentTarget){setShowImport(false);setImportItems([]);setImportError('');}}}>
+      <div style={{background:C.panel,border:'1px solid '+C.borderLight,borderRadius:14,width:'100%',maxWidth:800,maxHeight:'90vh',overflow:'auto',display:'flex',flexDirection:'column'}}>
+        {/* Header */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'18px 22px',borderBottom:'1px solid '+C.border,flexShrink:0}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:800,color:C.text,letterSpacing:'-.2px'}}>📋 Importar tabla de materiales</div>
+            <div style={{fontSize:12,color:C.textDim,marginTop:3}}>Sube imagen (JPG/PNG/WEBP) o PDF · Claude Vision extrae los materiales automáticamente</div>
+          </div>
+          <button onClick={()=>{setShowImport(false);setImportItems([]);setImportError('');}} style={{background:'transparent',border:'none',color:C.textDim,fontSize:22,cursor:'pointer',lineHeight:1,padding:4}}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div style={{padding:22,flex:1,overflow:'auto'}}>
+          {/* Drop zone */}
+          {!importing&&!importItems.length&&(
+            <div onClick={()=>fileRef.current?.click()}
+              onDragOver={e=>e.preventDefault()}
+              onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleImportFile(f);}}
+              style={{border:'2px dashed '+C.borderLight,borderRadius:12,padding:'52px 20px',textAlign:'center',cursor:'pointer',transition:'border-color .2s,background .2s'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accent;e.currentTarget.style.background='rgba(240,180,41,.04)';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.borderLight;e.currentTarget.style.background='transparent';}}>
+              <div style={{fontSize:44,marginBottom:14}}>📂</div>
+              <div style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:8}}>Arrastra aquí o haz clic para seleccionar</div>
+              <div style={{fontSize:13,color:C.textDim}}>Imágenes JPG · PNG · WEBP  y  archivos PDF  ·  máx. 4 MB</div>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value='';}} style={{display:'none'}}/>
+            </div>
+          )}
+
+          {/* Loading */}
+          {importing&&(
+            <div style={{textAlign:'center',padding:'64px 20px'}}>
+              <div style={{fontSize:42,marginBottom:16,animation:'pulse 1.2s infinite'}}>🔍</div>
+              <div style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:8}}>Analizando tabla con Claude Vision…</div>
+              <div style={{fontSize:13,color:C.textDim}}>Extrayendo materiales, cantidades y números de parte</div>
+            </div>
+          )}
+
+          {/* Error */}
+          {importError&&!importing&&(
+            <div style={{background:'rgba(248,81,73,.1)',border:'1px solid '+C.red,borderRadius:10,padding:'14px 16px',marginBottom:16}}>
+              <div style={{color:C.red,fontSize:13,fontWeight:600,marginBottom:6}}>⚠ {importError}</div>
+              <button onClick={()=>{setImportError('');fileRef.current?.click();}} style={{color:C.accent,background:'none',border:'1px solid rgba(240,180,41,.3)',borderRadius:6,padding:'5px 12px',cursor:'pointer',fontSize:12,fontFamily:"'Archivo',sans-serif",fontWeight:600}}>Subir otro archivo</button>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value='';}} style={{display:'none'}}/>
+            </div>
+          )}
+
+          {/* Results */}
+          {importItems.length>0&&!importing&&(<>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,flexWrap:'wrap',gap:8}}>
+              <div style={{fontSize:13,color:C.textDim}}>
+                <span style={{color:C.text,fontWeight:700}}>{importItems.filter(it=>it.selected).length}</span>/{importItems.length} seleccionados
+                {importItems.some(it=>it.isPIPRO)&&<span style={{marginLeft:10,color:'#f0b429',fontSize:12}}>⚠ Materiales PIPRO desmarcados (van en cotizador)</span>}
+              </div>
+              <div style={{display:'flex',gap:6}}>
+                {[['Solo no-PIPRO',()=>setImportItems(p=>p.map(it=>({...it,selected:!it.isPIPRO})))],['Todos',()=>setImportItems(p=>p.map(it=>({...it,selected:true})))],['Ninguno',()=>setImportItems(p=>p.map(it=>({...it,selected:false})))]].map(([lbl,fn])=>(
+                  <button key={lbl} onClick={fn} style={{fontSize:11,color:C.textDim,background:'none',border:'1px solid '+C.border,borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:"'Archivo',sans-serif",fontWeight:600}}>{lbl}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table header */}
+            <div style={{border:'1px solid '+C.border,borderRadius:10,overflow:'hidden',marginBottom:4}}>
+              <div style={{display:'grid',gridTemplateColumns:'34px 64px 140px 1fr 30px',gap:1,background:C.border}}>
+                {['✓','Cant.','No. Parte','Descripción',''].map((h,i)=>(
+                  <div key={i} style={{background:C.panel2,padding:'8px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',color:C.textDim}}>{h}</div>
+                ))}
+              </div>
+
+              {/* Group by categoria */}
+              {(()=>{
+                const groups={};
+                importItems.forEach((it,idx)=>{const g=it.categoria||'Sin categoría';if(!groups[g])groups[g]=[];groups[g].push({...it,_idx:idx});});
+                return Object.entries(groups).map(([cat,gitems])=>(
+                  <React.Fragment key={cat}>
+                    <div style={{display:'grid',gridTemplateColumns:'34px 64px 140px 1fr 30px',gap:1,background:C.border}}>
+                      <div style={{gridColumn:'1 / -1',background:'rgba(240,180,41,.07)',padding:'5px 10px',fontSize:10,fontWeight:700,color:'#f0b429',textTransform:'uppercase',letterSpacing:'0.6px',borderTop:'1px solid '+C.border}}>{cat}</div>
+                    </div>
+                    {gitems.map(it=>(
+                      <div key={it._idx} style={{display:'grid',gridTemplateColumns:'34px 64px 140px 1fr 30px',gap:1,background:C.border,opacity:it.selected?1:0.4,transition:'opacity .15s'}}>
+                        <div style={{background:it.isPIPRO?'rgba(240,180,41,.06)':C.panel,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          <input type="checkbox" checked={it.selected} onChange={e=>setImportItems(p=>p.map((x,j)=>j===it._idx?{...x,selected:e.target.checked}:x))} style={{cursor:'pointer',accentColor:C.accent,width:14,height:14}}/>
+                        </div>
+                        <div style={{background:it.isPIPRO?'rgba(240,180,41,.06)':C.panel}}>
+                          <input className="req-input" value={it.qty} onChange={e=>setImportItems(p=>p.map((x,j)=>j===it._idx?{...x,qty:e.target.value}:x))} style={{...IS,border:'none',borderRadius:0,background:'transparent',textAlign:'center',fontSize:12,padding:'5px 6px'}}/>
+                        </div>
+                        <div style={{background:it.isPIPRO?'rgba(240,180,41,.06)':C.panel}}>
+                          <input className="req-input" value={it.partNumber} onChange={e=>setImportItems(p=>p.map((x,j)=>j===it._idx?{...x,partNumber:e.target.value}:x))} style={{...IS,border:'none',borderRadius:0,background:'transparent',fontFamily:"'Spline Sans Mono',monospace",fontSize:11,padding:'5px 6px'}}/>
+                        </div>
+                        <div style={{background:it.isPIPRO?'rgba(240,180,41,.06)':C.panel,display:'flex',alignItems:'center',gap:5,padding:'0 2px'}}>
+                          {it.isPIPRO&&<span style={{background:'rgba(240,180,41,.2)',color:'#f0b429',fontSize:8,fontWeight:700,padding:'2px 5px',borderRadius:4,flexShrink:0,fontFamily:"'Archivo',sans-serif",letterSpacing:'0.4px'}}>PIPRO</span>}
+                          <input className="req-input" value={it.description} onChange={e=>setImportItems(p=>p.map((x,j)=>j===it._idx?{...x,description:e.target.value}:x))} style={{...IS,border:'none',borderRadius:0,background:'transparent',fontSize:12,flex:1,padding:'5px 4px'}}/>
+                        </div>
+                        <div style={{background:it.isPIPRO?'rgba(240,180,41,.06)':C.panel,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          <button onClick={()=>setImportItems(p=>p.filter((_,j)=>j!==it._idx))} style={{background:'transparent',border:'none',cursor:'pointer',color:C.red,fontSize:13,opacity:0.65,padding:4}}>🗑</button>
+                        </div>
+                      </div>
+                    ))}
+                  </React.Fragment>
+                ));
+              })()}
+            </div>
+
+            {/* Upload another */}
+            <div style={{textAlign:'right',marginTop:6}}>
+              <button onClick={()=>{setImportItems([]);setImportError('');fileRef.current?.click();}} style={{fontSize:12,color:C.textDim,background:'none',border:'none',cursor:'pointer',textDecoration:'underline',fontFamily:"'Archivo',sans-serif"}}>↺ Subir otro archivo</button>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e=>{if(e.target.files[0])handleImportFile(e.target.files[0]);e.target.value='';}} style={{display:'none'}}/>
+            </div>
+          </>)}
+        </div>
+
+        {/* Footer con botón confirmar */}
+        {importItems.length>0&&!importing&&(
+          <div style={{padding:'14px 22px',borderTop:'1px solid '+C.border,display:'flex',gap:10,flexShrink:0}}>
+            <button onClick={applyImport} disabled={!importItems.some(it=>it.selected)}
+              style={{flex:1,background:importItems.some(it=>it.selected)?C.accent:'rgba(255,255,255,.06)',border:'none',borderRadius:9,padding:'12px',color:importItems.some(it=>it.selected)?C.bg:C.textFaint,fontSize:14,fontWeight:800,cursor:importItems.some(it=>it.selected)?'pointer':'not-allowed',fontFamily:"'Archivo',sans-serif",transition:'all .15s'}}>
+              ✓ Agregar {importItems.filter(it=>it.selected).length} material{importItems.filter(it=>it.selected).length!==1?'es':''} a la requisición
+            </button>
+            <button onClick={()=>{setShowImport(false);setImportItems([]);setImportError('');}}
+              style={{background:C.panel2,border:'1px solid '+C.borderLight,borderRadius:9,padding:'12px 20px',color:C.textDim,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'Archivo',sans-serif"}}>
+              Cancelar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>)}
   </div>);
 }
 
