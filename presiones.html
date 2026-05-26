@@ -173,9 +173,11 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
       Exportar PDF
     </button>
   </div>
-  <div class="grid g3">
-    <div class="field"><label>Cliente</label>
-      <input type="text" id="pdf-cliente" placeholder="Nombre del cliente"/></div>
+  <div class="grid g4">
+    <div class="field"><label>Empresa / Cliente</label>
+      <input type="text" id="pdf-cliente" placeholder="Nombre de la empresa"/></div>
+    <div class="field"><label>Atención (contacto cliente)</label>
+      <input type="text" id="pdf-atencion" placeholder="Nombre del contacto"/></div>
     <div class="field"><label>Proyecto / Descripción</label>
       <input type="text" id="pdf-proyecto" placeholder="Nombre o número de proyecto"/></div>
     <div class="field"><label>Elaborado por</label>
@@ -1290,9 +1292,9 @@ function generarPDF() {
     const empLines = doc.splitTextToSize(cliente || '—', leftW);
     doc.text(empLines, ML, y);
     y += empLines.length * 5.5 + 1;
-    if (elaborado) {
+    if (atencion) {
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
-      const atLines = doc.splitTextToSize('Atencion: ' + elaborado, leftW);
+      const atLines = doc.splitTextToSize('Atencion: ' + atencion, leftW);
       doc.text(atLines, ML, y);
       y += atLines.length * 4.5 + 1;
     }
@@ -1320,12 +1322,12 @@ function generarPDF() {
     const psiVal  = document.getElementById('psi').value;
     const utilPct = (totalCFM / (bData.Q_act * 2118.88) * 100);
     const specsL  = [
-      ['Compresor',         `${fmt(bData.hp,0)} HP  →  ${fmt(bData.scfm,0)} SCFM nominales`],
-      ['Caudal real (ACFM)',`${(bData.Q_act * 2118.88).toFixed(1)} CFM @ ${psiVal} psi (condiciones de planta)`],
-      ['Presion de red',    `${psiVal} psi man.  /  ${(bData.P_abs/6894.76).toFixed(1)} psi abs.`],
-      ['Consumo total',     `${totalCFM.toFixed(1)} CFM  (utilizacion: ${utilPct.toFixed(1)}%)`],
-      ['Material tuberia',  matLabel],
-      ['Temperatura',       `${document.getElementById('tempF').value} °F`],
+      ['Compresor',         `${fmt(bData.hp,0)} HP, ${fmt(bData.scfm,0)} SCFM nominales`],
+      ['Caudal real (ACFM)',`${(bData.Q_act * 2118.88).toFixed(1)} CFM a ${psiVal} psi (condiciones de planta)`],
+      ['Presion de red',    `${psiVal} psi man. / ${(bData.P_abs/6894.76).toFixed(1)} psi abs.`],
+      ['Consumo total',     `${totalCFM.toFixed(1)} CFM (utilizacion: ${utilPct.toFixed(1)}%)`],
+      ['Material tuberia',  matLabel.replace(/[—–]/g, '-')],
+      ['Temperatura',       `${document.getElementById('tempF').value} grados F`],
       ['Altitud',           `${document.getElementById('altitud').value} m s.n.m.`],
       ['Rugosidad',         rugLabel],
     ];
@@ -1356,13 +1358,13 @@ function generarPDF() {
     const totalDp  = cabDp + bajDp;
     const psiDes   = parseFloat(psiVal) || 100;
     const pctLoss  = (totalDp / psiDes) * 100;
-    const cabDiam  = document.getElementById('cab_diam')?.selectedOptions[0]?.text?.split('—')[0].trim() || '—';
-    const cabVel   = document.getElementById('cab-v')?.textContent || '—';
-    const cabRec   = document.getElementById('cab_rec')?.textContent || '—';
+    const cabDiam  = (document.getElementById('cab_diam')?.selectedOptions[0]?.text?.split('—')[0].trim() || 'N/D').replace(/[—–]/g,'-');
+    const cabVel   = document.getElementById('cab-v')?.textContent || 'N/D';
+    const cabRec   = (document.getElementById('cab_rec')?.textContent || '').replace(/[—–]/g,'-');
 
     const resL = [
-      ['Cabezal (diametro)', cabDiam + (cabRec ? '  (recomendado: ' + cabRec + ')' : '')],
-      ['Velocidad cabezal',  cabVel + ' m/s  (limite: 4–6 m/s)'],
+      ['Cabezal (diametro)', cabDiam + (cabRec && cabRec !== 'N/D' ? '  (recomendado: ' + cabRec + ')' : '')],
+      ['Velocidad cabezal',  cabVel + ' m/s  (limite: 4-6 m/s)'],
       ['Delta P cabezal',    cabDp.toFixed(3) + ' psi'],
       ['Delta P bajadas',    bajDp.toFixed(3) + ' psi'],
       ['Delta P total red',  totalDp.toFixed(3) + ' psi  (' + pctLoss.toFixed(2) + '% de presion de red)'],
@@ -1379,9 +1381,9 @@ function generarPDF() {
 
     // ── Veredicto (caja coloreada) ───────────────────────────────────
     const eColor = pctLoss < 2 ? [34,197,94] : pctLoss < 5 ? [245,158,11] : [239,68,68];
-    const eTxt   = pctLoss < 2 ? 'DISENO EXCELENTE — delta P < 2%'
-                 : pctLoss < 5 ? 'DISENO ACEPTABLE — delta P entre 2% y 5%'
-                 :               'REVISAR DISENO  — delta P supera el 5%';
+    const eTxt   = pctLoss < 2 ? 'DISENO EXCELENTE  -  delta P < 2%'
+                 : pctLoss < 5 ? 'DISENO ACEPTABLE  -  delta P entre 2% y 5%'
+                 :               'REVISAR DISENO  -  delta P supera el 5%';
     doc.setFillColor(...eColor.map(v => Math.min(255, v + 180)));
     doc.setDrawColor(...eColor); doc.setLineWidth(0.5);
     doc.roundedRect(ML, y, PW - ML * 2, 10, 1, 1, 'FD');
@@ -1451,6 +1453,7 @@ function generarPDF() {
   const rugSel    = document.getElementById('rugosidad');
   const rugLabel  = rugSel.options[rugSel.selectedIndex]?.text.split('(')[0].trim() || '';
   const cliente   = document.getElementById('pdf-cliente').value   || '—';
+  const atencion  = document.getElementById('pdf-atencion').value  || '';
   const proyecto  = document.getElementById('pdf-proyecto').value  || '—';
   const elaborado = document.getElementById('pdf-elaborado').value || '—';
   const fecha     = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
