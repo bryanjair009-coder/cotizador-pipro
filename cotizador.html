@@ -219,11 +219,15 @@ summary::-webkit-details-marker{display:none;}
 .cart-table td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:middle;}
 .cart-table tr:nth-child(even) td{background:#f9f9f9;}
 .cart-table .col-qty input{width:70px;padding:5px;text-align:center;}
+.cart-table .col-disp input{width:70px;padding:5px;text-align:center;border:1px solid #ccc;border-radius:4px;}
+.cart-table .col-fecha input{width:130px;padding:4px;border:1px solid #ccc;border-radius:4px;font-size:.78rem;}
 .cart-table .col-total{font-weight:700;text-align:right;white-space:nowrap;}
 .cart-table .col-price{text-align:right;white-space:nowrap;color:#555;}
 .cart-table .col-rm{text-align:center;}
 .cart-table .col-num{text-align:center;color:#888;font-size:.8rem;}
 .cart-table .col-part{color:var(--gd-red);font-size:.8rem;white-space:nowrap;}
+.cart-table tr.row-insuf td{background:#FFF59D !important;}
+.cart-table tr.row-insuf .col-disp input{border-color:#F57F17;background:#FFFDE7;font-weight:600;color:#E65100;}
 .cart-totals{margin-top:12px;background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);padding:14px;}
 .cart-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:.9rem;}
 .cart-total-row.subtotal{border-top:1px solid #eee;margin-top:4px;padding-top:8px;}
@@ -752,6 +756,8 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
               <th>Descripción</th>
               <th>No. Parte</th>
               <th class="col-qty">Qty</th>
+              <th class="col-disp" title="Cantidad disponible en almacén">Disp.</th>
+              <th class="col-fecha" title="Fecha de entrega si no hay stock suficiente">F. Entrega</th>
               <th class="col-price">P. Unit.</th>
               <th class="col-total">Total</th>
               <th class="col-rm">✕</th>
@@ -1373,8 +1379,20 @@ function addToCart(m, qty) {
   const k = cartKey(m);
   if (state.carrito[k]) {
     state.carrito[k].cantidad += qty;
+    // Si la disponibilidad seguía el ritmo de la cantidad anterior, mantén el equilibrio
+    if (typeof state.carrito[k].disponibilidad === 'number' &&
+        state.carrito[k].disponibilidad === state.carrito[k].cantidad - qty) {
+      state.carrito[k].disponibilidad = state.carrito[k].cantidad;
+    }
   } else {
-    state.carrito[k] = { descripcion:m.descripcion, numero_parte:m.numero_parte, precio:m.precio, cantidad:qty };
+    state.carrito[k] = {
+      descripcion: m.descripcion,
+      numero_parte: m.numero_parte,
+      precio: m.precio,
+      cantidad: qty,
+      disponibilidad: qty,   // por defecto: asumimos que hay stock
+      fechaEntrega: ''       // ISO YYYY-MM-DD para material faltante
+    };
   }
   renderCart();
   updateTotales();
@@ -1404,7 +1422,12 @@ function renderCart() {
   items.forEach(([k,item],i) => {
     const tot = item.cantidad * item.precio;
     const safeKey = encodeURIComponent(k);
-    html += `<tr>
+    // Backfill por compatibilidad con carritos viejos
+    if (typeof item.disponibilidad !== 'number') item.disponibilidad = +item.cantidad || 0;
+    if (typeof item.fechaEntrega !== 'string')   item.fechaEntrega = '';
+    const insuf = (+item.disponibilidad || 0) < (+item.cantidad || 0);
+    const rowClass = insuf ? 'row-insuf' : '';
+    html += `<tr class="${rowClass}">
       <td class="col-num">${i+1}</td>
       <td>${shortDesc(item.descripcion,45)}</td>
       <td class="col-part">${item.numero_parte}</td>
@@ -1412,6 +1435,15 @@ function renderCart() {
         data-key="${safeKey}"
         oninput="updateQtyFromInput(this)"
         style="width:65px;padding:4px;text-align:center;border:1px solid #ccc;border-radius:4px;"></td>
+      <td class="col-disp"><input type="number" value="${item.disponibilidad}" min="0" max="99999"
+        data-key="${safeKey}"
+        oninput="updateDispFromInput(this)"
+        title="Cantidad disponible en almacén"></td>
+      <td class="col-fecha"><input type="date" value="${item.fechaEntrega || ''}"
+        data-key="${safeKey}"
+        oninput="updateFechaFromInput(this)"
+        title="Fecha estimada de entrega (solo si hay stock insuficiente)"
+        ${insuf ? '' : 'style="opacity:.5;"'}></td>
       <td class="col-price">${fmt(item.precio)}</td>
       <td class="col-total" id="tot-${safeKey}">${fmt(tot)}</td>
       <td class="col-rm"><button class="btn btn-danger btn-sm" data-key="${safeKey}"
@@ -1427,11 +1459,34 @@ function updateQtyFromInput(input) {
   const q = Math.max(1, parseInt(input.value)||1);
   if (input.value !== String(q)) input.value = q;
   if (state.carrito[k]) {
+    const prevInsuf = (+state.carrito[k].disponibilidad||0) < (+state.carrito[k].cantidad||0);
     state.carrito[k].cantidad = q;
+    const nowInsuf = (+state.carrito[k].disponibilidad||0) < q;
     const safeKey = encodeURIComponent(k);
     const totEl = document.getElementById('tot-' + safeKey);
     if (totEl) totEl.textContent = fmt(q * state.carrito[k].precio);
     updateTotales();
+    // Si cambió la condición de stock insuficiente, re-render para repintar la fila
+    if (prevInsuf !== nowInsuf) renderCart();
+  }
+}
+
+function updateDispFromInput(input) {
+  const k = decodeURIComponent(input.dataset.key);
+  const d = Math.max(0, parseInt(input.value)||0);
+  if (input.value !== String(d)) input.value = d;
+  if (state.carrito[k]) {
+    const prevInsuf = (+state.carrito[k].disponibilidad||0) < (+state.carrito[k].cantidad||0);
+    state.carrito[k].disponibilidad = d;
+    const nowInsuf = d < (+state.carrito[k].cantidad||0);
+    if (prevInsuf !== nowInsuf) renderCart();
+  }
+}
+
+function updateFechaFromInput(input) {
+  const k = decodeURIComponent(input.dataset.key);
+  if (state.carrito[k]) {
+    state.carrito[k].fechaEntrega = input.value || '';
   }
 }
 
@@ -1655,24 +1710,51 @@ function generatePDF() {
     y = para(`Proyecto: ${cliente.desc_proy.charAt(0).toUpperCase() + cliente.desc_proy.slice(1)}, de acuerdo a la lista de materiales indicada a continuación.`, y, 8.5, DARK, 'normal');
     y += 1;
   }
-  const matBody = items.map((it, i) => [
-    String(i + 1), it.descripcion, it.numero_parte, String(it.cantidad), fmtPDF(it.precio), fmtPDF(it.cantidad * it.precio),
-  ]);
+  const matBody = items.map((it, i) => {
+    const disp = (typeof it.disponibilidad === 'number') ? it.disponibilidad : it.cantidad;
+    const fechaTxt = ((+disp || 0) < (+it.cantidad || 0))
+      ? (it.fechaEntrega ? formatDateES(it.fechaEntrega) : 'Por confirmar')
+      : '—';
+    return [
+      String(i + 1),
+      it.descripcion,
+      it.numero_parte,
+      String(it.cantidad),
+      String(disp),
+      fechaTxt,
+      fmtPDF(it.precio),
+      fmtPDF(it.cantidad * it.precio),
+    ];
+  });
   doc.autoTable({
     startY: y,
-    head: [['#', 'Descripción', 'No. Parte', 'Cant.', 'P. Unitario', 'Total MXN']],
-    body: matBody.length ? matBody : [['—', 'Sin materiales', '—', '—', '—', '—']],
+    head: [['#', 'Descripción', 'No. Parte', 'Cant.', 'Disp.', 'F. Entrega', 'P. Unitario', 'Total MXN']],
+    body: matBody.length ? matBody : [['—', 'Sin materiales', '—', '—', '—', '—', '—', '—']],
     margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
     theme: 'plain',
-    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.5, textColor: [40, 40, 40] },
-    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: 2.2, textColor: [40, 40, 40] },
+    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [237, 244, 251] },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 10 },
-      2: { font: 'courier', fontSize: 8, cellWidth: 34 },
-      3: { halign: 'center', cellWidth: 14 },
-      4: { halign: 'right', cellWidth: 26 },
-      5: { halign: 'right', cellWidth: 26 },
+      0: { halign: 'center', cellWidth: 8 },
+      1: { cellWidth: 'auto' },
+      2: { font: 'courier', fontSize: 7.5, cellWidth: 28 },
+      3: { halign: 'center', cellWidth: 11 },
+      4: { halign: 'center', cellWidth: 11 },
+      5: { halign: 'center', cellWidth: 22, fontSize: 7.5 },
+      6: { halign: 'right', cellWidth: 22 },
+      7: { halign: 'right', cellWidth: 22 },
+    },
+    didParseCell: (data) => {
+      // Pinta de amarillo las filas donde disponibilidad < cantidad
+      if (data.section === 'body' && items[data.row.index]) {
+        const it = items[data.row.index];
+        const disp = (typeof it.disponibilidad === 'number') ? it.disponibilidad : it.cantidad;
+        if ((+disp || 0) < (+it.cantidad || 0)) {
+          data.cell.styles.fillColor = [255, 245, 157]; // amarillo
+          data.cell.styles.textColor = [80, 50, 0];
+        }
+      }
     },
     didDrawPage: () => setupPage(),
   });
@@ -1688,6 +1770,23 @@ function generatePDF() {
   y += 10;
 
   y = para('La lista de materiales es de acuerdo con la información que se nos proporcionó; de existir alguna diferencia al colocarse el pedido, se ajustará el costo de esta cotización.', y, 7.5, [130, 130, 130], 'italic');
+
+  // Aviso de partidas con stock insuficiente
+  const itemsFaltantes = items.filter(it => {
+    const disp = (typeof it.disponibilidad === 'number') ? it.disponibilidad : it.cantidad;
+    return (+disp || 0) < (+it.cantidad || 0);
+  });
+  if (itemsFaltantes.length) {
+    y += 2;
+    y = checkY(y, 8);
+    // Marco amarillo con leyenda
+    doc.setFillColor(255, 245, 157); doc.setDrawColor(245, 158, 11); doc.setLineWidth(0.4);
+    doc.roundedRect(ML, y, PW - ML * 2, 6, 1, 1, 'FD');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(120, 70, 0);
+    doc.text(`AVISO: ${itemsFaltantes.length} partida(s) marcada(s) en amarillo requieren reposicion - ver "F. Entrega" en la tabla.`, ML + 3, y + 4);
+    y += 9;
+  }
+
   if (!is_ip) { y += 2; y = para('A estos precios añadirles el 16% de I.V.A.', y, 9, DARK, 'bold'); }
   y += 5;
 
@@ -1821,7 +1920,7 @@ function buildCotizacionSheet(wb, d) {
 
   // Title
   setCell(r,0, xlCell(`COTIZACIÓN TUBERÍA NEUMÁTICA PIPRO  –  ${tipoLabel}`, true, hdrFill, 'FFFFFF', null, 'center'));
-  merge(r,0,r,5); r++;
+  merge(r,0,r,7); r++;
 
   // Client fields
   const fields = [
@@ -1833,28 +1932,36 @@ function buildCotizacionSheet(wb, d) {
   fields.forEach(([lbl,val]) => {
     setCell(r,0, xlCell(lbl, true, lblFill, null, null, 'right'));
     setCell(r,1, xlCell(val, false, null, null, null, 'left'));
-    merge(r,1,r,5); r++;
+    merge(r,1,r,7); r++;
   });
   r++; // blank row
 
   // Table header
-  const hdrs = ['#','Descripción','No. de Parte','Cantidad','Precio Unitario','Total'];
-  const hAligns = ['center','center','center','center','right','right'];
+  const hdrs = ['#','Descripción','No. de Parte','Cantidad','Disponible','Fecha Entrega','Precio Unitario','Total'];
+  const hAligns = ['center','center','center','center','center','center','right','right'];
   hdrs.forEach((h,c) => setCell(r,c, xlCell(h, true, hdrFill, 'FFFFFF', null, hAligns[c])));
   r++;
 
   // Data rows
+  const insufFill = 'FFF59D'; // amarillo para stock insuficiente
   let subtotal = 0;
   items.forEach((item,i) => {
     const qty = +item.cantidad, pu = +item.precio, tot = qty*pu;
+    const disp = (typeof item.disponibilidad === 'number') ? item.disponibilidad : qty;
+    const insuf = (+disp || 0) < qty;
     subtotal += tot;
-    const fill = i%2===0 ? altFill : 'FFFFFF';
+    const fill = insuf ? insufFill : (i%2===0 ? altFill : 'FFFFFF');
+    const fechaTxt = insuf
+      ? (item.fechaEntrega ? formatDateES(item.fechaEntrega) : 'Por confirmar')
+      : '—';
     setCell(r,0, xlCell(i+1, false, fill, null, null, 'center'));
     setCell(r,1, xlCell(item.descripcion, false, fill, null, null, 'left'));
     setCell(r,2, xlCell(item.numero_parte, false, fill, null, null, 'center'));
     setCell(r,3, xlCell(qty, false, fill, null, '#,##0', 'center'));
-    setCell(r,4, xlCell(pu, false, fill, null, '$#,##0.00', 'right'));
-    setCell(r,5, xlCell(tot, false, fill, null, '$#,##0.00', 'right'));
+    setCell(r,4, xlCell(disp, !!insuf, fill, null, '#,##0', 'center'));
+    setCell(r,5, xlCell(fechaTxt, false, fill, null, null, 'center'));
+    setCell(r,6, xlCell(pu, false, fill, null, '$#,##0.00', 'right'));
+    setCell(r,7, xlCell(tot, false, fill, null, '$#,##0.00', 'right'));
     r++;
   });
   r++;
@@ -1864,8 +1971,8 @@ function buildCotizacionSheet(wb, d) {
     const f = dark ? hdrFill : lblFill;
     const fc = dark ? 'FFFFFF' : '000000';
     setCell(r,0, xlCell(lbl, true, f, fc, null, 'right'));
-    merge(r,0,r,4);
-    setCell(r,5, xlCell(val, true, f, fc, '$#,##0.00', 'right'));
+    merge(r,0,r,6);
+    setCell(r,7, xlCell(val, true, f, fc, '$#,##0.00', 'right'));
     r++;
   };
   addTotRow('Subtotal Material:', subtotal, false);
@@ -1879,8 +1986,8 @@ function buildCotizacionSheet(wb, d) {
   addTotRow('TOTAL:', total_neto + iva, true);
 
   ws['!merges'] = merges;
-  ws['!cols'] = [{wch:4},{wch:42},{wch:16},{wch:10},{wch:18},{wch:18}];
-  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r,c:5}});
+  ws['!cols'] = [{wch:4},{wch:38},{wch:14},{wch:9},{wch:10},{wch:18},{wch:14},{wch:14}];
+  ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r,c:7}});
   XLSX.utils.book_append_sheet(wb, ws, 'Cotización');
 }
 
@@ -2039,18 +2146,36 @@ function buildWordHTML(d) {
     </tr></table>`;
 
   // ── Materials rows ─────────────────────────────────────────────────────────
+  let nFaltantes = 0;
   const matRows = items.map((item, i) => {
     const tot = item.cantidad * item.precio;
-    const bg = i % 2 === 0 ? '#EDF4FB' : '#FFFFFF';
+    const disp = (typeof item.disponibilidad === 'number') ? item.disponibilidad : item.cantidad;
+    const insuf = (+disp || 0) < (+item.cantidad || 0);
+    if (insuf) nFaltantes++;
+    // Amarillo si hay stock insuficiente; si no, alternar fila como antes
+    const bg = insuf ? '#FFF59D' : (i % 2 === 0 ? '#EDF4FB' : '#FFFFFF');
+    const fc = insuf ? '#5A3A00' : '#1F1F1F';
+    const fechaTxt = insuf
+      ? (item.fechaEntrega ? formatDateES(item.fechaEntrega) : 'Por confirmar')
+      : '—';
     return `<tr>
-      <td align="center" bgcolor="${bg}" style="background:${bg};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${i+1}</td>
-      <td bgcolor="${bg}" style="background:${bg};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.descripcion}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.numero_parte}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.cantidad}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${fmt(item.precio)}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${i+1}</td>
+      <td bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.descripcion}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.numero_parte}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.cantidad}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;font-weight:${insuf?'bold':'normal'};">${disp}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:7.5pt;">${fechaTxt}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${fmt(item.precio)}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
     </tr>`;
   }).join('');
+
+  // Aviso de stock insuficiente (sólo si aplica)
+  const avisoStockHTML = nFaltantes > 0
+    ? `<p style="font-size:8pt;color:#5A3A00;background:#FFF59D;border:0.5pt solid #F57F17;padding:5pt 8pt;margin:4pt 0 6pt 0;">
+         <b>AVISO:</b> ${nFaltantes} partida(s) marcada(s) en amarillo requieren reposicion - ver columna "F. Entrega" en la tabla.
+       </p>`
+    : '';
 
   // ── Intro text ─────────────────────────────────────────────────────────────
   const intro_text = catTxt.intro(is_ip, cliente.desc_proy);
@@ -2207,12 +2332,14 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <thead><tr>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 4pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:4%;">#</th>
-    <th bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 6pt;border:0.5pt solid #1F3864;font-size:7.5pt;text-align:left;width:40%;">Descripcion</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 4pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:18%;">No. de Parte</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 4pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:6%;">Cant.</th>
-    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 6pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:16%;">P. Unitario</th>
-    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 6pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:16%;">Total MXN</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:3%;">#</th>
+    <th bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7pt;text-align:left;width:30%;">Descripcion</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:14%;">No. de Parte</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:6%;">Cant.</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:6%;">Disp.</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:13%;">F. Entrega</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7pt;width:14%;">P. Unitario</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7pt;width:14%;">Total MXN</th>
   </tr></thead>
   <tbody>${matRows}</tbody>
 </table>
@@ -2225,6 +2352,7 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
   </tr>
 </table>
 <p style="font-size:7pt;color:#666666;margin:3pt 0 6pt 0;font-style:italic;">${amountWords(subtotal)}</p>
+${avisoStockHTML}
 <p style="font-size:7.5pt;color:#666666;margin-bottom:4pt;">La lista de materiales es de acuerdo con la informacion que se nos proporciono; de existir alguna diferencia al colocarse el pedido, se ajustara el costo de esta cotizacion.</p>
 ${!is_ip ? '<p style="font-size:9pt;font-weight:bold;margin-bottom:4pt;">A estos precios anadirles el 16% de I.V.A.</p>' : ''}
 
