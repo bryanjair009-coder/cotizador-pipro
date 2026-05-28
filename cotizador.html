@@ -1716,12 +1716,12 @@ function generatePDF() {
     const fechaTxt = ((+disp || 0) < (+it.cantidad || 0))
       ? ((it.fechaEntrega || '').trim() || 'Por confirmar')
       : '—';
+    // NOTA: la columna "Disp." es interna y NO se exporta al PDF/Word
     return [
       String(i + 1),
       it.descripcion,
       it.numero_parte,
       String(it.cantidad),
-      String(disp),
       fechaTxt,
       fmtPDF(it.precio),
       fmtPDF(it.cantidad * it.precio),
@@ -1729,25 +1729,25 @@ function generatePDF() {
   });
   doc.autoTable({
     startY: y,
-    head: [['#', 'Descripción', 'No. Parte', 'Cant.', 'Disp.', 'T. Entrega', 'P. Unitario', 'Total MXN']],
-    body: matBody.length ? matBody : [['—', 'Sin materiales', '—', '—', '—', '—', '—', '—']],
+    head: [['#', 'Descripción', 'No. Parte', 'Cant.', 'T. Entrega', 'P. Unitario', 'Total MXN']],
+    body: matBody.length ? matBody : [['—', 'Sin materiales', '—', '—', '—', '—', '—']],
     margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
     theme: 'plain',
-    styles: { font: 'helvetica', fontSize: 8, cellPadding: 2.2, textColor: [40, 40, 40] },
-    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
+    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.4, textColor: [40, 40, 40] },
+    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [237, 244, 251] },
     columnStyles: {
-      0: { halign: 'center', cellWidth: 8 },
+      0: { halign: 'center', cellWidth: 9 },
       1: { cellWidth: 'auto' },
-      2: { font: 'courier', fontSize: 7.5, cellWidth: 28 },
-      3: { halign: 'center', cellWidth: 11 },
-      4: { halign: 'center', cellWidth: 11 },
-      5: { halign: 'center', cellWidth: 22, fontSize: 7.5 },
-      6: { halign: 'right', cellWidth: 22 },
-      7: { halign: 'right', cellWidth: 22 },
+      2: { font: 'courier', fontSize: 8, cellWidth: 32 },
+      3: { halign: 'center', cellWidth: 13 },
+      4: { halign: 'center', cellWidth: 24, fontSize: 7.5 },
+      5: { halign: 'right', cellWidth: 24 },
+      6: { halign: 'right', cellWidth: 24 },
     },
     didParseCell: (data) => {
       // Pinta de amarillo las filas donde disponibilidad < cantidad
+      // (la columna 'Disp.' no aparece, pero usamos el dato interno para decidir)
       if (data.section === 'body' && items[data.row.index]) {
         const it = items[data.row.index];
         const disp = (typeof it.disponibilidad === 'number') ? it.disponibilidad : it.cantidad;
@@ -2147,6 +2147,8 @@ function buildWordHTML(d) {
     </tr></table>`;
 
   // ── Materials rows ─────────────────────────────────────────────────────────
+  // NOTA: la columna "Disp." es interna y NO se exporta al Word.
+  // Sólo se usa internamente para decidir el resaltado amarillo + tiempo de entrega.
   let nFaltantes = 0;
   const matRows = items.map((item, i) => {
     const tot = item.cantidad * item.precio;
@@ -2164,7 +2166,6 @@ function buildWordHTML(d) {
       <td bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.descripcion}</td>
       <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.numero_parte}</td>
       <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.cantidad}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;font-weight:${insuf?'bold':'normal'};">${disp}</td>
       <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:7.5pt;">${fechaTxt}</td>
       <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${fmt(item.precio)}</td>
       <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
@@ -2333,14 +2334,13 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <thead><tr>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:3%;">#</th>
-    <th bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7pt;text-align:left;width:30%;">Descripcion</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:14%;">No. de Parte</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:6%;">Cant.</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:6%;">Disp.</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7pt;width:13%;">T. Entrega</th>
-    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7pt;width:14%;">P. Unitario</th>
-    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7pt;width:14%;">Total MXN</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:4%;">#</th>
+    <th bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;text-align:left;width:34%;">Descripcion</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:16%;">No. de Parte</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:6%;">Cant.</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:14%;">T. Entrega</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">P. Unitario</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">Total MXN</th>
   </tr></thead>
   <tbody>${matRows}</tbody>
 </table>
