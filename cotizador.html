@@ -891,9 +891,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <span id="admin-mat-count" style="font-weight:700;"></span>
         <input type="text" id="admin-search" placeholder="Filtrar..." style="width:200px;" oninput="renderAdminTable()">
         <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
-        <button class="btn btn-secondary btn-sm" onclick="restoreCatalog()" title="Recupera el catálogo completo desde el archivo bundled, preservando productos que tú hayas agregado.">🔄 Restaurar catálogo de fábrica</button>
       </div>
-      <div id="restore-status" style="display:none;margin-bottom:8px;"></div>
       <div class="admin-wrap">
         <table class="admin-table">
           <thead><tr><th>#</th><th>Descripción</th><th>No. Parte</th><th>Precio MXN</th></tr></thead>
@@ -2873,23 +2871,6 @@ function renderAdminTable() {
   ).join('');
 }
 
-async function restoreCatalog() {
-  const bundledN = (window.MATERIALES_DB || []).length;
-  const currentN = state.materiales.length;
-  const msg = `Esto agregará los materiales del catálogo de fábrica (${bundledN} items) que no estén ya en tu base de datos.\n\nActualmente tienes ${currentN} materiales.\n\nLos productos que tú agregaste manualmente NO se perderán.\n\n¿Continuar?`;
-  if (!confirm(msg)) return;
-  const statusEl = el('restore-status');
-  statusEl.style.display = '';
-  statusEl.innerHTML = '<div class="info-box">⏳ Restaurando catálogo...</div>';
-  try {
-    const res = await restoreCatalogFromBundle();
-    statusEl.innerHTML = `<div class="success-box">✅ Catálogo restaurado: <b>${res.total}</b> materiales en total · <b>${res.added}</b> recuperados desde el archivo de fábrica.</div>`;
-    setTimeout(() => { statusEl.style.display = 'none'; }, 6000);
-  } catch (e) {
-    statusEl.innerHTML = `<div class="error-box">❌ Error al restaurar: ${e.message}</div>`;
-  }
-}
-
 function exportCSV() {
   const rows = [['Descripcion','Numero_Parte','Precio_Unitario_MXN'],...state.materiales.map(m=>[m.descripcion,m.numero_parte,m.precio])];
   const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -2902,101 +2883,84 @@ function exportCSV() {
 // ── PERSISTENCIA (Supabase con fallback a localStorage y archivo local) ───────
 
 /** Fusiona una lista cargada (Supabase/localStorage) con el catálogo bundled.
- *  El bundled se usa como base; las entradas cargadas sobrescriben por numero_parte
- *  (esto preserva precios actualizados y productos nuevos del usuario,
- *  sin perder el catálogo original si la cache quedó corrupta).
+ *  El bundled (materiales.js) actúa como BASE garantizada: nunca puedes tener
+ *  menos items que los que vienen en el archivo. Las entradas cargadas
+ *  sobrescriben las del bundled por numero_parte (preserva precios actualizados
+ *  y productos nuevos agregados por el usuario).
+ *
+ *  Ejemplo: si bundled tiene 254 items y el usuario agregó 2 nuevos,
+ *  el merge devuelve 256.
  */
 function mergeWithBundled(loaded) {
   const bundled = (window.MATERIALES_DB || []).map(m => ({
     descripcion: m.descripcion, numero_parte: m.numero_parte, precio: m.precio
   }));
   const map = new Map();
+  // 1. Base: catálogo bundled (siempre presente)
   bundled.forEach(m => { if (m.numero_parte) map.set(m.numero_parte, m); });
+  // 2. Encima: lo cargado del cache (precios actualizados + items extra del usuario)
   (loaded || []).forEach(m => {
     if (m && m.numero_parte) map.set(m.numero_parte, {
-      descripcion: m.descripcion, numero_parte: m.numero_parte, precio: parseFloat(m.precio) || 0
+      descripcion: m.descripcion,
+      numero_parte: m.numero_parte,
+      precio: parseFloat(m.precio) || 0
     });
   });
   return Array.from(map.values());
 }
 
-/** Devuelve true si la cache es "sospechosamente pequeña" — menos del 50% del bundled */
-function isCacheSuspicious(loaded) {
-  const bundledN = (window.MATERIALES_DB || []).length;
-  if (bundledN < 10) return false; // bundled vacío o muy pequeño, no podemos juzgar
-  return !loaded || loaded.length < Math.floor(bundledN * 0.5);
-}
-
 /** Carga materiales: Supabase → localStorage → MATERIALES_DB bundled
- *  Si la fuente cargada tiene MUCHOS menos items que el bundled, hace merge
- *  automático para evitar perder el catálogo base por una cache corrupta.
+ *  SIEMPRE hace merge con el bundled para garantizar que nunca se pierde el
+ *  catálogo base. El número de items final = bundled + extras del usuario.
  */
 async function loadMateriales() {
+  let loaded = null;
+  let sourceUpdated = false; // true si Supabase/localStorage tenía MENOS de lo que debería
+
   // 1. Intentar desde Supabase
   if (window.SB && window.SB.configured) {
     try {
       const rows = await window.SB.getAll('materiales', '?order=descripcion.asc&limit=5000');
       if (rows && rows.length) {
-        let loaded = rows.map(r => ({
+        loaded = rows.map(r => ({
           descripcion: r.descripcion,
           numero_parte: r.numero_parte,
           precio: parseFloat(r.precio) || 0
         }));
-        // Salvavidas: si Supabase devolvió un catálogo claramente incompleto,
-        // fusionar con el bundled y re-sincronizar.
-        if (isCacheSuspicious(loaded)) {
-          console.warn(`[materiales] Supabase devolvió ${loaded.length} items, bundled tiene ${(window.MATERIALES_DB||[]).length}. Haciendo merge automático.`);
-          loaded = mergeWithBundled(loaded);
-          state.materiales = loaded;
-          try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
-          // Sincronizar el merge de vuelta a Supabase (asincrónico)
-          replaceMateriales().catch(e => console.warn('Re-sync Supabase tras merge:', e.message));
-          return true;
-        }
-        state.materiales = loaded;
-        try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
-        return true;
       }
     } catch(e) {
       console.warn('Supabase no disponible, usando caché local:', e.message);
     }
   }
-  // 2. Fallback: localStorage
-  try {
-    const saved = localStorage.getItem('pipro_materiales');
-    if (saved) {
-      let loaded = JSON.parse(saved);
-      // Salvavidas: si la cache local es sospechosa, mergear con bundled
-      if (isCacheSuspicious(loaded)) {
-        console.warn(`[materiales] localStorage tiene ${loaded.length} items, bundled tiene ${(window.MATERIALES_DB||[]).length}. Haciendo merge automático.`);
-        loaded = mergeWithBundled(loaded);
-        state.materiales = loaded;
-        try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
-        return true;
-      }
-      state.materiales = loaded;
-      return true;
-    }
-  } catch(e) {}
-  return false;
-}
 
-/** Fuerza la restauración del catálogo desde el archivo bundled,
- *  fusionando los productos extra que el usuario haya agregado.
- *  Sincroniza con Supabase si está configurado.
- */
-async function restoreCatalogFromBundle() {
-  const before = state.materiales.length;
-  state.materiales = mergeWithBundled(state.materiales);
-  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
-  if (window.SB && window.SB.configured) {
-    try { await replaceMateriales(); } catch(e) { console.warn('Sync Supabase tras restore:', e.message); }
+  // 2. Si Supabase no dio nada, intentar localStorage
+  if (!loaded) {
+    try {
+      const saved = localStorage.getItem('pipro_materiales');
+      if (saved) loaded = JSON.parse(saved);
+    } catch(e) {}
   }
-  const added = state.materiales.length - before;
-  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
-  populateDiamFilter && populateDiamFilter();
-  if (state.adminOk) renderAdminTable();
-  return { total: state.materiales.length, added };
+
+  // 3. Merge SIEMPRE con el bundled — garantiza el mínimo del catálogo
+  const merged = mergeWithBundled(loaded);
+  state.materiales = merged;
+
+  // 4. Si el merge AGREGÓ items que faltaban en la fuente, marcar para re-sincronizar
+  const loadedN = (loaded || []).length;
+  if (merged.length > loadedN) {
+    console.info(`[materiales] Restaurados ${merged.length - loadedN} items del catálogo bundled. Total: ${merged.length}.`);
+    sourceUpdated = true;
+  }
+
+  // Persistir el merge en caché local
+  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+
+  // Si se agregaron items (sea por primera carga o por restauración), re-sincronizar con Supabase
+  if (sourceUpdated && window.SB && window.SB.configured) {
+    replaceMateriales().catch(e => console.warn('Re-sync Supabase tras merge:', e.message));
+  }
+
+  return state.materiales.length > 0;
 }
 
 /** Upsert de todos los materiales actuales en Supabase */
