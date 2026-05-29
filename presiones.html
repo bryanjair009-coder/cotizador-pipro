@@ -1173,11 +1173,63 @@ function recalcCampoRow(tr) {
 }
 
 // ── PDF ───────────────────────────────────────────────────────────────
+// ── SANITIZADOR UNIVERSAL DE TEXTO PARA PDF ───────────────────────────────────
+// jsPDF (fuente Helvetica builtin) usa codificación WinAnsi/Latin-1. Cualquier
+// caracter Unicode fuera de ese rango se renderiza como basura ('&', '?', etc).
+// Esta función sustituye TODOS los caracteres problemáticos por equivalentes
+// ASCII/Latin-1 antes de imprimirlos.
+const PDF_CHAR_MAP = {
+  // Griegas comunes en ingeniería
+  'Δ': 'delta',   'α': 'alpha',  'β': 'beta',
+  'π': 'pi',      'μ': 'u',      'λ': 'lambda',
+  'Ω': 'Ohm',     'ρ': 'rho',    'σ': 'sigma',
+  'τ': 'tau',     'Φ': 'Phi',    'φ': 'phi',
+  'θ': 'theta',   'ε': 'eps',
+  // Flechas
+  '←': '<-',      '→': '->',     '↑': '^',
+  '↓': 'v',       '↔': '<->',    '⇒': '=>',
+  // Tipográficos
+  '—': '-',       '–': '-',
+  '‘': "'",       '’': "'",
+  '“': '"',       '”': '"',
+  '…': '...',     '•': '*',      '‣': '*',
+  // Matemáticos
+  '≠': '!=',      '≤': '<=',     '≥': '>=',
+  '≈': '~',       '∞': 'inf',    '√': 'sqrt',
+  '∑': 'Sum',     '∫': 'Int',
+  // Símbolos de estado
+  '✓': 'OK',      '✅': 'OK',     '✗': 'X',
+  '❌': 'X',       '⚠': '!',      '⚡': '!',
+  '⭐': '*',       '★': '*',
+};
+function sanitizePDF(s) {
+  if (s == null) return '';
+  s = String(s);
+  // Reemplazos específicos primero (multi-char)
+  s = s.replace(/[ΔαβπμλΩρστΦφθε←→↑↓↔⇒—–‘’“”…•‣≠≤≥≈∞√∑∫✓✅✗❌⚠⚡⭐★]/g,
+    ch => PDF_CHAR_MAP[ch] || '?');
+  // Cualquier otro caracter fuera de Latin-1 → '?'
+  return s.replace(/[^\x00-\xFF]/g, '?');
+}
+
 function generarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const PW = 210, PH = 297, ML = 12, MR = 12;
   const CW = PW - ML - MR;
+
+  // Monkey-patch doc.text para sanitizar TODA salida automáticamente
+  const _origText = doc.text.bind(doc);
+  doc.text = function(text, x, y, options) {
+    if (Array.isArray(text)) text = text.map(sanitizePDF);
+    else if (text != null) text = sanitizePDF(text);
+    return _origText(text, x, y, options);
+  };
+  // splitTextToSize también debe sanitizar para que el wrapping use el ancho real
+  const _origSplit = doc.splitTextToSize.bind(doc);
+  doc.splitTextToSize = function(text, maxLen, options) {
+    return _origSplit(sanitizePDF(text), maxLen, options);
+  };
 
   // Palette minimalista
   const RED  = [200,16,46];
@@ -1226,6 +1278,12 @@ function generarPDF() {
       columnStyles: colStyles || {},
       tableLineColor: LINE, tableLineWidth: 0.15,
       margin: { left: ML, right: MR },
+      // Sanitizar cada celda antes de imprimir (resuelve flechas, Δ, em-dash, etc.)
+      didParseCell: (data) => {
+        if (data.cell && Array.isArray(data.cell.text)) {
+          data.cell.text = data.cell.text.map(sanitizePDF);
+        }
+      },
     });
     return doc.lastAutoTable.finalY + 4;
   }
@@ -1252,9 +1310,9 @@ function generarPDF() {
     }
     const tx = ML + LOGO_W + 8;
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
-    doc.text('Estudio de Caidas de Presion', tx, 10);
+    doc.text('Estudio de Caídas de Presión', tx, 10);
     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    doc.text('Gardner Denver Mexico  ·  PIPRO Tuberia Neumatica', tx, 14.5);
+    doc.text('Gardner Denver México  ·  PIPRO Tubería Neumática', tx, 14.5);
     doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
     doc.text(proyecto || '—', PW - ML, 9, { align: 'right' });
     doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
@@ -1266,7 +1324,7 @@ function generarPDF() {
     doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2);
     doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
     doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-    doc.text('GARDNER DENVER Mexico, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
+    doc.text('GARDNER DENVER México, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
     doc.text(proyecto || '—', PW - ML, FBOT, { align: 'right' });
 
     let y = HTOP + 2;
@@ -1281,7 +1339,7 @@ function generarPDF() {
     doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
     doc.text('Asunto:', PW - ML - boxW + 4, boxY + 5);
     doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(70, 70, 70);
-    doc.text('Diseno de Red de Aire Comprimido', PW - ML - boxW + 4, boxY + 10);
+    doc.text('Diseño de Red de Aire Comprimido', PW - ML - boxW + 4, boxY + 10);
     doc.setFontSize(7); doc.setTextColor(100, 100, 100);
     doc.text(`Consumo: ${totalCFM.toFixed(0)} CFM  ·  ${fmt(bData.hp,0)} HP`, PW - ML - boxW + 4, boxY + 14.5);
     doc.text(`Material: ${matLabel.split('—')[0].trim()}`, PW - ML - boxW + 4, boxY + 18.5);
@@ -1294,7 +1352,7 @@ function generarPDF() {
     y += empLines.length * 5.5 + 1;
     if (atencion) {
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
-      const atLines = doc.splitTextToSize('Atencion: ' + atencion, leftW);
+      const atLines = doc.splitTextToSize('Atención: ' + atencion, leftW);
       doc.text(atLines, ML, y);
       y += atLines.length * 4.5 + 1;
     }
@@ -1322,14 +1380,14 @@ function generarPDF() {
     const psiVal  = document.getElementById('psi').value;
     const utilPct = (totalCFM / (bData.Q_act * 2118.88) * 100);
     const specsL  = [
-      ['Compresor',         `${fmt(bData.hp,0)} HP, ${fmt(bData.scfm,0)} SCFM nominales`],
-      ['Caudal real (ACFM)',`${(bData.Q_act * 2118.88).toFixed(1)} CFM a ${psiVal} psi (condiciones de planta)`],
-      ['Presion de red',    `${psiVal} psi man. / ${(bData.P_abs/6894.76).toFixed(1)} psi abs.`],
-      ['Consumo total',     `${totalCFM.toFixed(1)} CFM (utilizacion: ${utilPct.toFixed(1)}%)`],
-      ['Material tuberia',  matLabel.replace(/[—–]/g, '-')],
-      ['Temperatura',       `${document.getElementById('tempF').value} grados F`],
-      ['Altitud',           `${document.getElementById('altitud').value} m s.n.m.`],
-      ['Rugosidad',         rugLabel],
+      ['Compresor',          `${fmt(bData.hp,0)} HP, ${fmt(bData.scfm,0)} SCFM nominales`],
+      ['Caudal real (ACFM)', `${(bData.Q_act * 2118.88).toFixed(1)} CFM a ${psiVal} psi (condiciones de planta)`],
+      ['Presión de red',     `${psiVal} psi man. / ${(bData.P_abs/6894.76).toFixed(1)} psi abs.`],
+      ['Consumo total',      `${totalCFM.toFixed(1)} CFM (utilización: ${utilPct.toFixed(1)}%)`],
+      ['Material tubería',   matLabel],
+      ['Temperatura',        `${document.getElementById('tempF').value} °F`],
+      ['Altitud',            `${document.getElementById('altitud').value} m s.n.m.`],
+      ['Rugosidad',          rugLabel],
     ];
     const col2X = ML + 52;
     specsL.forEach(([lbl, val]) => {
@@ -1358,16 +1416,16 @@ function generarPDF() {
     const totalDp  = cabDp + bajDp;
     const psiDes   = parseFloat(psiVal) || 100;
     const pctLoss  = (totalDp / psiDes) * 100;
-    const cabDiam  = (document.getElementById('cab_diam')?.selectedOptions[0]?.text?.split('—')[0].trim() || 'N/D').replace(/[—–]/g,'-');
+    const cabDiam  = document.getElementById('cab_diam')?.selectedOptions[0]?.text?.split('—')[0].trim() || 'N/D';
     const cabVel   = document.getElementById('cab-v')?.textContent || 'N/D';
-    const cabRec   = (document.getElementById('cab_rec')?.textContent || '').replace(/[—–]/g,'-');
+    const cabRec   = document.getElementById('cab_rec')?.textContent || '';
 
     const resL = [
-      ['Cabezal (diametro)', cabDiam + (cabRec && cabRec !== 'N/D' ? '  (recomendado: ' + cabRec + ')' : '')],
-      ['Velocidad cabezal',  cabVel + ' m/s  (limite: 4-6 m/s)'],
-      ['Delta P cabezal',    cabDp.toFixed(3) + ' psi'],
-      ['Delta P bajadas',    bajDp.toFixed(3) + ' psi'],
-      ['Delta P total red',  totalDp.toFixed(3) + ' psi  (' + pctLoss.toFixed(2) + '% de presion de red)'],
+      ['Cabezal (diámetro)', cabDiam + (cabRec && cabRec !== 'N/D' ? '  (recomendado: ' + cabRec + ')' : '')],
+      ['Velocidad cabezal',  cabVel + ' m/s  (límite: 4–6 m/s)'],
+      ['ΔP cabezal',         cabDp.toFixed(3) + ' psi'],
+      ['ΔP bajadas',         bajDp.toFixed(3) + ' psi'],
+      ['ΔP total red',       totalDp.toFixed(3) + ' psi  (' + pctLoss.toFixed(2) + '% de presión de red)'],
     ];
     resL.forEach(([lbl, val]) => {
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(90, 90, 100);
@@ -1380,10 +1438,13 @@ function generarPDF() {
     y += 4;
 
     // ── Veredicto (caja coloreada) ───────────────────────────────────
-    const eColor = pctLoss < 2 ? [34,197,94] : pctLoss < 5 ? [245,158,11] : [239,68,68];
-    const eTxt   = pctLoss < 2 ? 'DISENO EXCELENTE  -  delta P < 2%'
-                 : pctLoss < 5 ? 'DISENO ACEPTABLE  -  delta P entre 2% y 5%'
-                 :               'REVISAR DISENO  -  delta P supera el 5%';
+    // 0–2 %: verde fuerte · 2–5 %: verde claro/lima · >5 %: naranja
+    const eColor = pctLoss < 2 ? [22,163,74]      // verde fuerte
+                 : pctLoss < 5 ? [132,204,22]     // verde lima
+                 :               [249,115,22];    // naranja
+    const eTxt   = pctLoss < 2 ? 'DISEÑO EXCELENTE  ·  ΔP < 2%'
+                 : pctLoss < 5 ? 'DISEÑO ACEPTABLE  ·  ΔP entre 2% y 5%'
+                 :               'REVISAR DISEÑO  ·  ΔP supera el 5%';
     doc.setFillColor(...eColor.map(v => Math.min(255, v + 180)));
     doc.setDrawColor(...eColor); doc.setLineWidth(0.5);
     doc.roundedRect(ML, y, PW - ML * 2, 10, 1, 1, 'FD');
@@ -1415,12 +1476,12 @@ function generarPDF() {
     y += 7;
 
     const recoms = [
-      `Diametro de cabezal seleccionado: ${cabDiam}. Mantener dentro del rango 4-6 m/s de velocidad.`,
-      `Delta P total en red: ${totalDp.toFixed(3)} psi (${pctLoss.toFixed(2)}%). Limite recomendado: 5% de la presion de trabajo.`,
-      `Puntos de uso: verificar diametros de bajada para mantener velocidad entre 2-4 m/s.`,
-      `Accesorios: se incluye longitud equivalente en calculo. Minimizar codos y tees innecesarios.`,
-      `Validacion en campo: medir delta P entre compresor y punto de uso mas lejano. Comparar con valor calculado.`,
-      `Mantenimiento: revisiones periodicas de filtros, drenajes y fugas para conservar el diseno hidraulico.`,
+      `Diámetro de cabezal seleccionado: ${cabDiam}. Mantener dentro del rango 4–6 m/s de velocidad.`,
+      `ΔP total en red: ${totalDp.toFixed(3)} psi (${pctLoss.toFixed(2)}%). Límite recomendado: 5% de la presión de trabajo.`,
+      `Puntos de uso: verificar diámetros de bajada para mantener velocidad entre 2–4 m/s.`,
+      `Accesorios: se incluye longitud equivalente en el cálculo. Minimizar codos y tees innecesarios.`,
+      `Validación en campo: medir ΔP entre compresor y punto de uso más lejano. Comparar con valor calculado.`,
+      `Mantenimiento: revisiones periódicas de filtros, drenajes y fugas para conservar el diseño hidráulico.`,
     ];
     doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(50, 50, 60);
     recoms.forEach((r, i) => {
@@ -1745,28 +1806,29 @@ function updateResumen() {
 
   let estado, badgeColor, barColor, recHtml;
 
+  // Paleta por rango: 0–2 % verde fuerte · 2–5 % verde lima · >5 % naranja
   if (pctLoss < 2) {
     estado = '✅ RED EXCELENTE';
-    badgeColor = '#15803d'; barColor = '#22c55e';
-    rsmTotal.style.color = '#22c55e'; rsmPct.style.color = '#22c55e';
-    recHtml = `<div style="padding:10px 14px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
-      <strong style="color:#22c55e">✅ Diseño correcto</strong> — La caída de presión es <strong>${pctLoss.toFixed(1)}%</strong> de la presión de red, lo que es excelente (límite recomendado: 5%).<br>
+    badgeColor = '#15803d'; barColor = '#16a34a';
+    rsmTotal.style.color = '#16a34a'; rsmPct.style.color = '#16a34a';
+    recHtml = `<div style="padding:10px 14px;background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.30);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+      <strong style="color:#16a34a">✅ Diseño correcto</strong> — La caída de presión es <strong>${pctLoss.toFixed(1)}%</strong> de la presión de red, lo que es excelente (límite recomendado: 5%).<br>
       Los equipos recibirán la presión nominal sin problemas. No es necesario ajustar diámetros.
     </div>`;
   } else if (pctLoss < 5) {
-    estado = '⚡ RED ACEPTABLE';
-    badgeColor = '#b45309'; barColor = '#f59e0b';
-    rsmTotal.style.color = '#f59e0b'; rsmPct.style.color = '#f59e0b';
-    recHtml = `<div style="padding:10px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
-      <strong style="color:#f59e0b">⚡ Diseño aceptable</strong> — Pérdida de <strong>${pctLoss.toFixed(1)}%</strong> está dentro del límite del 5%, pero es mejorable.<br>
+    estado = '🟢 RED ACEPTABLE';
+    badgeColor = '#4d7c0f'; barColor = '#84cc16';
+    rsmTotal.style.color = '#84cc16'; rsmPct.style.color = '#84cc16';
+    recHtml = `<div style="padding:10px 14px;background:rgba(132,204,22,.10);border:1px solid rgba(132,204,22,.30);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+      <strong style="color:#84cc16">🟢 Diseño aceptable</strong> — Pérdida de <strong>${pctLoss.toFixed(1)}%</strong> está dentro del límite del 5%, pero es mejorable.<br>
       <strong>Recomendación:</strong> Considera aumentar un diámetro en el tramo de mayor pérdida, o ajustar la longitud de tuberías.
     </div>`;
   } else {
-    estado = '⚠️ REVISAR DISEÑO';
-    badgeColor = '#991b1b'; barColor = '#ef4444';
-    rsmTotal.style.color = '#ef4444'; rsmPct.style.color = '#ef4444';
-    recHtml = `<div style="padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
-      <strong style="color:#ef4444">⚠️ Diseño requiere revisión</strong> — La pérdida de <strong>${pctLoss.toFixed(1)}%</strong> supera el límite del 5%. Los equipos recibirán presión insuficiente.<br>
+    estado = '⚠️ FUERA DE RANGO';
+    badgeColor = '#9a3412'; barColor = '#f97316';
+    rsmTotal.style.color = '#f97316'; rsmPct.style.color = '#f97316';
+    recHtml = `<div style="padding:10px 14px;background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.30);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+      <strong style="color:#f97316">⚠️ Diseño fuera de rango</strong> — La pérdida de <strong>${pctLoss.toFixed(1)}%</strong> supera el límite del 5%. Los equipos recibirán presión insuficiente.<br>
       <strong>Acciones recomendadas:</strong>
       <ul style="margin:8px 0 0 16px;line-height:1.8">
         <li>Aumentar el diámetro del cabezal al siguiente tamaño disponible.</li>
@@ -1784,9 +1846,9 @@ function updateResumen() {
   if (rsmRecContent) rsmRecContent.innerHTML = recHtml;
   // Resaltar borde del card
   if (rsmCard) {
-    rsmCard.style.borderColor = pctLoss < 2 ? 'rgba(34,197,94,.3)' :
-                                pctLoss < 5 ? 'rgba(245,158,11,.3)' :
-                                              'rgba(239,68,68,.3)';
+    rsmCard.style.borderColor = pctLoss < 2 ? 'rgba(22,163,74,.30)' :
+                                pctLoss < 5 ? 'rgba(132,204,22,.30)' :
+                                              'rgba(249,115,22,.30)';
   }
 }
 
