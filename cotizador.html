@@ -240,9 +240,22 @@ summary::-webkit-details-marker{display:none;}
 /* ── ADMIN TABLE ─────────────────────────────────────────────────────────────── */
 .admin-table{width:100%;border-collapse:collapse;font-size:.85rem;}
 .admin-table th{background:var(--gd-blue);color:#fff;padding:7px 10px;text-align:left;}
-.admin-table td{padding:6px 10px;border-bottom:1px solid #eee;}
+.admin-table td{padding:4px 8px;border-bottom:1px solid #eee;vertical-align:middle;}
 .admin-table tr:nth-child(even) td{background:#f9f9f9;}
-.admin-wrap{max-height:380px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:var(--radius);}
+.admin-wrap{max-height:480px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:var(--radius);}
+/* Inputs editables inline */
+.admin-edit{width:100%;padding:5px 7px;border:1px solid transparent;background:transparent;font:inherit;font-size:.85rem;color:inherit;border-radius:4px;box-sizing:border-box;}
+.admin-edit:hover{border-color:#d0d0d0;background:#fff;}
+.admin-edit:focus{border-color:var(--gd-red);background:#fff;outline:none;box-shadow:0 0 0 2px rgba(200,16,46,.15);}
+.admin-edit.admin-part{font-family:'Consolas','Courier New',monospace;font-size:.82rem;color:var(--gd-red);}
+.admin-edit.admin-price{text-align:right;width:110px;font-variant-numeric:tabular-nums;}
+.admin-actions{white-space:nowrap;text-align:center;width:90px;}
+.admin-save-status{display:inline-block;width:18px;font-size:13px;text-align:center;}
+.admin-save-status.ok{color:#16a34a;}
+.admin-save-status.saving{color:#f59e0b;}
+.admin-save-status.err{color:#dc2626;}
+.btn-icon-del{background:none;border:none;cursor:pointer;color:#aaa;padding:4px 8px;border-radius:4px;font-size:14px;}
+.btn-icon-del:hover{background:#fee2e2;color:#c00;}
 
 /* ── CHECKBOX ─────────────────────────────────────────────────────────────────── */
 .check-group{display:flex;flex-direction:column;gap:4px;}
@@ -892,9 +905,18 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <input type="text" id="admin-search" placeholder="Filtrar..." style="width:200px;" oninput="renderAdminTable()">
         <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
       </div>
+      <div style="font-size:.78rem;color:#666;margin-bottom:6px;">
+        💡 Haz clic en cualquier celda para editar. Los cambios se guardan automáticamente.
+      </div>
       <div class="admin-wrap">
         <table class="admin-table">
-          <thead><tr><th>#</th><th>Descripción</th><th>No. Parte</th><th>Precio MXN</th></tr></thead>
+          <thead><tr>
+            <th style="width:42px;">#</th>
+            <th>Descripción</th>
+            <th style="width:160px;">No. Parte</th>
+            <th style="width:130px;text-align:right;">Precio MXN</th>
+            <th style="width:90px;text-align:center;">Acciones</th>
+          </tr></thead>
           <tbody id="admin-tbody"></tbody>
         </table>
       </div>
@@ -2860,15 +2882,146 @@ async function importQuickExcel(dataStart) {
   el('qx-fname').textContent = '';
 }
 
+function _attrEsc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function renderAdminTable() {
   const q = (el('admin-search')||{value:''}).value.trim().toLowerCase();
   const mats = state.materiales.filter(m =>
     !q || m.descripcion.toLowerCase().includes(q) || m.numero_parte.toLowerCase().includes(q)
   );
   el('admin-mat-count').textContent = `${state.materiales.length} materiales`;
-  el('admin-tbody').innerHTML = mats.map((m,i) =>
-    `<tr><td>${i+1}</td><td>${m.descripcion}</td><td>${m.numero_parte}</td><td>${fmt(m.precio)}</td></tr>`
-  ).join('');
+  el('admin-tbody').innerHTML = mats.map((m,i) => {
+    const np = _attrEsc(m.numero_parte);
+    const desc = _attrEsc(m.descripcion);
+    const statusId = 'save-' + encodeURIComponent(m.numero_parte);
+    return `<tr>
+      <td style="color:#888;text-align:center;">${i+1}</td>
+      <td><input class="admin-edit" data-part="${np}" data-field="descripcion"
+                 value="${desc}" onchange="updateMatField(this)" placeholder="Descripción"></td>
+      <td><input class="admin-edit admin-part" data-part="${np}" data-field="numero_parte"
+                 value="${np}" onchange="updateMatField(this)" placeholder="No. Parte"></td>
+      <td><input class="admin-edit admin-price" data-part="${np}" data-field="precio"
+                 type="number" min="0" step="0.01" value="${m.precio}" onchange="updateMatField(this)"></td>
+      <td class="admin-actions">
+        <span class="admin-save-status" id="${statusId}"></span>
+        <button class="btn-icon-del" onclick="deleteMat(this)" data-part="${np}" title="Eliminar este material">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function _showSaveStatus(numeroParte, status, message) {
+  const statusEl = document.getElementById('save-' + encodeURIComponent(numeroParte));
+  if (!statusEl) return;
+  statusEl.className = 'admin-save-status ' + status;
+  statusEl.title = message || '';
+  statusEl.textContent = status === 'ok' ? '✓' : status === 'saving' ? '⏳' : status === 'err' ? '!' : '';
+  if (status === 'ok') {
+    setTimeout(() => {
+      if (statusEl.textContent === '✓') { statusEl.textContent = ''; statusEl.className = 'admin-save-status'; }
+    }, 2000);
+  }
+}
+
+async function updateMatField(input) {
+  const oldPart = input.dataset.part;
+  const field   = input.dataset.field;
+  let value     = input.value.trim();
+  if (field === 'precio') value = parseFloat(value) || 0;
+
+  const idx = state.materiales.findIndex(m => m.numero_parte === oldPart);
+  if (idx < 0) { _showSaveStatus(oldPart, 'err', 'Material no encontrado'); return; }
+
+  // Validaciones básicas
+  if (field === 'descripcion' && !value) {
+    input.value = state.materiales[idx].descripcion;
+    _showSaveStatus(oldPart, 'err', 'La descripción no puede estar vacía');
+    return;
+  }
+  if (field === 'numero_parte') {
+    if (!value) {
+      input.value = oldPart;
+      _showSaveStatus(oldPart, 'err', 'El número de parte no puede estar vacío');
+      return;
+    }
+    if (value !== oldPart && state.materiales.some(m => m.numero_parte === value)) {
+      input.value = oldPart;
+      _showSaveStatus(oldPart, 'err', `Ya existe otro material con el número de parte "${value}"`);
+      return;
+    }
+  }
+  if (field === 'precio' && value < 0) {
+    input.value = state.materiales[idx].precio;
+    _showSaveStatus(oldPart, 'err', 'El precio no puede ser negativo');
+    return;
+  }
+
+  // Aplicar cambio en memoria
+  _showSaveStatus(oldPart, 'saving', 'Guardando...');
+  const newPart = field === 'numero_parte' ? value : state.materiales[idx].numero_parte;
+  state.materiales[idx][field] = value;
+
+  // Guardar respaldo local
+  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+
+  // Sincronizar con Supabase
+  if (window.SB && window.SB.configured) {
+    try {
+      if (field === 'numero_parte' && value !== oldPart) {
+        // Cambio de PK: borrar la fila vieja e insertar la nueva
+        await window.SB.delete('materiales', { numero_parte: oldPart });
+        await window.SB.upsert('materiales', [{
+          numero_parte: value,
+          descripcion: state.materiales[idx].descripcion,
+          precio:      state.materiales[idx].precio
+        }], 'numero_parte');
+      } else {
+        await window.SB.upsert('materiales', [{
+          numero_parte: state.materiales[idx].numero_parte,
+          descripcion:  state.materiales[idx].descripcion,
+          precio:       state.materiales[idx].precio
+        }], 'numero_parte');
+      }
+      _showSaveStatus(newPart, 'ok', 'Guardado');
+      // Si cambió el numero_parte, hay que re-renderizar para refrescar data-part
+      if (field === 'numero_parte' && value !== oldPart) renderAdminTable();
+    } catch(e) {
+      _showSaveStatus(oldPart, 'err', 'Error sincronizando con Supabase: ' + e.message);
+      console.error('updateMatField:', e);
+    }
+  } else {
+    _showSaveStatus(newPart, 'ok', 'Guardado localmente (sin Supabase)');
+  }
+
+  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+}
+
+async function deleteMat(btn) {
+  const part = btn.dataset.part;
+  const idx  = state.materiales.findIndex(m => m.numero_parte === part);
+  if (idx < 0) return;
+  const m = state.materiales[idx];
+  if (!confirm(`¿Eliminar este material?\n\n${m.descripcion}\nNo. Parte: ${m.numero_parte}\nPrecio: ${fmt(m.precio)}\n\nEsta acción no se puede deshacer.`)) return;
+
+  state.materiales.splice(idx, 1);
+  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
+
+  if (window.SB && window.SB.configured) {
+    try {
+      await window.SB.delete('materiales', { numero_parte: part });
+    } catch(e) {
+      console.error('deleteMat:', e);
+      alert('Error al borrar del servidor: ' + e.message + '\n\nEl material se eliminó localmente. Recarga la página si quieres recuperarlo.');
+    }
+  }
+
+  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  renderAdminTable();
+  toast(`🗑 "${m.descripcion.substring(0, 40)}..." eliminado`);
 }
 
 function exportCSV() {
@@ -2896,19 +3049,34 @@ async function _sbFetchAll() {
 }
 
 /** Si Supabase tiene MENOS items que el bundled, hace upsert de los faltantes
- *  (por numero_parte). NO borra nada. Sólo se ejecuta cuando Supabase tiene
- *  un catálogo claramente incompleto.
+ *  (por numero_parte). NO borra nada. Sólo se ejecuta UNA VEZ — después de la
+ *  siembra inicial se guarda un flag `materiales_seed_done=true` en la tabla
+ *  meta, lo que evita re-sembrar items que el usuario haya borrado manualmente.
  */
 async function _seedSupabaseIfNeeded(currentRows) {
   const bundled = window.MATERIALES_DB || [];
   if (bundled.length === 0) return currentRows;
-  if (currentRows.length >= bundled.length) return currentRows; // ya está completo o más
+
+  // Si ya se hizo el seed inicial alguna vez, respetar el estado actual de Supabase
+  // (no re-agregar items que el usuario haya borrado a propósito).
+  let seedDone = false;
+  try { seedDone = await window.SB.getMeta('materiales_seed_done', false); } catch(e) {}
+  if (seedDone) return currentRows;
+
+  // Si ya hay catálogo completo, sólo marcar el flag y salir
+  if (currentRows.length >= bundled.length) {
+    try { await window.SB.setMeta('materiales_seed_done', true); } catch(e) {}
+    return currentRows;
+  }
 
   const existingParts = new Set(currentRows.map(r => r.numero_parte));
   const missing = bundled.filter(b => b.numero_parte && !existingParts.has(b.numero_parte));
-  if (!missing.length) return currentRows;
+  if (!missing.length) {
+    try { await window.SB.setMeta('materiales_seed_done', true); } catch(e) {}
+    return currentRows;
+  }
 
-  console.info(`[materiales] Supabase tiene ${currentRows.length} items; sembrando ${missing.length} faltantes del bundled...`);
+  console.info(`[materiales] Supabase tiene ${currentRows.length} items; sembrando ${missing.length} faltantes del bundled (siembra inicial)...`);
   const rowsToInsert = missing.map(m => ({
     numero_parte: m.numero_parte,
     descripcion:  m.descripcion,
@@ -2918,6 +3086,8 @@ async function _seedSupabaseIfNeeded(currentRows) {
   for (let i = 0; i < rowsToInsert.length; i += BATCH) {
     await window.SB.upsert('materiales', rowsToInsert.slice(i, i + BATCH), 'numero_parte');
   }
+  // Marcar siembra como hecha para que nunca se vuelva a re-popular automáticamente
+  try { await window.SB.setMeta('materiales_seed_done', true); } catch(e) {}
   // Releer Supabase para obtener el catálogo completo
   return await _sbFetchAll();
 }
