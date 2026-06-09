@@ -590,6 +590,28 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       </div>
     </details>
 
+    <!-- Vuelo -->
+    <details id="vuelo-details">
+      <summary>✈️ Vuelo</summary>
+      <div class="details-body">
+        <div class="info-box" style="margin-bottom:10px;font-size:.82rem;">
+          Usa esta opción cuando el equipo viaja en avión en lugar de automóvil.
+          Ingresa el precio del vuelo redondo por persona y el número de personas que vuelan.
+        </div>
+        <div class="grid-2" style="margin-bottom:10px;">
+          <div>
+            <label>Precio vuelo redondo ($ por persona)</label>
+            <input type="number" id="precio_vuelo" value="0" min="0" step="100" oninput="updateMO()">
+          </div>
+          <div>
+            <label>Personas en avión</label>
+            <input type="number" id="personas_vuelo" value="1" min="0" step="1" oninput="updateMO()">
+          </div>
+        </div>
+        <div class="success-box" id="vuelo-result">Total Vuelo: $0.00</div>
+      </div>
+    </details>
+
     <!-- Total viáticos con ganancia -->
     <div style="background:#fff8e1;border-left:4px solid #FFC107;padding:10px 14px;border-radius:4px;margin:8px 0;">
       <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#555;margin-bottom:4px;">
@@ -716,6 +738,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <div class="metric-card"><div class="metric-label">🍽️ Comidas</div><div class="metric-value" id="r-comidas">$0.00</div></div>
         <div class="metric-card"><div class="metric-label">🏨 Hospedaje</div><div class="metric-value" id="r-hospedaje">$0.00</div><div class="metric-delta" id="r-hospedaje-d">no aplica</div></div>
         <div class="metric-card"><div class="metric-label">🚗 Automóvil</div><div class="metric-value" id="r-auto">$0.00</div><div class="metric-delta" id="r-auto-d">0 km</div></div>
+        <div class="metric-card"><div class="metric-label">✈️ Vuelo</div><div class="metric-value" id="r-vuelo">$0.00</div><div class="metric-delta" id="r-vuelo-d">0 pers</div></div>
         <div class="metric-card"><div class="metric-label">🏗️ Plataformas</div><div class="metric-value" id="r-plat">$0.00</div></div>
         <div class="metric-card" style="background:#fff8e1;border-color:#FFC107;"><div class="metric-label" style="color:#e65100;">Viáticos real</div><div class="metric-value" id="r-viat-real">$0.00</div></div>
         <div class="metric-card" style="background:#fff8e1;border-color:#FF8F00;"><div class="metric-label" style="color:#e65100;">Ganancia viáticos 30%</div><div class="metric-value" id="r-viat-gan">$0.00</div></div>
@@ -1194,7 +1217,10 @@ function calcularMO(inp) {
   const casetas_total = casetas_ida*2*n_viajes;
   const desgaste_total = km_total*costo_desgaste_km;
   const total_automovil = combustible_total+casetas_total+desgaste_total;
-  const total_viaticos_real = comidas_total+hospedaje_total+total_automovil;
+  const precio_vuelo = +inp.precio_vuelo||0;
+  const personas_vuelo = +inp.personas_vuelo||0;
+  const total_vuelo = precio_vuelo*personas_vuelo;
+  const total_viaticos_real = comidas_total+hospedaje_total+total_automovil+total_vuelo;
   const ganancia_viaticos = total_viaticos_real * GANANCIA_VIATICOS_PCT;
   const total_viaticos = total_viaticos_real + ganancia_viaticos; // cobrado al cliente
   const usar_esc = !!inp.usar_escalera, usar_gen = !!inp.usar_gennie;
@@ -1211,7 +1237,7 @@ function calcularMO(inp) {
     req_hospe,costo_hospe,noches_hospedaje,hospedaje_total,
     km_sencillo,n_viajes,km_total,rendimiento,costo_gas,litros,
     combustible_base,util_combustible,combustible_total,casetas_ida,casetas_total,costo_desgaste_km,desgaste_total,
-    total_automovil,total_viaticos_real,ganancia_viaticos,total_viaticos,
+    total_automovil,precio_vuelo,personas_vuelo,total_vuelo,total_viaticos_real,ganancia_viaticos,total_viaticos,
     usar_esc,usar_gen,usar_elev,usar_plat,d_esc,d_gen,d_elev,d_plat,
     t_esc,t_gen,t_elev,t_plat,embarque,total_plataformas,total_mo_equipo_viaticos,
   };
@@ -1231,6 +1257,8 @@ function getMOInputs() {
     usar_escalera: el('usar_escalera').checked, usar_gennie: el('usar_gennie').checked,
     usar_elevador: el('usar_elevador').checked, usar_plat_tijera: el('usar_plat_tijera').checked,
     embarque: +el('embarque').value,
+    precio_vuelo: +el('precio_vuelo').value,
+    personas_vuelo: +el('personas_vuelo').value,
   };
 }
 
@@ -1238,7 +1266,7 @@ function updateMO() {
   const inp = getMOInputs();
   const r = calcularMO(inp);
   // Personal
-  el('total-pers-box').innerHTML = `Total personas: <b>${r.total_personas}</b> (auto → viáticos)`;
+  el('total-pers-box').innerHTML = `Total personas: <b>${r.total_personas}</b> (auto / avión → viáticos)`;
   el('total-mens-box').innerHTML = `Total mensual sueldos: <b>${fmt(r.total_mensual)}</b>`;
   // MO preview
   el('costo-mo-preview').innerHTML = `<b>Costo M.O. = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días</b><br>
@@ -1262,6 +1290,10 @@ function updateMO() {
   el('m-desgaste').textContent = fmt(r.desgaste_total);
   el('m-desgaste-d').textContent = r.costo_desgaste_km>0 ? `${fmtNum(r.km_total,0)} km × ${fmt(r.costo_desgaste_km)}` : 'sin cargo';
   el('auto-result').innerHTML = `<b>Total Automóvil: ${fmt(r.total_automovil)}</b>`;
+  // Vuelo
+  el('vuelo-result').innerHTML = r.total_vuelo > 0
+    ? `<b>Total Vuelo: ${fmt(r.total_vuelo)}</b> · ${r.personas_vuelo} pers × ${fmt(r.precio_vuelo)}/vuelo redondo`
+    : `<b>Total Vuelo: $0.00</b>`;
   // Viáticos con ganancia
   el('viat-real').textContent = fmt(r.total_viaticos_real);
   el('viat-gan').textContent = fmt(r.ganancia_viaticos);
@@ -1282,6 +1314,8 @@ function updateMO() {
   el('r-hospedaje-d').textContent = r.req_hospe ? `${fmtNum(r.noches_hospedaje,0)} noches` : 'no aplica';
   el('r-auto').textContent = fmt(r.total_automovil);
   el('r-auto-d').textContent = `${fmtNum(r.km_total,0)} km`;
+  el('r-vuelo').textContent = fmt(r.total_vuelo);
+  el('r-vuelo-d').textContent = `${r.personas_vuelo} pers`;
   el('r-plat').textContent = fmt(r.total_plataformas);
   el('r-viat-real').textContent = fmt(r.total_viaticos_real);
   el('r-viat-gan').textContent = fmt(r.ganancia_viaticos);
