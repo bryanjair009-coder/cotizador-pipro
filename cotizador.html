@@ -1235,10 +1235,14 @@ function intToWords(n) {
   if (n<1000000000) { const m=Math.floor(n/1000000),r=n%1000000; const p=m===1?'UN MILLÓN':intToWords(m)+' MILLONES'; return p+(r?' '+intToWords(r):''); }
   return String(n);
 }
-function amountWords(amount) {
-  const pesos = Math.floor(amount);
-  const cts = Math.round((amount-pesos)*100);
-  return `${intToWords(pesos)} PESOS ${String(cts).padStart(2,'0')}/100 M.N.`;
+function amountWords(amountMXN) {
+  const amount = cur(amountMXN); // convierte a la moneda activa
+  const enteros = Math.floor(amount);
+  const cts = Math.round((amount-enteros)*100);
+  if (state.moneda === 'USD') {
+    return `${intToWords(enteros)} DÓLARES ${String(cts).padStart(2,'0')}/100 U.S.D.`;
+  }
+  return `${intToWords(enteros)} PESOS ${String(cts).padStart(2,'0')}/100 M.N.`;
 }
 
 // ── FOLIO GENERATION ─────────────────────────────────────────────────────────
@@ -2395,10 +2399,19 @@ function buildMOSheet(wb, mo) {
 
   // Title
   setCell(r,0, xlCell('HOJA DE PRESUPUESTOS  –  MANO DE OBRA, VIÁTICOS Y PLATAFORMAS', true, hdrF, 'FFFFFF', null, 'center'));
-  merge(r,0,r,5); r+=2;
+  merge(r,0,r,5); r++;
+  // Moneda (visible siempre — clarifica cuál se usa en toda la hoja)
+  if (state.moneda === 'USD') {
+    setCell(r,0, xlCell(`Moneda: USD  ·  Tipo de cambio del día: $${state.tipoCambio.toFixed(4)} MXN/USD`, true, '0369A1', 'FFFFFF', null, 'center'));
+    merge(r,0,r,5); r++;
+  } else {
+    setCell(r,0, xlCell('Moneda: MXN (pesos mexicanos)', true, '0369A1', 'FFFFFF', null, 'center'));
+    merge(r,0,r,5); r++;
+  }
+  r++;
 
   // Personal block
-  hdr(r,0,1,'Descripción'); hdr(r,2,2,'Sueldo mensual'); hdr(r,3,3,'Cantidad'); hdr(r,4,4,'Total mensual'); r++;
+  hdr(r,0,1,'Descripción'); hdr(r,2,2,`Sueldo mensual (${curLabel()})`); hdr(r,3,3,'Cantidad'); hdr(r,4,4,`Total mensual (${curLabel()})`); r++;
   [['Técnico',SUELDO_TECNICO,mo.n_tec,mo.tec_total],
    ['Ayudante',SUELDO_AYUDANTE,mo.n_aya,mo.aya_total],
    ['Ingeniero',SUELDO_INGENIERO,mo.n_ing,mo.ing_total],
@@ -2411,7 +2424,7 @@ function buildMOSheet(wb, mo) {
 
   // Costos MO
   hdr(r,0,5,'COSTOS DE MANO DE OBRA'); r++;
-  hdr(r,0,1,'Puesto'); hdr(r,2,2,'Total sueldo'); hdr(r,3,3,'Días'); hdr(r,4,4,'M.O. real'); r++;
+  hdr(r,0,1,'Puesto'); hdr(r,2,2,`Total sueldo (${curLabel()})`); hdr(r,3,3,'Días'); hdr(r,4,4,`M.O. real (${curLabel()})`); r++;
   val(r,0,`Total mensual: ${fmt(mo.total_mensual)}`,null,false,'FFFFFF');
   merge(r,0,r,1);
   val(r,2,mo.total_mensual,MXN,true,ltF);
@@ -2428,7 +2441,7 @@ function buildMOSheet(wb, mo) {
 
   // Comidas
   hdr(r,0,5,'COMIDAS'); r++;
-  hdr(r,0,1,'# Personas'); hdr(r,2,2,'Costo/comida'); hdr(r,3,3,'# Comidas/día'); hdr(r,4,4,`Días (=${mo.dias})`); hdr(r,5,5,'Total'); r++;
+  hdr(r,0,1,'# Personas'); hdr(r,2,2,`Costo/comida (${curLabel()})`); hdr(r,3,3,'# Comidas/día'); hdr(r,4,4,`Días (=${mo.dias})`); hdr(r,5,5,`Total (${curLabel()})`); r++;
   val(r,0,mo.total_personas,'#,##0',false,'FFFFFF'); merge(r,0,r,1);
   val(r,2,mo.costo_comida,MXN); val(r,3,mo.comidas_por_dia,'#,##0');
   val(r,4,mo.dias,'#,##0.0',false,greenF); val(r,5,mo.comidas_total,MXN,true); r+=2;
@@ -2436,7 +2449,7 @@ function buildMOSheet(wb, mo) {
   // Hospedaje
   hdr(r,0,5,'HOSPEDAJE' + (mo.req_hospe?' ':' (no aplica - obra local)')); r++;
   if (mo.req_hospe) {
-    hdr(r,0,1,'# Personas'); hdr(r,2,2,'Costo/noche'); hdr(r,3,3,'# Noches'); hdr(r,5,5,'Total'); r++;
+    hdr(r,0,1,'# Personas'); hdr(r,2,2,`Costo/noche (${curLabel()})`); hdr(r,3,3,'# Noches'); hdr(r,5,5,`Total (${curLabel()})`); r++;
     val(r,0,mo.total_personas,'#,##0',false,'FFFFFF'); merge(r,0,r,1);
     val(r,2,mo.costo_hospe,MXN); val(r,3,mo.noches_hospedaje,'#,##0.0',false,greenF);
     val(r,5,mo.hospedaje_total,MXN,true); r+=2;
@@ -2447,12 +2460,12 @@ function buildMOSheet(wb, mo) {
   setCell(r,0, xlCell('Km ida sencilla',false,ltF,null,null,'right')); merge(r,0,r,1); val(r,2,mo.km_sencillo,'#,##0.0');
   setCell(r,3, xlCell('# Viajes',false,ltF,null,null,'right')); val(r,4,mo.n_viajes,'#,##0'); r++;
   setCell(r,0, xlCell('Rendimiento km/L',false,ltF,null,null,'right')); merge(r,0,r,1); val(r,2,mo.rendimiento,'#,##0.0');
-  setCell(r,3, xlCell('Precio gas $/L',false,ltF,null,null,'right')); val(r,4,mo.costo_gas,MXN); r++;
+  setCell(r,3, xlCell(`Precio gas (${curLabel()}/L)`,false,ltF,null,null,'right')); val(r,4,mo.costo_gas,MXN); r++;
   setCell(r,0, xlCell('Km TOTAL proyecto',true,greenF,null,null,'right')); merge(r,0,r,4); val(r,5,mo.km_total,'#,##0.0',true,greenF); r++;
   hdr(r,0,4,'Concepto'); hdr(r,5,5,'Total'); r++;
-  setCell(r,0,xlCell(`Combustible (${fmtNum(mo.litros,1)} L × $${mo.costo_gas}/L)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.combustible_total,MXN); r++;
-  setCell(r,0,xlCell(`Casetas ($${mo.casetas_ida} × 2 × ${mo.n_viajes} viajes)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.casetas_total,MXN); r++;
-  if (mo.costo_desgaste_km>0) { setCell(r,0,xlCell(`Desgaste (${fmtNum(mo.km_total,0)} km × $${mo.costo_desgaste_km}/km)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.desgaste_total,MXN); r++; }
+  setCell(r,0,xlCell(`Combustible (${fmtNum(mo.litros,1)} L × ${fmt(mo.costo_gas)}/L)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.combustible_total,MXN); r++;
+  setCell(r,0,xlCell(`Casetas (${fmt(mo.casetas_ida)} × 2 × ${mo.n_viajes} viajes)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.casetas_total,MXN); r++;
+  if (mo.costo_desgaste_km>0) { setCell(r,0,xlCell(`Desgaste (${fmtNum(mo.km_total,0)} km × ${fmt(mo.costo_desgaste_km)}/km)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.desgaste_total,MXN); r++; }
   setCell(r,0,xlCell('Total Automóvil',true,ltF,null,null,'right')); merge(r,0,r,4); val(r,5,mo.total_automovil,MXN,true,ltF); r+=2;
 
   // Viáticos = solo comidas + hospedaje
@@ -2473,7 +2486,7 @@ function buildMOSheet(wb, mo) {
 
   // Equipo
   hdr(r,0,5,'EQUIPO DE MANIOBRAS Y ELEVACIÓN'); r++;
-  hdr(r,0,1,'Descripción'); hdr(r,2,2,'Costo mensual'); hdr(r,3,3,'Costo diario'); hdr(r,4,4,`Días (=${mo.dias})`); hdr(r,5,5,'Total'); r++;
+  hdr(r,0,1,'Descripción'); hdr(r,2,2,`Costo mensual (${curLabel()})`); hdr(r,3,3,`Costo diario (${curLabel()})`); hdr(r,4,4,`Días (=${mo.dias})`); hdr(r,5,5,`Total (${curLabel()})`); r++;
   [
     ['Escalera',COSTO_ESCALERA_MES,mo.d_esc,mo.usar_esc,mo.t_esc],
     ['Genie 10 m',COSTO_GENNIE_MES,mo.d_gen,mo.usar_gen,mo.t_gen],
