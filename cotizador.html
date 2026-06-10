@@ -435,6 +435,31 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       </div>
     </div>
     <div class="folio-box" id="folio-preview">📄 XXXX-010125-IP-JLD</div>
+
+    <!-- Moneda de la cotización -->
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-top:12px;">
+      <label class="check-label" style="font-weight:600;">
+        <input type="checkbox" id="cot_usd" onchange="toggleMoneda()">
+        💵 Cotización en dólares (USD)
+      </label>
+      <div id="usd-fields" style="display:none;margin-top:10px;">
+        <div class="grid-2">
+          <div>
+            <label>Tipo de cambio del día (MXN por 1 USD)</label>
+            <input type="number" id="tipo_cambio" step="0.0001" min="0" value="17.50"
+                   placeholder="ej. 17.50" oninput="updateMonedaPreview();updateTotales();renderCart();updateMO();">
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <div id="usd-preview" style="font-size:.85rem;color:#0369a1;background:#fff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;width:100%;">
+              Los precios se convertirán automáticamente: <b>MXN → USD</b>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:.76rem;color:#666;margin-top:6px;">
+          Los precios de catálogo siguen guardados en pesos; solo se aplica el tipo de cambio al mostrar y al generar PDF / Word / Excel.
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 3. MO CALCULATOR ────────────────────────────────────────────────────────── -->
@@ -1145,12 +1170,22 @@ const state = {
   selectedMat: null,
   adminOk: false,
   addProdOk: false,
+  moneda: 'MXN',     // 'MXN' o 'USD'
+  tipoCambio: 17.50, // MXN por 1 USD
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function fmt(n) {
-  return new Intl.NumberFormat('es-MX', {style:'currency',currency:'MXN',minimumFractionDigits:2}).format(n);
+function fmt(nMXN) {
+  if (state.moneda === 'USD') {
+    const tc = state.tipoCambio > 0 ? state.tipoCambio : 1;
+    return new Intl.NumberFormat('en-US', {style:'currency',currency:'USD',minimumFractionDigits:2}).format(nMXN / tc);
+  }
+  return new Intl.NumberFormat('es-MX', {style:'currency',currency:'MXN',minimumFractionDigits:2}).format(nMXN);
 }
+// Etiqueta corta de la moneda actual (para encabezados, p. ej. "Precio MXN" → "Precio USD")
+function curLabel() { return state.moneda; }
+// Símbolo de moneda
+function curSym() { return state.moneda === 'USD' ? 'US$' : '$'; }
 function fmtNum(n, dec=0) {
   return new Intl.NumberFormat('es-MX', {minimumFractionDigits:dec,maximumFractionDigits:dec}).format(n);
 }
@@ -1235,6 +1270,30 @@ function updateFolio() {
 
 function getFolio() {
   return el('folio-preview').textContent.replace('📄 ','').trim();
+}
+
+// ── MONEDA (MXN / USD) ────────────────────────────────────────────────────────
+function toggleMoneda() {
+  const usd = el('cot_usd').checked;
+  state.moneda = usd ? 'USD' : 'MXN';
+  el('usd-fields').style.display = usd ? '' : 'none';
+  if (usd) {
+    const tc = +el('tipo_cambio').value;
+    state.tipoCambio = tc > 0 ? tc : 17.50;
+  }
+  updateMonedaPreview();
+  if (typeof renderCart === 'function') renderCart();
+  if (typeof updateMO === 'function') updateMO();
+  if (typeof updateTotales === 'function') updateTotales();
+}
+
+function updateMonedaPreview() {
+  if (!el('usd-preview')) return;
+  if (state.moneda !== 'USD') return;
+  const tc = +el('tipo_cambio').value;
+  state.tipoCambio = tc > 0 ? tc : state.tipoCambio;
+  el('usd-preview').innerHTML =
+    `Tipo de cambio: <b>$${state.tipoCambio.toFixed(4)} MXN = US$ 1.00</b> · Ej: $1,000 MXN = ${fmt(1000)}`;
 }
 
 // ── PAGE NAVIGATION ───────────────────────────────────────────────────────────
@@ -1900,7 +1959,7 @@ function generatePDF() {
   });
   doc.autoTable({
     startY: y,
-    head: [['#', 'Descripción', 'No. Parte', 'Cant.', 'T. Entrega', 'P. Unitario', 'Total MXN']],
+    head: [['#', 'Descripción', 'No. Parte', 'Cant.', 'T. Entrega', 'P. Unitario', `Total ${curLabel()}`]],
     body: matBody.length ? matBody : [['—', 'Sin materiales', '—', '—', '—', '—', '—']],
     margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
     theme: 'plain',
@@ -2023,6 +2082,9 @@ function generatePDF() {
 
   // ── CONDICIONES COMERCIALES ───────────────────────────────────────────────────
   y = secTitle('CONDICIONES COMERCIALES', y);
+  if (state.moneda === 'USD') {
+    y = condRow('MONEDA:', `Cotización en Dólares Americanos (USD). Tipo de cambio del día: $${state.tipoCambio.toFixed(4)} MXN por 1.00 USD.`, y);
+  }
   y = condRow('IVA:', 'A estos precios añadirles el 16% de I.V.A.', y);
   y = condRow('VIGENCIA:', 'La vigencia de esta cotización es de 15 días hábiles de no existir un incremento oficial en los salarios o en la paridad del dólar mayor al 3%.', y);
   y = condRow('NOTA:', 'Después de aceptar nuestra propuesta y de colocarnos el pedido, cualquier cancelación de su parte tendrá un cargo del 20% sobre el monto total.', y);
@@ -2195,8 +2257,20 @@ function generatePDF() {
   toast('🖨 PDF descargado');
 }
 
-function fmtPDF(n) {
-  return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function fmtPDF(nMXN) {
+  if (state.moneda === 'USD') {
+    const tc = state.tipoCambio > 0 ? state.tipoCambio : 1;
+    return 'US$ ' + (Number(nMXN) / tc).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  return '$' + Number(nMXN).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// Convierte un monto MXN al valor numérico de la moneda activa (para Excel u operaciones)
+function cur(nMXN) {
+  if (state.moneda === 'USD') {
+    const tc = state.tipoCambio > 0 ? state.tipoCambio : 1;
+    return Number(nMXN) / tc;
+  }
+  return Number(nMXN);
 }
 
 function xlCell(v, bold, fillRgb, fontColor, numFmt, hAlign) {
@@ -2240,6 +2314,9 @@ function buildCotizacionSheet(wb, d) {
     ['Fecha:', cliente.fecha ? formatDateES(cliente.fecha) : ''],
     ['No. Cotización:', cliente.folio],
   ];
+  if (state.moneda === 'USD') {
+    fields.push(['Moneda:', `USD · Tipo de cambio: $${state.tipoCambio.toFixed(4)} MXN/USD`]);
+  }
   fields.forEach(([lbl,val]) => {
     setCell(r,0, xlCell(lbl, true, lblFill, null, null, 'right'));
     setCell(r,1, xlCell(val, false, null, null, null, 'left'));
@@ -2248,7 +2325,7 @@ function buildCotizacionSheet(wb, d) {
   r++; // blank row
 
   // Table header
-  const hdrs = ['#','Descripción','No. de Parte','Cantidad','Disponible','Tiempo Entrega','Precio Unitario','Total'];
+  const hdrs = ['#','Descripción','No. de Parte','Cantidad','Disponible','Tiempo Entrega',`Precio Unitario ${curLabel()}`,`Total ${curLabel()}`];
   const hAligns = ['center','center','center','center','center','center','right','right'];
   hdrs.forEach((h,c) => setCell(r,c, xlCell(h, true, hdrFill, 'FFFFFF', null, hAligns[c])));
   r++;
@@ -2271,8 +2348,8 @@ function buildCotizacionSheet(wb, d) {
     setCell(r,3, xlCell(qty, false, fill, null, '#,##0', 'center'));
     setCell(r,4, xlCell(disp, !!insuf, fill, null, '#,##0', 'center'));
     setCell(r,5, xlCell(fechaTxt, false, fill, null, null, 'center'));
-    setCell(r,6, xlCell(pu, false, fill, null, '$#,##0.00', 'right'));
-    setCell(r,7, xlCell(tot, false, fill, null, '$#,##0.00', 'right'));
+    setCell(r,6, xlCell(cur(pu), false, fill, null, '$#,##0.00', 'right'));
+    setCell(r,7, xlCell(cur(tot), false, fill, null, '$#,##0.00', 'right'));
     r++;
   });
   r++;
@@ -2283,7 +2360,7 @@ function buildCotizacionSheet(wb, d) {
     const fc = dark ? 'FFFFFF' : '000000';
     setCell(r,0, xlCell(lbl, true, f, fc, null, 'right'));
     merge(r,0,r,6);
-    setCell(r,7, xlCell(val, true, f, fc, '$#,##0.00', 'right'));
+    setCell(r,7, xlCell(cur(val), true, f, fc, '$#,##0.00', 'right'));
     r++;
   };
   addTotRow('Subtotal Material:', subtotal, false);
@@ -2310,7 +2387,11 @@ function buildMOSheet(wb, mo) {
   const setCell = (row,col,cell) => { ws[XLSX.utils.encode_cell({r:row,c:col})] = cell; };
   const merge = (sr,sc,er,ec) => merges.push({s:{r:sr,c:sc},e:{r:er,c:ec}});
   const hdr = (row,c1,c2,text) => { setCell(row,c1, xlCell(text,true,hdrF,'FFFFFF',null,'center')); if(c2>c1) merge(row,c1,row,c2); };
-  const val = (row,col,v,nf,bold,fill) => setCell(row,col, xlCell(v,!!bold,fill||'FFFFFF','000000',nf,'right'));
+  // Si el formato es monetario, aplicamos la conversión de moneda automáticamente
+  const val = (row,col,v,nf,bold,fill) => {
+    const conv = (nf === MXN) ? cur(v) : v;
+    setCell(row,col, xlCell(conv,!!bold,fill||'FFFFFF','000000',nf,'right'));
+  };
 
   // Title
   setCell(r,0, xlCell('HOJA DE PRESUPUESTOS  –  MANO DE OBRA, VIÁTICOS Y PLATAFORMAS', true, hdrF, 'FFFFFF', null, 'center'));
@@ -2376,19 +2457,19 @@ function buildMOSheet(wb, mo) {
 
   // Viáticos = solo comidas + hospedaje
   setCell(r,0,xlCell('Sub-Viáticos costo real (Comidas + Hospedaje)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.total_viaticos_real,true,ltF,'000000',MXN,'right')); r++;
+  setCell(r,5,xlCell(cur(mo.total_viaticos_real),true,ltF,'000000',MXN,'right')); r++;
   setCell(r,0,xlCell(`+ Ganancia ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}% sobre viáticos`,false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.ganancia_viaticos,false,'FFF8E1','E65100',MXN,'right')); r++;
+  setCell(r,5,xlCell(cur(mo.ganancia_viaticos),false,'FFF8E1','E65100',MXN,'right')); r++;
   setCell(r,0,xlCell('TOTAL VIÁTICOS COBRADO AL CLIENTE',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.total_viaticos,true,orangeF,'000000',MXN,'right')); r+=2;
+  setCell(r,5,xlCell(cur(mo.total_viaticos),true,orangeF,'000000',MXN,'right')); r+=2;
 
   // Movilidad (Auto + Vuelo) — bloque independiente
   setCell(r,0,xlCell('Sub-Movilidad costo real (Automóvil + Vuelo)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.total_movilidad_real,true,ltF,'000000',MXN,'right')); r++;
+  setCell(r,5,xlCell(cur(mo.total_movilidad_real),true,ltF,'000000',MXN,'right')); r++;
   setCell(r,0,xlCell(`+ Utilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}% sobre movilidad`,false,'E3F2FD','1565C0',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.utilidad_movilidad,false,'E3F2FD','1565C0',MXN,'right')); r++;
+  setCell(r,5,xlCell(cur(mo.utilidad_movilidad),false,'E3F2FD','1565C0',MXN,'right')); r++;
   setCell(r,0,xlCell('TOTAL MOVILIDAD COBRADA AL CLIENTE',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.total_movilidad,true,orangeF,'000000',MXN,'right')); r+=2;
+  setCell(r,5,xlCell(cur(mo.total_movilidad),true,orangeF,'000000',MXN,'right')); r+=2;
 
   // Equipo
   hdr(r,0,5,'EQUIPO DE MANIOBRAS Y ELEVACIÓN'); r++;
@@ -2406,7 +2487,7 @@ function buildMOSheet(wb, mo) {
   });
   setCell(r,0,xlCell('Embarque (fijo)',false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.embarque,MXN); r++;
   setCell(r,0,xlCell('Total Plataformas',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.total_plataformas,true,orangeF,'000000',MXN,'right')); r+=2;
+  setCell(r,5,xlCell(cur(mo.total_plataformas),true,orangeF,'000000',MXN,'right')); r+=2;
 
   // Resumen
   hdr(r,0,5,'RESUMEN GENERAL'); r++;
@@ -2414,12 +2495,12 @@ function buildMOSheet(wb, mo) {
   const subtot = mo.subtotal_material||0;
   const totProyecto = mo.costo_mo + mo.total_viaticos + mo.total_movilidad + mo.total_plataformas + subtot;
   [mo.costo_mo,mo.total_viaticos,mo.total_movilidad,mo.total_plataformas,subtot,totProyecto].forEach((v,c) => {
-    setCell(r,c,xlCell(v,c===5,c===5?orangeF:'FFFFFF','000000',MXN,'right'));
+    setCell(r,c,xlCell(cur(v),c===5,c===5?orangeF:'FFFFFF','000000',MXN,'right'));
   }); r+=2;
 
   // Total final
   setCell(r,0,xlCell('TOTAL M.O. + EQUIPO + VIÁTICOS',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.total_mo_equipo_viaticos,true,orangeF,'000000',MXN,'right'));
+  setCell(r,5,xlCell(cur(mo.total_mo_equipo_viaticos),true,orangeF,'000000',MXN,'right'));
 
   ws['!merges'] = merges;
   ws['!cols'] = [{wch:22},{wch:16},{wch:14},{wch:14},{wch:14},{wch:14}];
@@ -2551,6 +2632,7 @@ function buildWordHTML(d) {
      <td style="border:none;padding:3pt 0;font-size:9pt;color:#333333;">${t}</td></tr>`;
 
   const P_COM = `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+    ${state.moneda === 'USD' ? condRow('MONEDA:', `Cotización en Dólares Americanos (USD). Tipo de cambio del día: $${state.tipoCambio.toFixed(4)} MXN por 1.00 USD.`) : ''}
     ${condRow('IVA:', 'A estos precios añadirles el 16% de I.V.A.')}
     ${condRow('VIGENCIA:', 'La vigencia de esta cotización es de 15 días hábiles de no existir un incremento oficial en los salarios o en la paridad del dólar mayor al 3%.')}
     ${condRow('NOTA:', 'Después de aceptar nuestra propuesta y de colocarnos el pedido, cualquier cancelación de su parte tendrá un cargo del 20% sobre el monto total.')}
@@ -2665,7 +2747,7 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
     <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:6%;">Cant.</th>
     <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:14%;">T. Entrega</th>
     <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">P. Unitario</th>
-    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">Total MXN</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">Total ${curLabel()}</th>
   </tr></thead>
   <tbody>${matRows}</tbody>
 </table>
@@ -4034,7 +4116,7 @@ function downloadSoporteriaPDF() {
 
   doc.autoTable({
     startY: y,
-    head: [['#', 'No. Parte', 'Descripción', 'Cant.', 'Unidad', 'P. Unitario', 'Total MXN']],
+    head: [['#', 'No. Parte', 'Descripción', 'Cant.', 'Unidad', 'P. Unitario', `Total ${curLabel()}`]],
     body: tableBody,
     foot: [
       ['', '', '', '', '', 'Subtotal costo',   fmtPDF(subtotalAmt)],
