@@ -257,6 +257,26 @@ summary::-webkit-details-marker{display:none;}
 .btn-icon-del{background:none;border:none;cursor:pointer;color:#aaa;padding:4px 8px;border-radius:4px;font-size:14px;}
 .btn-icon-del:hover{background:#fee2e2;color:#c00;}
 
+/* ── UTILIDADES PANEL ───────────────────────────────────────────────────────── */
+.util-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
+.util-card{background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:6px;}
+.util-card-head{font-weight:700;font-size:.95rem;color:var(--gd-dark);}
+.util-card-help{font-size:.76rem;color:#666;line-height:1.3;}
+.util-input-row{display:flex;align-items:center;gap:6px;margin:6px 0;}
+.util-input-row input{flex:1;padding:8px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:1.05rem;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
+.util-input-row input:focus{border-color:var(--gd-red);outline:none;box-shadow:0 0 0 3px rgba(200,16,46,.12);}
+.util-symbol{font-size:1.05rem;font-weight:700;color:var(--gd-red);min-width:18px;text-align:center;}
+.util-preview{font-size:.78rem;color:#2e7d32;background:#f0fdf4;border-left:3px solid #16a34a;padding:6px 8px;border-radius:4px;line-height:1.35;}
+
+/* ── MODAL ──────────────────────────────────────────────────────────────────── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-card{background:#fff;border-radius:10px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;}
+.modal-head{background:var(--gd-red);color:#fff;padding:12px 16px;font-weight:700;font-size:1.05rem;}
+.modal-body{padding:18px 16px;font-size:.92rem;line-height:1.5;color:#333;}
+.modal-body table{width:100%;border-collapse:collapse;margin-top:10px;}
+.modal-body table td{padding:6px 8px;border-bottom:1px solid #eee;font-size:.9rem;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;background:#fafafa;border-top:1px solid #eee;}
+
 /* ── CHECKBOX ─────────────────────────────────────────────────────────────────── */
 .check-group{display:flex;flex-direction:column;gap:4px;}
 .check-label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.88rem;font-weight:normal;}
@@ -906,6 +926,52 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
   <div id="admin-panel" style="display:none;">
     <div class="success-box" style="margin-bottom:12px;">✅ Sesión activa. <button class="btn btn-secondary btn-sm" style="float:right;" onclick="adminLogout()">Cerrar sesión</button></div>
 
+    <!-- Utilidades configurables -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;">💰 Utilidades / Markup</div>
+      <div class="info-box" style="margin-bottom:12px;">
+        Configura los factores y porcentajes de utilidad aplicados a cada concepto de la cotización. Los cambios se guardan en Supabase y se aplican inmediatamente a todas las cotizaciones.
+      </div>
+
+      <div class="util-grid">
+        <div class="util-card">
+          <div class="util-card-head">🛠️ Mano de Obra</div>
+          <div class="util-card-help">Factor multiplicador (×N). El cliente paga N veces el costo real de M.O.</div>
+          <div class="util-input-row">
+            <span class="util-symbol">×</span>
+            <input type="number" id="util-mo" step="0.1" min="1" value="2.5" oninput="updateUtilPreviews()">
+          </div>
+          <div class="util-preview" id="util-mo-preview"></div>
+        </div>
+
+        <div class="util-card">
+          <div class="util-card-head">🧾 Viáticos</div>
+          <div class="util-card-help">% de ganancia sobre subtotal (comidas + hospedaje + auto + vuelo)</div>
+          <div class="util-input-row">
+            <input type="number" id="util-viaticos" step="1" min="0" max="500" value="30" oninput="updateUtilPreviews()">
+            <span class="util-symbol">%</span>
+          </div>
+          <div class="util-preview" id="util-viaticos-preview"></div>
+        </div>
+
+        <div class="util-card">
+          <div class="util-card-head">⛽ Combustible</div>
+          <div class="util-card-help">% de utilidad adicional sobre el costo base de combustible</div>
+          <div class="util-input-row">
+            <input type="number" id="util-combustible" step="1" min="0" max="200" value="15" oninput="updateUtilPreviews()">
+            <span class="util-symbol">%</span>
+          </div>
+          <div class="util-preview" id="util-combustible-preview"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="guardarUtilidades()">💾 Guardar cambios</button>
+        <button class="btn btn-secondary" onclick="restablecerUtilidades()">↺ Restablecer por defecto</button>
+        <span id="util-status" style="font-size:.85rem;font-weight:600;"></span>
+      </div>
+    </div>
+
     <!-- Upload -->
     <div class="card">
       <div class="sec-title" style="margin-top:0;">📁 Actualizar Base de Datos de Materiales</div>
@@ -954,9 +1020,15 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 <script>
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const ADMIN_PASSWORD = 'pipro2026';
-const GANANCIA_VIATICOS_PCT = 0.30;  // 30% ganancia sobre viáticos
-const UTIL_COMBUSTIBLE_PCT  = 0.15;  // 15% utilidad sobre combustible
-const UTIL_MO_FACTOR        = 2.5;   // ×2.5 utilidad sobre mano de obra (cobrado al cliente)
+// Utilidades configurables desde el panel admin (se cargan desde Supabase al iniciar)
+let GANANCIA_VIATICOS_PCT = 0.30;  // 30% ganancia sobre viáticos
+let UTIL_COMBUSTIBLE_PCT  = 0.15;  // 15% utilidad sobre combustible
+let UTIL_MO_FACTOR        = 2.5;   // ×2.5 utilidad sobre mano de obra (cobrado al cliente)
+const UTIL_DEFAULTS = {
+  GANANCIA_VIATICOS_PCT: 0.30,
+  UTIL_COMBUSTIBLE_PCT:  0.15,
+  UTIL_MO_FACTOR:        2.5
+};
 
 const SUELDO_TECNICO    = 25723.065720;
 const SUELDO_AYUDANTE   = 15005.121670;
@@ -2612,6 +2684,7 @@ function adminLogin() {
     hide('admin-gate');
     show('admin-panel');
     renderAdminTable();
+    renderUtilForm();
   } else {
     showCls('admin-err');
   }
@@ -2621,6 +2694,151 @@ function adminLogout() {
   show('admin-gate');
   hide('admin-panel');
   el('admin-pwd').value = '';
+}
+
+// ── UTILIDADES CONFIGURABLES ──────────────────────────────────────────────────
+async function loadUtilidades() {
+  let saved = null;
+  try {
+    if (window.SB && window.SB.configured) {
+      saved = await window.SB.getMeta('utilidades', null);
+    }
+  } catch(e) {}
+  if (!saved) {
+    try {
+      const local = localStorage.getItem('pipro_utilidades');
+      if (local) saved = JSON.parse(local);
+    } catch(e) {}
+  }
+  if (saved && typeof saved === 'object') {
+    if (typeof saved.GANANCIA_VIATICOS_PCT === 'number') GANANCIA_VIATICOS_PCT = saved.GANANCIA_VIATICOS_PCT;
+    if (typeof saved.UTIL_COMBUSTIBLE_PCT  === 'number') UTIL_COMBUSTIBLE_PCT  = saved.UTIL_COMBUSTIBLE_PCT;
+    if (typeof saved.UTIL_MO_FACTOR        === 'number') UTIL_MO_FACTOR        = saved.UTIL_MO_FACTOR;
+  }
+}
+
+function renderUtilForm() {
+  if (!el('util-mo')) return;
+  el('util-mo').value = UTIL_MO_FACTOR;
+  el('util-viaticos').value = +(GANANCIA_VIATICOS_PCT * 100).toFixed(2);
+  el('util-combustible').value = +(UTIL_COMBUSTIBLE_PCT * 100).toFixed(2);
+  updateUtilPreviews();
+}
+
+function updateUtilPreviews() {
+  const mo = +el('util-mo').value || 0;
+  const vi = (+el('util-viaticos').value || 0) / 100;
+  const co = (+el('util-combustible').value || 0) / 100;
+  el('util-mo-preview').textContent =
+    `Ej: M.O. real $10,000 × ${mo.toFixed(2)} = ${fmt(10000 * mo)} cobrado al cliente (utilidad ${fmt(10000 * (mo - 1))})`;
+  el('util-viaticos-preview').textContent =
+    `Ej: viáticos $1,000 + ${(vi * 100).toFixed(1)}% = ${fmt(1000 * (1 + vi))} cobrado al cliente`;
+  el('util-combustible-preview').textContent =
+    `Ej: combustible $100 + ${(co * 100).toFixed(1)}% = ${fmt(100 * (1 + co))} cobrado al cliente`;
+}
+
+async function guardarUtilidades() {
+  const mo = +el('util-mo').value;
+  const vi = +el('util-viaticos').value;
+  const co = +el('util-combustible').value;
+
+  if (!(mo > 0)) { toast('❌ El factor de M.O. debe ser mayor a 0'); return; }
+  if (vi < 0 || vi > 500) { toast('❌ Ganancia de viáticos fuera de rango (0-500%)'); return; }
+  if (co < 0 || co > 200) { toast('❌ Utilidad de combustible fuera de rango (0-200%)'); return; }
+
+  const ok = await confirmModal('Confirmar cambios de utilidad', `
+    <p>Estos valores se aplicarán inmediatamente a <b>todas las cotizaciones futuras</b>:</p>
+    <table>
+      <tr><td>🛠️ Mano de Obra</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">×${mo.toFixed(2)}</td></tr>
+      <tr><td>🧾 Ganancia de Viáticos</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">+${vi.toFixed(1)}%</td></tr>
+      <tr><td>⛽ Utilidad de Combustible</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">+${co.toFixed(1)}%</td></tr>
+    </table>
+    <p style="margin-top:10px;font-size:.82rem;color:#666;">Se guardarán en Supabase (todos los dispositivos) y en local.</p>
+  `);
+  if (!ok) return;
+
+  UTIL_MO_FACTOR = mo;
+  GANANCIA_VIATICOS_PCT = vi / 100;
+  UTIL_COMBUSTIBLE_PCT = co / 100;
+
+  const data = {
+    UTIL_MO_FACTOR,
+    GANANCIA_VIATICOS_PCT,
+    UTIL_COMBUSTIBLE_PCT
+  };
+
+  try { localStorage.setItem('pipro_utilidades', JSON.stringify(data)); } catch(e) {}
+
+  el('util-status').innerHTML = '<span style="color:#f59e0b;">⏳ Guardando…</span>';
+  try {
+    if (window.SB && window.SB.configured) {
+      await window.SB.setMeta('utilidades', data);
+      el('util-status').innerHTML = '<span style="color:#16a34a;">✅ Guardado en Supabase</span>';
+    } else {
+      el('util-status').innerHTML = '<span style="color:#f59e0b;">⚠️ Guardado solo en local (sin conexión)</span>';
+    }
+  } catch(e) {
+    el('util-status').innerHTML = '<span style="color:#dc2626;">⚠️ Error de red — guardado solo en local</span>';
+  }
+  setTimeout(() => { el('util-status').innerHTML = ''; }, 5000);
+
+  if (typeof updateMO === 'function') updateMO();
+  toast('✅ Utilidades actualizadas');
+}
+
+async function restablecerUtilidades() {
+  const ok = await confirmModal('Restablecer utilidades', `
+    <p>¿Restablecer todos los valores a los predeterminados?</p>
+    <table>
+      <tr><td>🛠️ Mano de Obra</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">×${UTIL_DEFAULTS.UTIL_MO_FACTOR}</td></tr>
+      <tr><td>🧾 Ganancia de Viáticos</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">+${UTIL_DEFAULTS.GANANCIA_VIATICOS_PCT * 100}%</td></tr>
+      <tr><td>⛽ Utilidad de Combustible</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">+${UTIL_DEFAULTS.UTIL_COMBUSTIBLE_PCT * 100}%</td></tr>
+    </table>
+    <p style="margin-top:10px;font-size:.82rem;color:#666;">Después debes presionar "Guardar cambios" para aplicarlos.</p>
+  `);
+  if (!ok) return;
+  el('util-mo').value = UTIL_DEFAULTS.UTIL_MO_FACTOR;
+  el('util-viaticos').value = UTIL_DEFAULTS.GANANCIA_VIATICOS_PCT * 100;
+  el('util-combustible').value = UTIL_DEFAULTS.UTIL_COMBUSTIBLE_PCT * 100;
+  updateUtilPreviews();
+}
+
+// ── MODAL DE CONFIRMACIÓN GENÉRICO ────────────────────────────────────────────
+function confirmModal(title, htmlBody) {
+  return new Promise(resolve => {
+    let m = document.getElementById('confirm-modal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'confirm-modal';
+      m.className = 'modal-backdrop';
+      m.innerHTML = `
+        <div class="modal-card" onclick="event.stopPropagation()">
+          <div class="modal-head" id="confirm-modal-title"></div>
+          <div class="modal-body" id="confirm-modal-body"></div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" id="confirm-modal-cancel">Cancelar</button>
+            <button class="btn btn-primary" id="confirm-modal-ok">Confirmar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(m);
+      m.addEventListener('click', e => { if (e.target === m) window._confirmResolve(false); });
+    }
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-body').innerHTML = htmlBody;
+    document.getElementById('confirm-modal-cancel').onclick = () => window._confirmResolve(false);
+    document.getElementById('confirm-modal-ok').onclick = () => window._confirmResolve(true);
+    m.style.display = 'flex';
+    window._confirmResolve = (val) => {
+      m.style.display = 'none';
+      resolve(val);
+    };
+  });
 }
 function unlockAddProduct() {
   if (el('add-prod-pwd').value === ADMIN_PASSWORD) {
@@ -3360,6 +3578,9 @@ async function init() {
   // Default tipo (carga UI antes de esperar a la red)
   setTipo('ip');
   updateFolio();
+
+  // Cargar utilidades configurables desde Supabase ANTES del primer cálculo
+  await loadUtilidades();
   updateMO();
 
   // Cargar materiales — Supabase es la fuente de verdad
