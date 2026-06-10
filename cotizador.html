@@ -637,8 +637,14 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#555;margin-bottom:4px;">
         <span>Sub-Viáticos (costo real)</span><span id="viat-real">$0.00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#e65100;margin-bottom:4px;">
-        <span>+ Ganancia 30%</span><span id="viat-gan">$0.00</span>
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#e65100;margin-bottom:3px;">
+        <span id="viat-gan-ali-label">+ Ganancia 30% (comidas + hospedaje)</span><span id="viat-gan-ali">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#e65100;margin-bottom:4px;">
+        <span id="viat-gan-mov-label">+ Utilidad 40% (movilidad: auto + vuelo)</span><span id="viat-gan-mov">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#666;margin-bottom:4px;border-top:1px dashed #ffe082;padding-top:3px;">
+        <span>Total utilidades</span><span id="viat-gan">$0.00</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid #ffe082;padding-top:4px;margin-top:2px;">
         <span>🧾 Viáticos cobrado al cliente</span><span id="viaticos-total">$0.00</span>
@@ -955,13 +961,13 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         </div>
 
         <div class="util-card">
-          <div class="util-card-head">⛽ Combustible</div>
-          <div class="util-card-help">% de utilidad adicional sobre el costo base de combustible</div>
+          <div class="util-card-head">🚗✈️ Movilidad (Auto + Vuelo)</div>
+          <div class="util-card-help">% de utilidad sobre el total de movilidad (combustible + casetas + desgaste + vuelo redondo)</div>
           <div class="util-input-row">
-            <input type="number" id="util-combustible" step="1" min="0" max="200" value="15" oninput="updateUtilPreviews()">
+            <input type="number" id="util-movilidad" step="1" min="0" max="300" value="40" oninput="updateUtilPreviews()">
             <span class="util-symbol">%</span>
           </div>
-          <div class="util-preview" id="util-combustible-preview"></div>
+          <div class="util-preview" id="util-movilidad-preview"></div>
         </div>
       </div>
 
@@ -1021,12 +1027,12 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
 const ADMIN_PASSWORD = 'pipro2026';
 // Utilidades configurables desde el panel admin (se cargan desde Supabase al iniciar)
-let GANANCIA_VIATICOS_PCT = 0.30;  // 30% ganancia sobre viáticos
-let UTIL_COMBUSTIBLE_PCT  = 0.15;  // 15% utilidad sobre combustible
+let GANANCIA_VIATICOS_PCT = 0.30;  // 30% sobre comidas + hospedaje
+let UTIL_MOVILIDAD_PCT    = 0.40;  // 40% sobre movilidad total (automóvil + vuelo)
 let UTIL_MO_FACTOR        = 2.5;   // ×2.5 utilidad sobre mano de obra (cobrado al cliente)
 const UTIL_DEFAULTS = {
   GANANCIA_VIATICOS_PCT: 0.30,
-  UTIL_COMBUSTIBLE_PCT:  0.15,
+  UTIL_MOVILIDAD_PCT:    0.40,
   UTIL_MO_FACTOR:        2.5
 };
 
@@ -1287,17 +1293,24 @@ function calcularMO(inp) {
   const km_total = km_sencillo*2*n_viajes;
   const litros = rendimiento>0 ? km_total/rendimiento : 0;
   const combustible_base   = litros*costo_gas;
-  const util_combustible   = combustible_base * UTIL_COMBUSTIBLE_PCT;
-  const combustible_total  = combustible_base + util_combustible;
+  const combustible_total  = combustible_base; // sin utilidad propia (movilidad lleva utilidad global)
   const casetas_total = casetas_ida*2*n_viajes;
   const desgaste_total = km_total*costo_desgaste_km;
   const total_automovil = combustible_total+casetas_total+desgaste_total;
   const precio_vuelo = +inp.precio_vuelo||0;
   const personas_vuelo = +inp.personas_vuelo||0;
   const total_vuelo = precio_vuelo*personas_vuelo;
-  const total_viaticos_real = comidas_total+hospedaje_total+total_automovil+total_vuelo;
-  const ganancia_viaticos = total_viaticos_real * GANANCIA_VIATICOS_PCT;
-  const total_viaticos = total_viaticos_real + ganancia_viaticos; // cobrado al cliente
+  // ── Movilidad (auto + vuelo) con utilidad global única ─────────────────────
+  const total_movilidad_real = total_automovil + total_vuelo;
+  const utilidad_movilidad   = total_movilidad_real * UTIL_MOVILIDAD_PCT;
+  const total_movilidad      = total_movilidad_real + utilidad_movilidad;
+  // ── Comidas + hospedaje con 30% de ganancia ────────────────────────────────
+  const subtotal_alimentacion = comidas_total + hospedaje_total;
+  const ganancia_alimentacion = subtotal_alimentacion * GANANCIA_VIATICOS_PCT;
+  // ── Viáticos totales (alimentación + movilidad, ambos con su utilidad) ─────
+  const total_viaticos_real = subtotal_alimentacion + total_movilidad_real;
+  const ganancia_viaticos   = ganancia_alimentacion + utilidad_movilidad;
+  const total_viaticos      = total_viaticos_real + ganancia_viaticos; // cobrado al cliente
   const usar_esc = !!inp.usar_escalera, usar_gen = !!inp.usar_gennie;
   const usar_elev = !!inp.usar_elevador, usar_plat = !!inp.usar_plat_tijera;
   const embarque = +inp.embarque||0;
@@ -1311,8 +1324,11 @@ function calcularMO(inp) {
     comidas_por_dia,costo_comida,comidas_total,
     req_hospe,costo_hospe,noches_hospedaje,hospedaje_total,
     km_sencillo,n_viajes,km_total,rendimiento,costo_gas,litros,
-    combustible_base,util_combustible,combustible_total,casetas_ida,casetas_total,costo_desgaste_km,desgaste_total,
-    total_automovil,precio_vuelo,personas_vuelo,total_vuelo,total_viaticos_real,ganancia_viaticos,total_viaticos,
+    combustible_base,combustible_total,casetas_ida,casetas_total,costo_desgaste_km,desgaste_total,
+    total_automovil,precio_vuelo,personas_vuelo,total_vuelo,
+    total_movilidad_real,utilidad_movilidad,total_movilidad,
+    subtotal_alimentacion,ganancia_alimentacion,
+    total_viaticos_real,ganancia_viaticos,total_viaticos,
     usar_esc,usar_gen,usar_elev,usar_plat,d_esc,d_gen,d_elev,d_plat,
     t_esc,t_gen,t_elev,t_plat,embarque,total_plataformas,total_mo_equipo_viaticos,
   };
@@ -1362,7 +1378,7 @@ function updateMO() {
   }
   // Automóvil
   el('m-combustible').textContent = fmt(r.combustible_total);
-  el('m-combustible-d').textContent = `${fmtNum(r.litros,1)} L × ${fmt(r.costo_gas)} = ${fmt(r.combustible_base)} + 15% util. = ${fmt(r.combustible_total)}`;
+  el('m-combustible-d').textContent = `${fmtNum(r.litros,1)} L × ${fmt(r.costo_gas)} = ${fmt(r.combustible_total)}`;
   el('m-casetas').textContent = fmt(r.casetas_total);
   el('m-casetas-d').textContent = `${fmt(r.casetas_ida)} × 2 × ${r.n_viajes} viajes`;
   el('m-desgaste').textContent = fmt(r.desgaste_total);
@@ -1372,8 +1388,12 @@ function updateMO() {
   el('vuelo-result').innerHTML = r.total_vuelo > 0
     ? `<b>Total Vuelo: ${fmt(r.total_vuelo)}</b> · ${r.personas_vuelo} pers × ${fmt(r.precio_vuelo)}/vuelo redondo`
     : `<b>Total Vuelo: $0.00</b>`;
-  // Viáticos con ganancia
+  // Viáticos con ganancia (dos utilidades por separado)
   el('viat-real').textContent = fmt(r.total_viaticos_real);
+  el('viat-gan-ali-label').textContent = `+ Ganancia ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}% (comidas + hospedaje)`;
+  el('viat-gan-ali').textContent = fmt(r.ganancia_alimentacion);
+  el('viat-gan-mov-label').textContent = `+ Utilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}% (movilidad: auto + vuelo)`;
+  el('viat-gan-mov').textContent = fmt(r.utilidad_movilidad);
   el('viat-gan').textContent = fmt(r.ganancia_viaticos);
   el('viaticos-total').textContent = fmt(r.total_viaticos);
   // Equipo
@@ -2337,11 +2357,13 @@ function buildMOSheet(wb, mo) {
   if (mo.costo_desgaste_km>0) { setCell(r,0,xlCell(`Desgaste (${fmtNum(mo.km_total,0)} km × $${mo.costo_desgaste_km}/km)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.desgaste_total,MXN); r++; }
   setCell(r,0,xlCell('Total Automóvil',true,ltF,null,null,'right')); merge(r,0,r,4); val(r,5,mo.total_automovil,MXN,true,ltF); r+=2;
 
-  // Total viáticos con ganancia
-  setCell(r,0,xlCell('Sub-Viáticos costo real (Comidas + Hospedaje + Auto)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
+  // Total viáticos con dos utilidades por separado
+  setCell(r,0,xlCell('Sub-Viáticos costo real (Comidas + Hospedaje + Auto + Vuelo)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
   setCell(r,5,xlCell(mo.total_viaticos_real,true,ltF,'000000',MXN,'right')); r++;
-  setCell(r,0,xlCell('+ Ganancia 30% sobre viáticos',false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.ganancia_viaticos,false,'FFF8E1','E65100',MXN,'right')); r++;
+  setCell(r,0,xlCell(`+ Ganancia ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}% (comidas + hospedaje)`,false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.ganancia_alimentacion,false,'FFF8E1','E65100',MXN,'right')); r++;
+  setCell(r,0,xlCell(`+ Utilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}% (movilidad: auto + vuelo)`,false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.utilidad_movilidad,false,'FFF8E1','E65100',MXN,'right')); r++;
   setCell(r,0,xlCell('TOTAL VIÁTICOS COBRADO AL CLIENTE',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
   setCell(r,5,xlCell(mo.total_viaticos,true,orangeF,'000000',MXN,'right')); r+=2;
 
@@ -2712,7 +2734,7 @@ async function loadUtilidades() {
   }
   if (saved && typeof saved === 'object') {
     if (typeof saved.GANANCIA_VIATICOS_PCT === 'number') GANANCIA_VIATICOS_PCT = saved.GANANCIA_VIATICOS_PCT;
-    if (typeof saved.UTIL_COMBUSTIBLE_PCT  === 'number') UTIL_COMBUSTIBLE_PCT  = saved.UTIL_COMBUSTIBLE_PCT;
+    if (typeof saved.UTIL_MOVILIDAD_PCT    === 'number') UTIL_MOVILIDAD_PCT    = saved.UTIL_MOVILIDAD_PCT;
     if (typeof saved.UTIL_MO_FACTOR        === 'number') UTIL_MO_FACTOR        = saved.UTIL_MO_FACTOR;
   }
 }
@@ -2721,40 +2743,40 @@ function renderUtilForm() {
   if (!el('util-mo')) return;
   el('util-mo').value = UTIL_MO_FACTOR;
   el('util-viaticos').value = +(GANANCIA_VIATICOS_PCT * 100).toFixed(2);
-  el('util-combustible').value = +(UTIL_COMBUSTIBLE_PCT * 100).toFixed(2);
+  el('util-movilidad').value = +(UTIL_MOVILIDAD_PCT * 100).toFixed(2);
   updateUtilPreviews();
 }
 
 function updateUtilPreviews() {
   const mo = +el('util-mo').value || 0;
   const vi = (+el('util-viaticos').value || 0) / 100;
-  const co = (+el('util-combustible').value || 0) / 100;
+  const mv = (+el('util-movilidad').value || 0) / 100;
   el('util-mo-preview').textContent =
     `Ej: M.O. real $10,000 × ${mo.toFixed(2)} = ${fmt(10000 * mo)} cobrado al cliente (utilidad ${fmt(10000 * (mo - 1))})`;
   el('util-viaticos-preview').textContent =
-    `Ej: viáticos $1,000 + ${(vi * 100).toFixed(1)}% = ${fmt(1000 * (1 + vi))} cobrado al cliente`;
-  el('util-combustible-preview').textContent =
-    `Ej: combustible $100 + ${(co * 100).toFixed(1)}% = ${fmt(100 * (1 + co))} cobrado al cliente`;
+    `Ej: comidas + hospedaje $1,000 + ${(vi * 100).toFixed(1)}% = ${fmt(1000 * (1 + vi))} cobrado al cliente`;
+  el('util-movilidad-preview').textContent =
+    `Ej: auto + vuelo $5,000 + ${(mv * 100).toFixed(1)}% = ${fmt(5000 * (1 + mv))} cobrado al cliente`;
 }
 
 async function guardarUtilidades() {
   const mo = +el('util-mo').value;
   const vi = +el('util-viaticos').value;
-  const co = +el('util-combustible').value;
+  const mv = +el('util-movilidad').value;
 
   if (!(mo > 0)) { toast('❌ El factor de M.O. debe ser mayor a 0'); return; }
   if (vi < 0 || vi > 500) { toast('❌ Ganancia de viáticos fuera de rango (0-500%)'); return; }
-  if (co < 0 || co > 200) { toast('❌ Utilidad de combustible fuera de rango (0-200%)'); return; }
+  if (mv < 0 || mv > 300) { toast('❌ Utilidad de movilidad fuera de rango (0-300%)'); return; }
 
   const ok = await confirmModal('Confirmar cambios de utilidad', `
     <p>Estos valores se aplicarán inmediatamente a <b>todas las cotizaciones futuras</b>:</p>
     <table>
       <tr><td>🛠️ Mano de Obra</td>
           <td style="text-align:right;font-weight:700;color:#C8102E;">×${mo.toFixed(2)}</td></tr>
-      <tr><td>🧾 Ganancia de Viáticos</td>
+      <tr><td>🧾 Ganancia Comidas + Hospedaje</td>
           <td style="text-align:right;font-weight:700;color:#C8102E;">+${vi.toFixed(1)}%</td></tr>
-      <tr><td>⛽ Utilidad de Combustible</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">+${co.toFixed(1)}%</td></tr>
+      <tr><td>🚗✈️ Utilidad Movilidad (Auto + Vuelo)</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">+${mv.toFixed(1)}%</td></tr>
     </table>
     <p style="margin-top:10px;font-size:.82rem;color:#666;">Se guardarán en Supabase (todos los dispositivos) y en local.</p>
   `);
@@ -2762,12 +2784,12 @@ async function guardarUtilidades() {
 
   UTIL_MO_FACTOR = mo;
   GANANCIA_VIATICOS_PCT = vi / 100;
-  UTIL_COMBUSTIBLE_PCT = co / 100;
+  UTIL_MOVILIDAD_PCT = mv / 100;
 
   const data = {
     UTIL_MO_FACTOR,
     GANANCIA_VIATICOS_PCT,
-    UTIL_COMBUSTIBLE_PCT
+    UTIL_MOVILIDAD_PCT
   };
 
   try { localStorage.setItem('pipro_utilidades', JSON.stringify(data)); } catch(e) {}
@@ -2795,17 +2817,17 @@ async function restablecerUtilidades() {
     <table>
       <tr><td>🛠️ Mano de Obra</td>
           <td style="text-align:right;font-weight:700;color:#C8102E;">×${UTIL_DEFAULTS.UTIL_MO_FACTOR}</td></tr>
-      <tr><td>🧾 Ganancia de Viáticos</td>
+      <tr><td>🧾 Ganancia Comidas + Hospedaje</td>
           <td style="text-align:right;font-weight:700;color:#C8102E;">+${UTIL_DEFAULTS.GANANCIA_VIATICOS_PCT * 100}%</td></tr>
-      <tr><td>⛽ Utilidad de Combustible</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">+${UTIL_DEFAULTS.UTIL_COMBUSTIBLE_PCT * 100}%</td></tr>
+      <tr><td>🚗✈️ Utilidad Movilidad</td>
+          <td style="text-align:right;font-weight:700;color:#C8102E;">+${UTIL_DEFAULTS.UTIL_MOVILIDAD_PCT * 100}%</td></tr>
     </table>
     <p style="margin-top:10px;font-size:.82rem;color:#666;">Después debes presionar "Guardar cambios" para aplicarlos.</p>
   `);
   if (!ok) return;
   el('util-mo').value = UTIL_DEFAULTS.UTIL_MO_FACTOR;
   el('util-viaticos').value = UTIL_DEFAULTS.GANANCIA_VIATICOS_PCT * 100;
-  el('util-combustible').value = UTIL_DEFAULTS.UTIL_COMBUSTIBLE_PCT * 100;
+  el('util-movilidad').value = UTIL_DEFAULTS.UTIL_MOVILIDAD_PCT * 100;
   updateUtilPreviews();
 }
 
