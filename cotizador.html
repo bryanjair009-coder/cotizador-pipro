@@ -632,22 +632,29 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       </div>
     </details>
 
-    <!-- Total viáticos con ganancia -->
+    <!-- Total viáticos (solo comidas + hospedaje) -->
     <div style="background:#fff8e1;border-left:4px solid #FFC107;padding:10px 14px;border-radius:4px;margin:8px 0;">
       <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#555;margin-bottom:4px;">
-        <span>Sub-Viáticos (costo real)</span><span id="viat-real">$0.00</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#e65100;margin-bottom:3px;">
-        <span id="viat-gan-ali-label">+ Ganancia 30% (comidas + hospedaje)</span><span id="viat-gan-ali">$0.00</span>
+        <span>Sub-Viáticos (comidas + hospedaje)</span><span id="viat-real">$0.00</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#e65100;margin-bottom:4px;">
-        <span id="viat-gan-mov-label">+ Utilidad 40% (movilidad: auto + vuelo)</span><span id="viat-gan-mov">$0.00</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#666;margin-bottom:4px;border-top:1px dashed #ffe082;padding-top:3px;">
-        <span>Total utilidades</span><span id="viat-gan">$0.00</span>
+        <span id="viat-gan-label">+ Ganancia 30%</span><span id="viat-gan">$0.00</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid #ffe082;padding-top:4px;margin-top:2px;">
         <span>🧾 Viáticos cobrado al cliente</span><span id="viaticos-total">$0.00</span>
+      </div>
+    </div>
+
+    <!-- Total movilidad (auto + vuelo) -->
+    <div style="background:#e3f2fd;border-left:4px solid #1976D2;padding:10px 14px;border-radius:4px;margin:8px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#555;margin-bottom:4px;">
+        <span>Sub-Movilidad (auto + vuelo)</span><span id="mov-real">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#1565C0;margin-bottom:4px;">
+        <span id="mov-gan-label">+ Utilidad 40%</span><span id="mov-gan">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid #bbdefb;padding-top:4px;margin-top:2px;">
+        <span>🚗✈️ Movilidad cobrada al cliente</span><span id="movilidad-total">$0.00</span>
       </div>
     </div>
 
@@ -766,9 +773,12 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <div class="metric-card"><div class="metric-label">🚗 Automóvil</div><div class="metric-value" id="r-auto">$0.00</div><div class="metric-delta" id="r-auto-d">0 km</div></div>
         <div class="metric-card"><div class="metric-label">✈️ Vuelo</div><div class="metric-value" id="r-vuelo">$0.00</div><div class="metric-delta" id="r-vuelo-d">0 pers</div></div>
         <div class="metric-card"><div class="metric-label">🏗️ Plataformas</div><div class="metric-value" id="r-plat">$0.00</div></div>
-        <div class="metric-card" style="background:#fff8e1;border-color:#FFC107;"><div class="metric-label" style="color:#e65100;">Viáticos real</div><div class="metric-value" id="r-viat-real">$0.00</div></div>
-        <div class="metric-card" style="background:#fff8e1;border-color:#FF8F00;"><div class="metric-label" style="color:#e65100;">Ganancia viáticos 30%</div><div class="metric-value" id="r-viat-gan">$0.00</div></div>
+        <div class="metric-card" style="background:#fff8e1;border-color:#FFC107;"><div class="metric-label" style="color:#e65100;">Viáticos real (com+hosp)</div><div class="metric-value" id="r-viat-real">$0.00</div></div>
+        <div class="metric-card" style="background:#fff8e1;border-color:#FF8F00;"><div class="metric-label" style="color:#e65100;" id="r-viat-gan-label">Ganancia viáticos 30%</div><div class="metric-value" id="r-viat-gan">$0.00</div></div>
         <div class="metric-card"><div class="metric-label">Viáticos cobrado</div><div class="metric-value" id="r-viat">$0.00</div></div>
+        <div class="metric-card" style="background:#e3f2fd;border-color:#1976D2;"><div class="metric-label" style="color:#1565C0;">Movilidad real (auto+vuelo)</div><div class="metric-value" id="r-mov-real">$0.00</div></div>
+        <div class="metric-card" style="background:#e3f2fd;border-color:#1565C0;"><div class="metric-label" style="color:#1565C0;" id="r-mov-gan-label">Utilidad movilidad 40%</div><div class="metric-value" id="r-mov-gan">$0.00</div></div>
+        <div class="metric-card"><div class="metric-label">Movilidad cobrada</div><div class="metric-value" id="r-mov">$0.00</div></div>
         <div class="metric-card" style="background:#fff0f3;border-color:#C8102E;"><div class="metric-label" style="color:#C8102E;">🔩 Soportería</div><div class="metric-value" id="r-sop">$0.00</div><div class="metric-delta">Mat. de apoyo</div></div>
         <div class="metric-card highlight"><div class="metric-label">💰 TOTAL M.O.</div><div class="metric-value" id="r-total">$0.00</div></div>
       </div>
@@ -1300,24 +1310,24 @@ function calcularMO(inp) {
   const precio_vuelo = +inp.precio_vuelo||0;
   const personas_vuelo = +inp.personas_vuelo||0;
   const total_vuelo = precio_vuelo*personas_vuelo;
-  // ── Movilidad (auto + vuelo) con utilidad global única ─────────────────────
+  // ── Movilidad (auto + vuelo) — bloque independiente con su 40% ────────────
   const total_movilidad_real = total_automovil + total_vuelo;
   const utilidad_movilidad   = total_movilidad_real * UTIL_MOVILIDAD_PCT;
   const total_movilidad      = total_movilidad_real + utilidad_movilidad;
-  // ── Comidas + hospedaje con 30% de ganancia ────────────────────────────────
-  const subtotal_alimentacion = comidas_total + hospedaje_total;
-  const ganancia_alimentacion = subtotal_alimentacion * GANANCIA_VIATICOS_PCT;
-  // ── Viáticos totales (alimentación + movilidad, ambos con su utilidad) ─────
-  const total_viaticos_real = subtotal_alimentacion + total_movilidad_real;
-  const ganancia_viaticos   = ganancia_alimentacion + utilidad_movilidad;
+  // ── Viáticos = SOLO comidas + hospedaje con su 30% ─────────────────────────
+  const total_viaticos_real = comidas_total + hospedaje_total;
+  const ganancia_viaticos   = total_viaticos_real * GANANCIA_VIATICOS_PCT;
   const total_viaticos      = total_viaticos_real + ganancia_viaticos; // cobrado al cliente
+  // alias legacy (compatibilidad con Excel y otros lugares)
+  const subtotal_alimentacion = total_viaticos_real;
+  const ganancia_alimentacion = ganancia_viaticos;
   const usar_esc = !!inp.usar_escalera, usar_gen = !!inp.usar_gennie;
   const usar_elev = !!inp.usar_elevador, usar_plat = !!inp.usar_plat_tijera;
   const embarque = +inp.embarque||0;
   const d_esc=COSTO_ESCALERA_MES/30, d_gen=COSTO_GENNIE_MES/30, d_elev=COSTO_ELEVADOR_MES/30, d_plat=COSTO_PLAT_TIJERA_MES/30;
   const t_esc=usar_esc?d_esc*dias:0, t_gen=usar_gen?d_gen*dias:0, t_elev=usar_elev?d_elev*dias:0, t_plat=usar_plat?d_plat*dias:0;
   const total_plataformas = t_esc+t_gen+t_elev+t_plat+embarque;
-  const total_mo_equipo_viaticos = costo_mo+total_viaticos+total_plataformas;
+  const total_mo_equipo_viaticos = costo_mo+total_viaticos+total_movilidad+total_plataformas;
   return {
     n_tec,n_aya,n_ing,n_seg,tec_total,aya_total,ing_total,seg_total,
     total_personas,total_mensual,dias,costo_mo,costo_mo_real,utilidad_mo,
@@ -1388,14 +1398,16 @@ function updateMO() {
   el('vuelo-result').innerHTML = r.total_vuelo > 0
     ? `<b>Total Vuelo: ${fmt(r.total_vuelo)}</b> · ${r.personas_vuelo} pers × ${fmt(r.precio_vuelo)}/vuelo redondo`
     : `<b>Total Vuelo: $0.00</b>`;
-  // Viáticos con ganancia (dos utilidades por separado)
+  // Viáticos (solo comidas + hospedaje + 30%)
   el('viat-real').textContent = fmt(r.total_viaticos_real);
-  el('viat-gan-ali-label').textContent = `+ Ganancia ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}% (comidas + hospedaje)`;
-  el('viat-gan-ali').textContent = fmt(r.ganancia_alimentacion);
-  el('viat-gan-mov-label').textContent = `+ Utilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}% (movilidad: auto + vuelo)`;
-  el('viat-gan-mov').textContent = fmt(r.utilidad_movilidad);
+  el('viat-gan-label').textContent = `+ Ganancia ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}%`;
   el('viat-gan').textContent = fmt(r.ganancia_viaticos);
   el('viaticos-total').textContent = fmt(r.total_viaticos);
+  // Movilidad (auto + vuelo + 40%)
+  el('mov-real').textContent = fmt(r.total_movilidad_real);
+  el('mov-gan-label').textContent = `+ Utilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}%`;
+  el('mov-gan').textContent = fmt(r.utilidad_movilidad);
+  el('movilidad-total').textContent = fmt(r.total_movilidad);
   // Equipo
   const dias_label = fmtNum(r.dias,0);
   el('info-escalera').textContent = `${fmt(COSTO_ESCALERA_MES)}/mes → ${fmt(r.d_esc)}/día → ${fmt(r.t_esc)} total`;
@@ -1416,8 +1428,13 @@ function updateMO() {
   el('r-vuelo-d').textContent = `${r.personas_vuelo} pers`;
   el('r-plat').textContent = fmt(r.total_plataformas);
   el('r-viat-real').textContent = fmt(r.total_viaticos_real);
+  el('r-viat-gan-label').textContent = `Ganancia viáticos ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}%`;
   el('r-viat-gan').textContent = fmt(r.ganancia_viaticos);
   el('r-viat').textContent = fmt(r.total_viaticos);
+  el('r-mov-real').textContent = fmt(r.total_movilidad_real);
+  el('r-mov-gan-label').textContent = `Utilidad movilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}%`;
+  el('r-mov-gan').textContent = fmt(r.utilidad_movilidad);
+  el('r-mov').textContent = fmt(r.total_movilidad);
   el('r-total').textContent = fmt(r.total_mo_equipo_viaticos);
   updateTotales();
 }
@@ -2357,15 +2374,21 @@ function buildMOSheet(wb, mo) {
   if (mo.costo_desgaste_km>0) { setCell(r,0,xlCell(`Desgaste (${fmtNum(mo.km_total,0)} km × $${mo.costo_desgaste_km}/km)`,false,'FFFFFF',null,null,'left')); merge(r,0,r,4); val(r,5,mo.desgaste_total,MXN); r++; }
   setCell(r,0,xlCell('Total Automóvil',true,ltF,null,null,'right')); merge(r,0,r,4); val(r,5,mo.total_automovil,MXN,true,ltF); r+=2;
 
-  // Total viáticos con dos utilidades por separado
-  setCell(r,0,xlCell('Sub-Viáticos costo real (Comidas + Hospedaje + Auto + Vuelo)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
+  // Viáticos = solo comidas + hospedaje
+  setCell(r,0,xlCell('Sub-Viáticos costo real (Comidas + Hospedaje)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
   setCell(r,5,xlCell(mo.total_viaticos_real,true,ltF,'000000',MXN,'right')); r++;
-  setCell(r,0,xlCell(`+ Ganancia ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}% (comidas + hospedaje)`,false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.ganancia_alimentacion,false,'FFF8E1','E65100',MXN,'right')); r++;
-  setCell(r,0,xlCell(`+ Utilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}% (movilidad: auto + vuelo)`,false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
-  setCell(r,5,xlCell(mo.utilidad_movilidad,false,'FFF8E1','E65100',MXN,'right')); r++;
+  setCell(r,0,xlCell(`+ Ganancia ${(GANANCIA_VIATICOS_PCT*100).toFixed(0)}% sobre viáticos`,false,'FFF8E1','E65100',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.ganancia_viaticos,false,'FFF8E1','E65100',MXN,'right')); r++;
   setCell(r,0,xlCell('TOTAL VIÁTICOS COBRADO AL CLIENTE',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
   setCell(r,5,xlCell(mo.total_viaticos,true,orangeF,'000000',MXN,'right')); r+=2;
+
+  // Movilidad (Auto + Vuelo) — bloque independiente
+  setCell(r,0,xlCell('Sub-Movilidad costo real (Automóvil + Vuelo)',true,ltF,'000000',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.total_movilidad_real,true,ltF,'000000',MXN,'right')); r++;
+  setCell(r,0,xlCell(`+ Utilidad ${(UTIL_MOVILIDAD_PCT*100).toFixed(0)}% sobre movilidad`,false,'E3F2FD','1565C0',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.utilidad_movilidad,false,'E3F2FD','1565C0',MXN,'right')); r++;
+  setCell(r,0,xlCell('TOTAL MOVILIDAD COBRADA AL CLIENTE',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(mo.total_movilidad,true,orangeF,'000000',MXN,'right')); r+=2;
 
   // Equipo
   hdr(r,0,5,'EQUIPO DE MANIOBRAS Y ELEVACIÓN'); r++;
@@ -2387,11 +2410,11 @@ function buildMOSheet(wb, mo) {
 
   // Resumen
   hdr(r,0,5,'RESUMEN GENERAL'); r++;
-  ['Total M.O.','Total Viáticos','Total Equipos','Total Material','TOTAL PROYECTO'].forEach((lbl,c)=>hdr(r,c,c,lbl)); r++;
+  ['Total M.O.','Total Viáticos','Total Movilidad','Total Equipos','Total Material','TOTAL PROYECTO'].forEach((lbl,c)=>hdr(r,c,c,lbl)); r++;
   const subtot = mo.subtotal_material||0;
-  const totProyecto = mo.costo_mo + mo.total_viaticos + mo.total_plataformas + subtot;
-  [mo.costo_mo,mo.total_viaticos,mo.total_plataformas,subtot,totProyecto].forEach((v,c) => {
-    setCell(r,c,xlCell(v,c===4,c===4?orangeF:'FFFFFF','000000',MXN,'right'));
+  const totProyecto = mo.costo_mo + mo.total_viaticos + mo.total_movilidad + mo.total_plataformas + subtot;
+  [mo.costo_mo,mo.total_viaticos,mo.total_movilidad,mo.total_plataformas,subtot,totProyecto].forEach((v,c) => {
+    setCell(r,c,xlCell(v,c===5,c===5?orangeF:'FFFFFF','000000',MXN,'right'));
   }); r+=2;
 
   // Total final
