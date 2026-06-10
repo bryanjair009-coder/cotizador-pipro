@@ -1936,6 +1936,145 @@ function generatePDF() {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
   doc.text(is_ip ? 'Departamento de Ingeniería' : 'Departamento de Ingeniería de Tubería', ML, y);
 
+  // ── TÉRMINOS Y CONDICIONES (NUEVA PÁGINA) ────────────────────────────────────
+  addNewPage();
+  let yt = HTOP + 2;
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...RED);
+  doc.text('TÉRMINOS Y CONDICIONES DE VENTA', PW / 2, yt, { align: 'center' });
+  yt += 2.5;
+  doc.setDrawColor(...RED); doc.setLineWidth(0.5);
+  doc.line(PW / 2 - 55, yt, PW / 2 + 55, yt);
+  yt += 5;
+
+  function tycSanitize(s) {
+    return String(s)
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/[–—]/g, '-')
+      .replace(/…/g, '...')
+      .replace(/ /g, ' ')
+      .replace(/●/g, '•');
+  }
+  function tycPara(txt, yy, opts) {
+    opts = opts || {};
+    const sz = opts.sz || 7.3;
+    const bold = !!opts.bold;
+    const indent = opts.indent || 0;
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setFontSize(sz);
+    doc.setTextColor(...(opts.color || DARK));
+    const lines = doc.splitTextToSize(tycSanitize(txt), PW - ML * 2 - indent);
+    const lh = sz * 0.36 + 1.3;
+    if (yy + lines.length * lh > FBOT - 6) {
+      addNewPage();
+      yy = HTOP + 2;
+    }
+    doc.text(lines, ML + indent, yy);
+    return yy + lines.length * lh + (opts.gap == null ? 1.6 : opts.gap);
+  }
+  function tycHeading(txt, yy) {
+    if (yy + 8 > FBOT - 6) { addNewPage(); yy = HTOP + 2; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.2); doc.setTextColor(...RED);
+    doc.text(tycSanitize(txt), ML, yy);
+    return yy + 4.5;
+  }
+
+  const TYC = [
+    { txt: 'Los Términos y Condiciones de Venta que aquí se contienen (en adelante, el "Contrato") son los aplicables a la venta por parte de Ingersoll-Rand, S.A. de C.V. e Ingersoll Rand de México, S. de R.L. de C.V., (en adelante, la "Compañía") a la persona, entidad o sociedad a la que se realice la oferta (en adelante el "Comprador"), de los productos como equipos, piezas o servicios que dicha oferta se refiera (en adelante, el "Equipo").' },
+    { txt: 'Los presentes TÉRMINOS Y CONDICIONES no son susceptibles de cambios ni modificación alguna por parte de EL CLIENTE, por lo que éste los acepta en todos sus términos. LA COMPAÑÍA podrá modificar o cambiar las presentes CONDICIONES en cualquier momento, previo aviso por escrito a EL CLIENTE.' },
+    { txt: 'De igual forma a la emisión de los presentes TYC, EL CLIENTE conoce y se adhiere al Código de Conducta de LA COMPAÑÍA y/o sus empresas filiales, reglamentos o cualquier otra política o disposición que en lo sucesivo LA COMPAÑÍA genere y haga de conocimiento a sus clientes, quienes al suscribir el presente instrumento se obligan a cumplirlos en un ambiente de respeto, dignidad y libre de todo tipo de violencia física, moral, sexual o de otra índole, coerción, hostigamiento o acoso sexual, acoso laboral y discriminación.' },
+    { h: 'OBJETO' },
+    { txt: 'El objeto de los presentes TYC es establecer la calidad, cantidad y especie de los bienes y/o calidad y especificaciones de los servicios que LA COMPAÑÍA suministre o preste a EL CLIENTE, así como las CONDICIONES que serán aplicables a la relación comercial entre EL CLIENTE y LA COMPAÑÍA. En el supuesto en el que EL CLIENTE y LA COMPAÑÍA hayan celebrado un contrato por escrito debidamente firmado, ambas partes acuerdan que prevalecerán las cláusulas de aquel sobre estas CONDICIONES.' },
+    { txt: 'Para el caso en que EL CLIENTE y LA COMPAÑÍA no hubieren celebrado contrato por escrito debidamente firmado, prevalecerá el contenido de los TYC. Cualquier condición especial pactada entre EL CLIENTE y LA COMPAÑÍA, respecto de los bienes y/o servicios objeto de los presentes TYC deberá hacerse constar por escrito en la CARÁTULA.' },
+    { h: 'DISPOSICIONES APLICABLES A LOS TÉRMINOS Y CONDICIONES' },
+    { txt: '• Pagos: Los precios de la cotización son en la moneda indicada en la página 2 y deben agregárseles el IVA y los impuestos que correspondan y que estén marcados por la ley fiscal vigente de México.' },
+    { txt: '• Lugar de Entrega: En el domicilio de las instalaciones del cliente o en el domicilio que para tales efectos indique el cliente. La entrega NO incluye el servicio de descarga NI instalación.' },
+    { txt: '• Términos de pago: Las condiciones de pago de esta propuesta son de "Contado"; en caso de requerir condiciones de crédito le pedimos documentar su expediente de crédito con nuestro representante de ventas, trámite que iniciará con la firma de la solicitud de crédito y documentación requerida. Una vez aprobada la línea de crédito, las condiciones de pago serán como máximo de 30 (treinta) días naturales a partir de la entrega del producto.' },
+    { txt: '• Anticipo: LA COMPAÑÍA se reserva el derecho de incluir el pago de un anticipo en esta propuesta dependiendo del alcance y/o tipo de materiales cotizados.' },
+    { txt: '• Tiempo de Entrega: El tiempo de entrega correrá al día siguiente de haber recibido su orden de compra y después de que LA COMPAÑÍA cuente con el expediente completo de EL CLIENTE y que éste haya realizado el pago correspondiente a los servicios ofertados.' },
+    { txt: '• La vigencia de esta cotización es de 30 (treinta) días naturales a partir de la fecha de su emisión.' },
+    { txt: '• La garantía de las partes es de 6 (seis) meses después de la instalación de las mismas, o 12 (doce) meses después del embarque (lo que suceda primero). La garantía sólo es por defectos de fabricación.' },
+    { txt: '• El alcance de la cotización es únicamente el descrito en la misma. Para el caso de mantenimientos y que durante el servicio se detecte algún daño oculto u otros servicios que se requieran, se cotizarán por separado.' },
+    { txt: '• Cambios y devoluciones: las partes acuerdan que no hay cambios ni devoluciones en piezas suministradas por La Compañía a El Cliente si éste indicó claramente en su orden el número de parte. En caso de error de La Compañía al hacer la entrega, tendrá un plazo máximo de 5 (cinco) días naturales para hacer el cambio sin costo alguno para el Cliente. Si en ese plazo El Cliente no hace reclamo alguno, se tendrá como consentimiento y aceptación de las piezas.' },
+    { txt: '• El servicio considera dentro del área metropolitana y días laborables de Lunes a Viernes en horario de 8:30 a.m. a 5:30 p.m.' },
+    { h: 'DISPOSICIONES GENERALES' },
+    { txt: 'Salvo que se acuerde por escrito lo contrario, se entenderá que la Compañía realiza los trabajos acordados procediendo según los términos y condiciones contenidos en el presente instrumento. DICHOS TÉRMINOS Y CONDICIONES PREVALECERÁN SOBRE CUALESQUIERA OTROS TÉRMINOS PROPUESTOS POR EL COMPRADOR, SALVO QUE LA COMPAÑÍA MANIFIESTE SU ACUERDO EXPRESO A LOS MISMOS. NINGÚN ACTO DE LA COMPAÑÍA PODRÁ ENTENDERSE COMO CONSTITUTIVO DE LA ACEPTACIÓN DE NINGUNO DE LOS TÉRMINOS PROPUESTOS POR EL COMPRADOR.' },
+    { txt: 'Las Condiciones de Pago se entenderán, salvo que las partes acuerden lo contrario por escrito, pagaderas en su totalidad por cheque, transferencia bancaria a la cuenta bancaria de La Compañía o cualquier otro medio de pago que La Compañía haya aceptado por escrito y a la entrega de los Equipos o la prestación de los servicios. Todos los precios están sujetos a modificaciones desde la colocación de la orden de compra hasta la fecha de la entrega, previo aviso al cliente al menos 3 (tres) días naturales de anticipación a la fecha de entrega de la factura.' },
+    { txt: 'La Compañía se reserva el derecho a cobrar intereses moratorios del 2% (dos por ciento) mensual sobre las cantidades totales adeudadas o su parte proporcional durante el periodo de mora.' },
+    { txt: 'En el caso de pago a plazos, el incumplimiento de alguno de los pagos a los que el cliente está obligado implicará que todas las demás cantidades pagaderas en virtud del presente Contrato serán exigibles de forma inmediata y líquida.' },
+    { txt: 'El Comprador deberá notificar a la Compañía cualquier error que observe en las facturas en un plazo de 7 (siete) días naturales desde su recepción. El incumplimiento de dicha comunicación significará que el Comprador entiende como aceptados y correctos los términos de la factura. Cuando exista un error en el precio y la Compañía comunique dicho error al Comprador, antes o después del envío, el Comprador abonará el precio correcto del Equipo.' },
+    { h: '2. TITULARIDAD' },
+    { txt: 'La titularidad legal, derecho de posesión y control, propiedad y demás potestades derivadas de la misma (la "titularidad") serán transmitidas al Comprador de la forma siguiente:' },
+    { txt: '(a) Hasta el pago total de todas las cantidades adeudadas a la Compañía: (i) La Compañía conservará la titularidad de los Equipos suministrados, aun cuando hayan sido instalados o incorporados a otros bienes del Comprador o de un tercero. (ii) El Comprador tendrá libertad para vender los Equipos a precio de mercado como parte principal de su actividad mercantil siempre y cuando hayan sido pagados totalmente. Si la Compañía tiene motivos para pensar que el Comprador pretende designar administrador, liquidador o síndico o celebre acuerdo análogo con la mayoría de sus acreedores, podrá retener el producto de las ventas en su totalidad. (iii) La Compañía, sus agentes y empleados tendrán el derecho irrevocable de entrar en las instalaciones del Comprador para inspeccionar o recobrar tales Equipos.' },
+    { txt: '(b) Hasta la transmisión de la titularidad, el Comprador conservará los Equipos en concepto de depositario de la Compañía; los almacenará de forma independiente del resto de Equipo, sin coste alguno para la Compañía; se abstendrá de destruir o alterar las marcas identificativas; y mantendrá los Equipos asegurados frente a cualquier riesgo, en nombre de la Compañía y por su valor total.' },
+    { txt: '(c) En caso de que las cantidades adeudadas fueran satisfechas antes de la entrega, la titularidad se transmitirá en el momento de su descarga en el puerto correspondiente del país de destino. (d) La Compañía tendrá derecho a recuperar las cantidades pagadas por los Equipos siempre que no haya transmitido la titularidad de los mismos.' },
+    { h: '3. RIESGO' },
+    { txt: 'El Comprador asumirá el riesgo de pérdida del Equipo desde el momento del primer intento de envío por parte de la Compañía al Comprador, su representante o transportista, aun cuando la propiedad del mismo no haya sido transmitida.' },
+    { h: '4. CESIÓN' },
+    { txt: 'El Comprador no podrá ceder o transferir el presente Contrato sin el previo consentimiento expreso de la Compañía. La Compañía podrá ceder o transferir el presente Contrato sin necesidad de consentimiento previo, incluyendo los derechos de cobro de cada orden de compra colocada por el comprador.' },
+    { h: '5. TRANSPORTE' },
+    { txt: '(a) Salvo que el Comprador especifique otra cosa, la Compañía elegirá la forma de transporte. A solicitud del Comprador, la Compañía obtendrá espacio de flete marítimo, seguro marítimo, seguro de riesgo de guerra y servicios de agencia de transportes, siendo todos los gastos de cuenta del Comprador.' },
+    { txt: '(b) Todos los envíos se realizarán por cuenta del Comprador. Si se retrasaran por retrasos en el pago o por tardanza del Comprador en dar instrucciones de envío, serán de cuenta del Comprador los costos de almacenamiento. En caso de retraso por causas imputables al Comprador y el Equipo estuviera almacenado en instalaciones de la Compañía, el Comprador satisfará por tal concepto una cantidad mínima igual al 0.5% mensual del importe facturado.' },
+    { txt: '(c) Podrán realizarse envíos parciales debiendo efectuar el pago de los mismos. (d) El Comprador deberá realizar las reclamaciones por defecto en la cantidad de las mercancías dentro de los dos (2) días siguientes a la recepción de los Equipos.' },
+    { h: '6. ENTREGA Y RETRASOS' },
+    { txt: 'Las fechas de entrega son estimativas. La Compañía no será responsable de la pérdida, daños, retención, retraso o pérdida de una orden como consecuencia de caso fortuito o de fuerza mayor, actos de terrorismo, guerra, disturbios, insurrección civil, pandemias, huelgas o paros laborales, incendios, accidentes, actos de la autoridad civil o militar, embargos, decomisos, retraso en el transporte, escasez, retraso en el suministro de los materiales, actos del Comprador o cualquier otra causa que escape razonablemente al control de la Compañía. La aceptación del envío constituye una renuncia a cualesquiera reclamaciones por los daños causados por el retraso en la entrega.' },
+    { txt: 'La Compañía notificará al Comprador por escrito que el trabajo está listo para inspección final y aceptación. El Comprador y la Compañía deberán realizar la inspección dentro de los 5 (cinco) días calendario siguientes. Si en un plazo de 90 (noventa) días calendario a partir de la fecha señalada como fecha de presentación, el Comprador no entrega el acta de aceptación firmada a la Compañía y no proporciona objeciones aceptables por escrito, el trabajo se considerará como aceptado en definitiva.' },
+    { h: '7. IMPUESTOS' },
+    { txt: 'El Comprador deberá pagar el Impuesto al Valor Agregado o cualesquiera otros impuestos sobre ventas, así como las tasas y aranceles de la naturaleza que sean, que graven el precio de compra del Equipo, salvo que se acuerde otra cosa.' },
+    { h: '8. PAGO' },
+    { txt: '(a) El Comprador acuerda no llevar a cabo ningún tipo de deducción o retención sobre las cantidades adeudadas a la Compañía, salvo que la Compañía haya emitido una nota de crédito por la cantidad de dicha deducción o retención. (b) El pago deberá realizarse en la moneda reflejada en la orden de compra o en la factura.' },
+    { h: '9. PATENTES' },
+    { txt: 'La Compañía asumirá la defensa de cualquier acción legal o procedimiento iniciado contra el Comprador con causa en una reclamación basada en la infracción, con el uso de los Equipos fabricados por la Compañía y suministrados en virtud del presente Contrato, de cualquier patente, siempre que la Compañía reciba notificación inmediata y por escrito al respecto y se le proporcionen facultades, información y asistencia para dicha defensa. En caso de reclamación por infracción, la Compañía podrá, a su criterio, recabar para el Comprador el derecho a continuar utilizando el Equipo, modificarlo, sustituirlo o retirarlo y devolver el precio de compra.' },
+    { h: '10. ESPECIFICACIONES Y MEJORAS' },
+    { txt: 'Salvo que se acuerde lo contrario, las especificaciones de la Compañía relativas a los Equipos podrán ser objeto de modificación por parte de la Compañía durante su fabricación sin necesidad de comunicación previa al Comprador. La Compañía se reserva el derecho a introducir cambios en el diseño, o de cualquier otro tipo, cuando considere que constituyen una mejora para los Equipos, sin estar obligada a introducir dichos cambios con efectos retroactivos.' },
+    { h: '11. GARANTÍAS' },
+    { txt: '(a) Salvo que de la documentación de la garantía se deduzca otra cosa, la Compañía garantiza: (a) que el Equipo completo vendido no presenta defecto alguno en los materiales ni en la mano de obra durante 12 meses desde la entrega al Comprador o 18 meses desde el despacho desde la fábrica (lo que ocurra primero); (b) que las piezas vendidas no presentan defecto alguno durante 6 meses desde el envío; y (c) que las piezas reparadas no presentan defecto alguno durante 3 meses.' },
+    { txt: '(b) Dentro de dichos plazos, la Compañía suministrará una pieza nueva o reparada, a su elección, en sustitución de cualquier pieza defectuosa. Esta garantía no será de aplicación a defectos que tengan su causa en utilización abusiva o incorrecta, reparaciones negligentes, corrosión, erosión, deterioro normal, alteraciones o modificaciones sin consentimiento de la Compañía, o incumplimiento de los procedimientos de mantenimiento. Los trabajos de mantenimiento y reparación deberán ser realizados por un distribuidor autorizado de la Compañía con piezas originales aprobadas.' },
+    { txt: '(c) La garantía no será de aplicación a los motores y mecanismos fabricados por terceros, los cuales dispondrán de la garantía correspondiente prestada directamente al usuario inicial por sus respectivos fabricantes.' },
+    { txt: '(d) LA COMPAÑÍA EXCLUYE CUALESQUIERA OTRAS CONDICIONES, GARANTÍAS O DECLARACIONES DE CUALQUIER OTRA NATURALEZA, EXPRESAS O IMPLÍCITAS, LEGALES O DE CUALQUIER OTRO TIPO (EXCEPTO LAS RELATIVAS A LA TITULARIDAD), INCLUYENDO TODAS LAS GARANTÍAS IMPLÍCITAS Y CONDICIONES RELATIVAS A LA APTITUD PARA LA VENTA, SATISFACCIÓN CON LA CALIDAD Y ADECUACIÓN DEL EQUIPO PARA UN DETERMINADO FIN.' },
+    { h: '12. LIMITACIÓN DE RESPONSABILIDAD' },
+    { txt: '(a) Los recursos con que cuentan las partes se establecen en el presente Contrato. (b) La Compañía (o sus filiales) no será responsable ante el Comprador o sus clientes por lucro cesante, pérdida de ingresos o volumen de negocio, pérdida de fondo de comercio o cualquier otra pérdida o daño específico, incidental, indirecto o derivado, ni por acto ilícito (incluyendo negligencia) o incumplimiento del contrato, salvo por fraude, daños personales o fallecimiento causado por su negligencia.' },
+    { txt: '(c) Sin perjuicio de lo anterior, la responsabilidad máxima de la Compañía frente al Comprador por cada siniestro o serie de siniestros relacionados, no excederá del precio de compra del equipo o del precio del servicio sobre cuya base se determine la responsabilidad. (d) Ni el Comprador ni ninguna sociedad filial o cesionaria tendrá derecho a compensación alguna, salvo que se estipule lo contrario. (e) Las disposiciones del presente artículo seguirán siendo aplicables tras la terminación del Contrato.' },
+    { h: '13. CONFORMIDAD' },
+    { txt: 'El Comprador no podrá vender, exportar o re-exportar el Equipo, ni directa ni indirectamente, a personas o territorios prohibidos por las normas que regulan la exportación en los Estados Unidos de América o en la Unión Europea, o por cualquier otra normativa sobre exportación que resulte aplicable.' },
+    { h: '14. INFRACCIÓN DE LA LEY' },
+    { txt: 'La Compañía no estará obligada a suscribir ninguna condición o disposición de una orden de compra, presupuesto, oferta, carta de crédito o documento de análoga naturaleza, ni ninguna disposición legal o práctica que pudiera implicar el incumplimiento por parte de la Compañía, su matriz o cualquiera de sus filiales, de las leyes de exportación, de la legislación fiscal, o de la normativa del país en el que se fabrican los Equipos o desde el que se exportan.' },
+    { h: '15. RESPONSABILIDAD NUCLEAR' },
+    { txt: 'En caso de que los Equipos vendidos en virtud del presente contrato vayan a ser utilizados en una planta nuclear, el Comprador y/o el Propietario de la planta eximen de toda responsabilidad y acuerdan indemnizar a la Compañía y a sus proveedores por cualesquiera daños nucleares que se produzcan tanto dentro como fuera de la planta, incluyendo la pérdida de uso.' },
+    { h: '16. SISTEMA ELECTRÓNICO DE PEDIDOS' },
+    { txt: 'En el caso de que la venta se haya concluido a través del sistema electrónico de pedidos de la Compañía: (a) La utilización del Sistema precisará el suministro de una contraseña de usuario. El Comprador se compromete a mantener en secreto su contraseña y demás medidas de protección. (b) Toda la información suministrada a través del Sistema tiene carácter Confidencial y no podrá ser comunicada a terceros. (c) Los datos personales podrán ser procesados conforme a la legislación aplicable.' },
+    { h: '17. EJECUCIÓN' },
+    { txt: 'La Compañía no estará vinculada a contrato o modificación alguna hasta su aprobación por escrito por parte de alguno de sus directivos. Una vez aprobado, el Contrato sustituirá a toda comunicación anterior, verbal o escrita.' },
+    { h: '18. CANCELACIÓN DE ÓRDENES' },
+    { txt: 'En el caso de cancelación de una Orden de Compra ("OC") por parte del Comprador, este deberá pagar a la Compañía una cuota de cancelación de un monto equivalente a los costos actuales incurridos más un porcentaje del valor de la OC para cubrir los gastos de ventas y administrativos. El porcentaje se basa en la proporción de tiempo transcurrido desde la fecha de la Orden de Compra a la fecha de programación original del envío.' },
+    { h: '19. CONFIDENCIALIDAD' },
+    { txt: 'Las Partes convienen en que cada una por su parte guardará estricta confidencialidad con relación a la información que reciban una de la otra; en caso contrario, la parte afectada podrá ejercer las acciones civiles, penales y administrativas a que el hecho dé lugar, independientemente de ser causa de rescisión. Las partes se obligan a tratar los datos personales conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares y su Reglamento.' },
+    { h: '20. FIRMA ELECTRÓNICA' },
+    { txt: 'Los presentes términos y condiciones serán de manera electrónica, y surtirán los mismos efectos jurídicos como si constara por firma autógrafa, de conformidad con lo dispuesto en los artículos 89 y 89 bis del Código de Comercio, la Ley de Firma Electrónica Avanzada y la Norma Oficial Mexicana 151. Las Partes otorgan su pleno consentimiento al adoptar esta modalidad, obligándose legalmente en todos los términos aquí especificados.' },
+    { h: '21. SERVICIOS ESPECIALIZADOS' },
+    { txt: 'Ingersoll Rand se encuentra inscrita en el Padrón Público de Prestadores de Servicios u Obras Especializadas habilitado por la Secretaría de Trabajo y Previsión Social, vigente a la fecha de celebración del presente Contrato. La Compañía se obliga a notificar al Cliente por escrito en un término de 3 (tres) días naturales desde que tenga conocimiento sobre la cancelación o la negación de renovación del registro.' },
+    { txt: 'La Compañía proporcionará cuatrimestralmente la información requerida ante el IMSS e INFONAVIT (datos generales, monto de aportaciones, información de trabajadores, salario base de cotización, copia del registro emitido por la STPS), así como los comprobantes fiscales por concepto de pago de salarios, recibos de retenciones de ISR, recibos de cuotas obrero-patronales y aportaciones de vivienda, declaración de IVA y DIOT, conforme a los plazos previstos en la legislación aplicable.' },
+    { txt: 'AUSENCIA DE RELACIÓN LABORAL. La Compañía es un contratista independiente. Este Contrato no constituye una relación laboral de acuerdo con la Ley Federal del Trabajo; Ingersoll Rand asume la responsabilidad total de sus empleados y/o subcontratistas (salarios, prestaciones, indemnizaciones, liquidaciones, impuestos y demás obligaciones). En consecuencia, el Cliente no es responsable de dichas obligaciones y La Compañía indemnizará y sacará en paz y a salvo al Cliente de toda responsabilidad por demandas y/o reclamaciones.' },
+    { h: '22. JURISDICCIÓN Y LEY APLICABLE' },
+    { txt: '(a) La Compañía y el Comprador manifiestan de mutuo acuerdo que el presente contrato ha sido celebrado en México, y que habrá de interpretarse y estar sometido a la legislación mexicana. (b) Las partes convienen excluir expresamente la aplicación de la Convención de las Naciones Unidas sobre Venta Internacional de Mercancías. (c) Las partes acuerdan de forma irrevocable someter cualquier cuestión o procedimiento judicial relativo al presente Contrato a la jurisdicción de los tribunales de Ciudad de México, renunciando expresamente el Comprador a formular cualquier excepción por incompetencia o falta de jurisdicción. (d) No obstante, la Compañía tendrá derecho a incoar el procedimiento ante cualquier otro juzgado o tribunal que tenga jurisdicción.' },
+  ];
+
+  TYC.forEach(item => {
+    if (item.h) yt = tycHeading(item.h, yt);
+    else yt = tycPara(item.txt, yt);
+  });
+
+  // Pie aceptación
+  yt = checkY(yt, 14);
+  yt += 3;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+  doc.line(ML, yt, PW - ML, yt);
+  yt += 4;
+  doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+  doc.text('Octubre 2025  ·  La aceptación de la presente cotización implica la aceptación íntegra de los Términos y Condiciones de Venta aquí contenidos.',
+    PW / 2, yt, { align: 'center' });
+
   const fn = (cliente.folio || 'cotizacion').replace(/[\/:*?"<>|]/g, '_') + '.pdf';
   doc.save(fn);
   toast('🖨 PDF descargado');
