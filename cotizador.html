@@ -956,6 +956,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 const ADMIN_PASSWORD = 'pipro2026';
 const GANANCIA_VIATICOS_PCT = 0.30;  // 30% ganancia sobre viáticos
 const UTIL_COMBUSTIBLE_PCT  = 0.15;  // 15% utilidad sobre combustible
+const UTIL_MO_FACTOR        = 2.5;   // ×2.5 utilidad sobre mano de obra (cobrado al cliente)
 
 const SUELDO_TECNICO    = 25723.065720;
 const SUELDO_AYUDANTE   = 15005.121670;
@@ -1198,7 +1199,9 @@ function calcularMO(inp) {
   const ing_total = n_ing*SUELDO_INGENIERO, seg_total = n_seg*SUELDO_SEGURISTA;
   const total_mensual = tec_total+aya_total+ing_total+seg_total;
   const dias = +inp.dias||0;
-  const costo_mo = (total_mensual/30)*dias;
+  const costo_mo_real = (total_mensual/30)*dias;
+  const utilidad_mo = costo_mo_real * (UTIL_MO_FACTOR - 1);
+  const costo_mo = costo_mo_real * UTIL_MO_FACTOR;
   const comidas_por_dia = +inp.comidas_por_dia||3, costo_comida = +inp.costo_comida||80;
   const comidas_total = total_personas*costo_comida*comidas_por_dia*dias;
   const req_hospe = !!inp.req_hospedaje;
@@ -1232,7 +1235,7 @@ function calcularMO(inp) {
   const total_mo_equipo_viaticos = costo_mo+total_viaticos+total_plataformas;
   return {
     n_tec,n_aya,n_ing,n_seg,tec_total,aya_total,ing_total,seg_total,
-    total_personas,total_mensual,dias,costo_mo,
+    total_personas,total_mensual,dias,costo_mo,costo_mo_real,utilidad_mo,
     comidas_por_dia,costo_comida,comidas_total,
     req_hospe,costo_hospe,noches_hospedaje,hospedaje_total,
     km_sencillo,n_viajes,km_total,rendimiento,costo_gas,litros,
@@ -1269,7 +1272,10 @@ function updateMO() {
   el('total-pers-box').innerHTML = `Total personas: <b>${r.total_personas}</b> (auto / avión → viáticos)`;
   el('total-mens-box').innerHTML = `Total mensual sueldos: <b>${fmt(r.total_mensual)}</b>`;
   // MO preview
-  el('costo-mo-preview').innerHTML = `<b>Costo M.O. = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días</b><br>
+  el('costo-mo-preview').innerHTML = `
+    <div style="font-size:.82rem;color:#555;">M.O. real = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días = <b>${fmt(r.costo_mo_real)}</b></div>
+    <div style="font-size:.82rem;color:#e65100;">+ Utilidad ×${UTIL_MO_FACTOR} (cliente paga ${UTIL_MO_FACTOR}× el costo real) = <b>${fmt(r.utilidad_mo)}</b></div>
+    <div style="font-size:.9rem;font-weight:700;margin-top:4px;border-top:1px solid #c8e6c9;padding-top:4px;">M.O. cobrado al cliente:</div>
     <span style="font-size:1.3rem;font-weight:700;color:#2e7d32;">${fmt(r.costo_mo)}</span>`;
   // Comidas
   el('sum-comidas').textContent = `🍽️ Comidas · (${r.total_personas} pers × ${fmtNum(r.dias,0)} días) = ${fmt(r.comidas_total)}`;
@@ -2215,11 +2221,18 @@ function buildMOSheet(wb, mo) {
 
   // Costos MO
   hdr(r,0,5,'COSTOS DE MANO DE OBRA'); r++;
-  hdr(r,0,1,'Puesto'); hdr(r,2,2,'Total sueldo'); hdr(r,3,3,'Días'); hdr(r,4,4,'Costo M.O.'); r++;
+  hdr(r,0,1,'Puesto'); hdr(r,2,2,'Total sueldo'); hdr(r,3,3,'Días'); hdr(r,4,4,'M.O. real'); r++;
   val(r,0,`Total mensual: ${fmt(mo.total_mensual)}`,null,false,'FFFFFF');
   merge(r,0,r,1);
   val(r,2,mo.total_mensual,MXN,true,ltF);
   val(r,3,mo.dias,'#,##0.0',true,greenF);
+  val(r,4,mo.costo_mo_real,MXN,true,ltF);
+  r++;
+  setCell(r,0,xlCell(`+ Utilidad M.O. ×${UTIL_MO_FACTOR} (cliente paga ${UTIL_MO_FACTOR}× el costo real)`,false,'FFF8E1','E65100',null,'right'));
+  merge(r,0,r,3);
+  val(r,4,mo.utilidad_mo,MXN,false,'FFF8E1'); r++;
+  setCell(r,0,xlCell('M.O. COBRADO AL CLIENTE',true,hdrF,'FFFFFF',null,'right'));
+  merge(r,0,r,3);
   val(r,4,mo.costo_mo,MXN,true,orangeF);
   r+=2;
 
