@@ -3826,6 +3826,10 @@ const _SOP_MAT = [
   { np: 'MP-12',               desc: 'Ménsula de 12" Perforada',                  precio: 0.00,   unidad: 'PZA' },
   { np: 'RPL-3/16-GAL',        desc: 'Rondana Plana 3/16" Galvanizado',           precio: 0.20,   unidad: 'PZA' },
   { np: 'TAQ-MAR-1/4',         desc: 'Taquete Mariposa 1/4"x3"',                 precio: 2.00,   unidad: 'PZA' },
+  // ── CONSUMIBLES ────────────────────────────────────────────────────────────
+  { np: 'TEFL-IND',            desc: 'Teflón tipo industrial',                    precio: 70.00,  unidad: 'PZA', cat: 'consumible' },
+  { np: 'SHELL-PER',           desc: 'Shellac Permatex',                          precio: 120.00, unidad: 'PZA', cat: 'consumible' },
+  { np: 'TYVEK',               desc: 'Tyvek',                                     precio: 145.00, unidad: 'PZA', cat: 'consumible' },
 ];
 
 // Reglas de cálculo por tipo de abrazadera
@@ -3907,6 +3911,7 @@ function calcSoporteria() {
   });
 
   // Renderizar TODOS los materiales con inputs editables
+  let firstConsumibleSeen = false;
   el('sop-tbody').innerHTML = _SOP_MAT.map((m, i) => {
     const isCalc = calcParts.has(m.np);
     const qty    = isCalc ? (autoQty[m.np] || 0) : (prevManual[m.np] || 0);
@@ -3914,7 +3919,18 @@ function calcSoporteria() {
     const active = qty > 0;
     const borderColor = active ? '#C8102E' : '#ccc';
     const bgColor     = active ? '#fff8f9' : '#fff';
-    return `<tr style="border-bottom:1px solid #f0f0f0;">
+    // Separador antes del primer consumible
+    let separator = '';
+    if (m.cat === 'consumible' && !firstConsumibleSeen) {
+      firstConsumibleSeen = true;
+      separator = `<tr style="background:#FFF3E0;border-top:2px solid #FB8C00;border-bottom:1px solid #FFB74D;">
+        <td colspan="7" style="padding:8px 12px;font-weight:700;color:#E65100;font-size:13px;letter-spacing:.5px;">
+          🧴 CONSUMIBLES
+        </td>
+      </tr>`;
+    }
+    const rowBg = m.cat === 'consumible' ? (active ? '#FFF8E1' : '#FFFDF7') : '';
+    return separator + `<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};">
       <td style="padding:7px 10px;color:#aaa;text-align:center;">${i + 1}</td>
       <td style="padding:7px 10px;font-family:monospace;font-size:11.5px;white-space:nowrap;">${m.np}</td>
       <td style="padding:7px 10px;">${m.desc}</td>
@@ -4117,6 +4133,8 @@ function downloadSoporteriaPDF() {
   // ── LISTA DE MATERIALES ───────────────────────────────────────────────────
   y = secTitle('LISTA DE MATERIALES DE SOPORTERÍA', y);
 
+  // Índice de la primera fila de consumibles (para separador en el PDF)
+  const firstConsumibleIdx = rows.findIndex(m => m.cat === 'consumible');
   const tableBody = rows.map((m, i) => [
     i + 1,
     m.np,
@@ -4151,6 +4169,15 @@ function downloadSoporteriaPDF() {
       6: { halign: 'right',  cellWidth: 26 },
     },
     didParseCell(data) {
+      if (data.section === 'body' && firstConsumibleIdx >= 0 && data.row.index >= firstConsumibleIdx) {
+        // Resalta consumibles con fondo amarillo claro
+        data.cell.styles.fillColor = [255, 248, 225];
+        if (data.row.index === firstConsumibleIdx) {
+          // Borde superior naranja en la primera fila de consumibles
+          data.cell.styles.lineColor = [251, 140, 0];
+          data.cell.styles.lineWidth = 0.4;
+        }
+      }
       if (data.section === 'foot') {
         if (data.row.index === 1) {
           data.cell.styles.textColor = [22, 110, 22];
