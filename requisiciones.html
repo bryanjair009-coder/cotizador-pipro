@@ -651,19 +651,80 @@ function App(){
   const[tab,setTab]=useState('new');
   const[dbErr,setDbErr]=useState('');
 
-  useEffect(()=>{(async()=>{
-    try{
-      const[reqs,clis,cnt]=await Promise.all([dbGetAll(),dbGetClientes(),dbGetCounter()]);
-      setRequisitions(reqs);
-      setClientes(clis);
-      setCompanies(clis.map(c=>c.nombre));
-      setCounter(cnt);
+  useEffect(()=>{
+    // Helper: aborta una promesa si tarda más de N ms (no aborta el fetch real,
+    // pero libera el flujo de carga para que la UI no quede colgada).
+    const withTimeout=(promise,ms,label)=>Promise.race([
+      promise,
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout '+ms+'ms en '+label)),ms))
+    ]);
+    // Red de seguridad: si por alguna razón nada responde, en 12s mostramos la UI.
+    const safetyTimer=setTimeout(()=>{
+      setDbErr(prev=>prev||'La carga inicial tardó demasiado. Mostrando datos parciales.');
       setLoaded(true);
-    }catch(e){
-      setDbErr('Error al cargar los datos: '+(e.message||e)+'. Si usas modo incógnito, prueba en una ventana normal.');
+    },12000);
+    (async()=>{
+      // Cargamos cada fuente por separado con su propio timeout para que
+      // un fallo en una no bloquee a las demás (Supabase lento, red caída, etc.)
+      const[reqsRes,clisRes,cntRes]=await Promise.allSettled([
+        withTimeout(dbGetAll(),     7000,'requisiciones'),
+        withTimeout(dbGetClientes(),7000,'clientes'),
+        withTimeout(dbGetCounter(), 5000,'contador de folios'),
+      ]);
+      const errs=[];
+
+      // Requisiciones — fallback a IndexedDB local si Supabase falla
+      if(reqsRes.status==='fulfilled'){
+        setRequisitions(reqsRes.value||[]);
+      }else{
+        errs.push('Requisiciones ('+(reqsRes.reason?.message||reqsRes.reason)+')');
+        try{
+          const rows=await withTimeout(idbGetAll(),3000,'idb requisiciones');
+          setRequisitions((rows||[]).sort((a,b)=>b.createdAt-a.createdAt));
+        }catch{/* sin datos locales tampoco — dejamos vacío */}
+      }
+
+      // Clientes — fallback a IndexedDB local
+      if(clisRes.status==='fulfilled'){
+        const list=clisRes.value||[];
+        setClientes(list);
+        setCompanies(list.map(c=>c.nombre));
+      }else{
+        errs.push('Clientes ('+(clisRes.reason?.message||clisRes.reason)+')');
+        try{
+          const names=await withTimeout(idbGetMeta('companies',[]),3000,'idb clientes');
+          if(Array.isArray(names)){
+            setClientes(names.map(n=>({nombre:n})));
+            setCompanies(names);
+          }
+        }catch{/* ignorar */}
+      }
+
+      // Contador — fallback a IndexedDB local o 0
+      if(cntRes.status==='fulfilled'){
+        setCounter(cntRes.value||0);
+      }else{
+        errs.push('Contador ('+(cntRes.reason?.message||cntRes.reason)+')');
+        try{
+          const c=await withTimeout(idbGetMeta('counter',0),2000,'idb counter');
+          setCounter(+c||0);
+        }catch{setCounter(0);}
+      }
+
+      if(errs.length){
+        setDbErr('Algunas fuentes no respondieron: '+errs.join(' · ')+'. Trabajando con respaldo local.');
+      }
+      clearTimeout(safetyTimer);
       setLoaded(true);
-    }
-  })();},[]);
+    })().catch(e=>{
+      // Cinturón y tirantes: si algo truena fuera del flow esperado, igual
+      // dejamos pasar al usuario para que pueda trabajar offline.
+      setDbErr('Error inesperado al cargar: '+(e?.message||e));
+      clearTimeout(safetyTimer);
+      setLoaded(true);
+    });
+    return()=>clearTimeout(safetyTimer);
+  },[]);
 
   const nextFolio=makeFolio(counter+1);
 
