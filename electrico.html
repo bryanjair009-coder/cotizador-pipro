@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Selección Eléctrica · NOM-001-SEDE-2012</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --gd-red:#C8102E;
+  --gd-dark:#1E1E26;
+  --gd-blue:#1F3864;
+  --gd-gray:#888;
+  --gd-lgray:#e0e0e0;
+  --radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
+body{background:#f4f6f8;color:#333;padding:18px;}
+
+h1{color:var(--gd-dark);font-size:1.4rem;margin-bottom:4px;}
+.subtitle{color:var(--gd-gray);font-size:.85rem;margin-bottom:18px;}
+
+.sec-title{
+  font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--gd-red);margin:22px 0 10px;padding-bottom:5px;
+  border-bottom:2px solid var(--gd-red);
+}
+.card{
+  background:#fff;border-radius:var(--radius);padding:16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:12px;
+}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
+label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-bottom:4px;}
+input,select{
+  width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;
+  font-size:.92rem;font-family:Arial,sans-serif;
+}
+input:focus,select:focus{
+  outline:none;border-color:var(--gd-red);box-shadow:0 0 0 3px rgba(200,16,46,.12);
+}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;border:none;border-radius:6px;
+  font-size:.92rem;font-weight:700;cursor:pointer;
+  transition:all .15s;
+}
+.btn-primary{background:var(--gd-red);color:#fff;}
+.btn-primary:hover{background:#a30d24;}
+.btn-secondary{background:var(--gd-blue);color:#fff;}
+.btn-secondary:hover{background:#13294a;}
+.btn-ghost{background:#fff;color:var(--gd-dark);border:1.5px solid var(--gd-lgray);}
+.btn-ghost:hover{background:#fafafa;border-color:var(--gd-red);color:var(--gd-red);}
+.btn-full{width:100%;justify-content:center;}
+
+.info-box{
+  background:#e3f2fd;border-left:4px solid #1976D2;padding:9px 12px;
+  border-radius:4px;font-size:.82rem;color:#1565C0;line-height:1.4;
+}
+.warn-box{
+  background:#FFF8E1;border-left:4px solid #FFA000;padding:9px 12px;
+  border-radius:4px;font-size:.82rem;color:#E65100;line-height:1.4;
+}
+.success-box{
+  background:#E8F5E9;border-left:4px solid #43A047;padding:9px 12px;
+  border-radius:4px;font-size:.82rem;color:#2E7D32;line-height:1.4;
+}
+
+/* Resultados */
+.result-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;
+  margin-top:14px;
+}
+.result-card{
+  background:#fff;border:1.5px solid var(--gd-lgray);border-radius:10px;
+  padding:14px;text-align:center;
+}
+.result-card.highlight{
+  background:linear-gradient(135deg,#fff8f9,#fff);
+  border-color:var(--gd-red);box-shadow:0 4px 12px rgba(200,16,46,.1);
+}
+.result-card.ok{background:linear-gradient(135deg,#F1F8E9,#fff);border-color:#43A047;}
+.result-card.warn{background:linear-gradient(135deg,#FFFDE7,#fff);border-color:#FFA000;}
+.result-card.bad{background:linear-gradient(135deg,#FFEBEE,#fff);border-color:#E53935;}
+.result-label{font-size:.72rem;text-transform:uppercase;color:#888;letter-spacing:.05em;margin-bottom:6px;font-weight:600;}
+.result-value{font-size:1.4rem;font-weight:800;color:var(--gd-dark);line-height:1.1;}
+.result-detail{font-size:.74rem;color:#888;margin-top:5px;}
+.result-card.highlight .result-value{color:var(--gd-red);}
+.result-card.ok .result-value{color:#2E7D32;}
+.result-card.warn .result-value{color:#E65100;}
+.result-card.bad .result-value{color:#C62828;}
+
+/* Tabla de detalles */
+.detail-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px;}
+.detail-table th{background:var(--gd-blue);color:#fff;padding:7px 10px;text-align:left;font-weight:700;}
+.detail-table td{padding:6px 10px;border-bottom:1px solid #eee;}
+.detail-table tr:nth-child(even) td{background:#fafafa;}
+.detail-table td.lbl{font-weight:600;color:#555;width:50%;}
+.detail-table td.val{text-align:right;font-family:monospace;color:var(--gd-dark);font-weight:600;}
+
+details summary{
+  cursor:pointer;padding:10px 14px;background:#fafafa;border:1px solid var(--gd-lgray);
+  border-radius:6px;font-weight:700;color:var(--gd-dark);font-size:.9rem;
+}
+details summary:hover{background:#f0f0f0;}
+details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
+.details-body{background:#fff;border:1px solid var(--gd-lgray);border-top:none;
+  border-radius:0 0 6px 6px;padding:14px;}
+
+.muted{color:#888;font-size:.78rem;}
+.tag{
+  display:inline-block;padding:2px 8px;border-radius:10px;
+  font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+}
+.tag-ok{background:#E8F5E9;color:#2E7D32;}
+.tag-warn{background:#FFF8E1;color:#E65100;}
+.tag-bad{background:#FFEBEE;color:#C62828;}
+
+.actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+
+#resultados{display:none;}
+</style>
+</head>
+<body>
+
+<h1>🔌 Selección Eléctrica Industrial</h1>
+<p class="subtitle">Calculadora de dimensionamiento conforme a la <b>NOM-001-SEDE-2012</b> · Cableado, protecciones, canalización y soportería</p>
+
+<!-- ────────── DATOS DEL EQUIPO ────────── -->
+<div class="sec-title">1. Datos del Equipo</div>
+<div class="card">
+  <div class="grid-3">
+    <div>
+      <label>Tipo de carga</label>
+      <select id="tipo_carga">
+        <option value="motor">Motor (con factor 1.25 art. 430-22)</option>
+        <option value="continua">Carga continua (alumbrado / resistencia)</option>
+        <option value="general">Uso general (no continua)</option>
+      </select>
+    </div>
+    <div>
+      <label>Sistema</label>
+      <select id="fases">
+        <option value="1">Monofásico (2 hilos)</option>
+        <option value="2">Bifásico (3 hilos)</option>
+        <option value="3" selected>Trifásico (3 hilos)</option>
+      </select>
+    </div>
+    <div>
+      <label>Tensión (V)</label>
+      <input type="number" id="tension" value="440" min="120" step="10">
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top:10px;">
+    <div>
+      <label>Potencia</label>
+      <input type="number" id="potencia" value="50" min="0" step="0.5">
+    </div>
+    <div>
+      <label>Unidad</label>
+      <select id="unidad_pot">
+        <option value="hp" selected>HP (caballos de fuerza)</option>
+        <option value="kw">kW (kilowatts)</option>
+      </select>
+    </div>
+    <div>
+      <label>FLA (opcional, sobreescribe cálculo)</label>
+      <input type="number" id="fla_manual" placeholder="dejar vacío para calcular" min="0" step="0.1">
+    </div>
+  </div>
+  <div class="grid-2" style="margin-top:10px;">
+    <div>
+      <label>Factor de Potencia (FP)</label>
+      <input type="number" id="fp" value="0.85" min="0.5" max="1" step="0.01">
+    </div>
+    <div>
+      <label>Eficiencia (η)</label>
+      <input type="number" id="ef" value="0.90" min="0.5" max="1" step="0.01">
+    </div>
+  </div>
+</div>
+
+<!-- ────────── DATOS DE INSTALACIÓN ────────── -->
+<div class="sec-title">2. Datos de Instalación</div>
+<div class="card">
+  <div class="grid-3">
+    <div>
+      <label>Longitud trayectoria (m)</label>
+      <input type="number" id="longitud" value="40" min="1" step="1">
+    </div>
+    <div>
+      <label>Temperatura ambiente (°C)</label>
+      <input type="number" id="temp_amb" value="30" min="0" max="80" step="1">
+    </div>
+    <div>
+      <label># Conductores portadores en canalización</label>
+      <input type="number" id="n_cond" value="3" min="1" max="60" step="1">
+    </div>
+  </div>
+  <div style="margin-top:10px;">
+    <label>Tipo de ambiente</label>
+    <select id="ambiente">
+      <option value="interior">Interior seco (taller, planta cubierta)</option>
+      <option value="exterior">Exterior / Uso rudo (intemperie, lluvia)</option>
+      <option value="corrosivo">Corrosivo (planta química, salina)</option>
+      <option value="charola">Trayectoria multi-equipo (charola tipo escalera)</option>
+    </select>
+  </div>
+</div>
+
+<button class="btn btn-primary btn-full" onclick="calcular()" style="font-size:1rem;padding:14px;">
+  ⚡ Calcular Selección Eléctrica
+</button>
+
+<!-- ────────── RESULTADOS ────────── -->
+<div id="resultados">
+  <div class="sec-title">3. Resumen Ejecutivo</div>
+  <div class="result-grid" id="result-summary"></div>
+
+  <div class="sec-title">4. Parámetros Calculados</div>
+  <div class="card">
+    <table class="detail-table" id="tabla-parametros"></table>
+  </div>
+
+  <div class="sec-title">5. Selección de Cableado</div>
+  <div class="card">
+    <table class="detail-table" id="tabla-cableado"></table>
+  </div>
+
+  <div class="sec-title">6. Protección Termomagnética</div>
+  <div class="card">
+    <table class="detail-table" id="tabla-proteccion"></table>
+  </div>
+
+  <div class="sec-title">7. Canalización y Soportería</div>
+  <div class="card">
+    <table class="detail-table" id="tabla-canalizacion"></table>
+  </div>
+
+  <div class="sec-title">8. Lista de Materiales (Resumen para Compras)</div>
+  <div class="card">
+    <table class="detail-table" id="tabla-bom"></table>
+  </div>
+
+  <div id="alertas"></div>
+
+  <div class="actions">
+    <button class="btn btn-secondary" onclick="generarPDF()">📄 Descargar entregable PDF</button>
+    <button class="btn btn-ghost" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆ Volver arriba</button>
+  </div>
+
+  <details style="margin-top:18px;">
+    <summary>📚 Tablas NOM aplicadas en este cálculo</summary>
+    <div class="details-body" id="tablas-aplicadas"></div>
+  </details>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   TABLAS NOM-001-SEDE-2012
+   ════════════════════════════════════════════════════════════════════════ */
+
+// Tabla 310-15(b)(16) — Ampacidad de conductores de cobre con aislamiento
+// THHW/THWN-LS a 75°C en canalización, hasta 3 conductores portadores
+// Fuente: NOM-001-SEDE-2012, Tabla 310-15(b)(16), columna 75°C cobre
+const TBL_AMPACIDAD = [
+  { calibre: '14 AWG',    ampacidad: 20,  area_in2: 0.0097, R_ohm_km: 8.89  },
+  { calibre: '12 AWG',    ampacidad: 25,  area_in2: 0.0133, R_ohm_km: 5.61  },
+  { calibre: '10 AWG',    ampacidad: 35,  area_in2: 0.0211, R_ohm_km: 3.55  },
+  { calibre: '8 AWG',     ampacidad: 50,  area_in2: 0.0366, R_ohm_km: 2.23  },
+  { calibre: '6 AWG',     ampacidad: 65,  area_in2: 0.0507, R_ohm_km: 1.40  },
+  { calibre: '4 AWG',     ampacidad: 85,  area_in2: 0.0824, R_ohm_km: 0.879 },
+  { calibre: '3 AWG',     ampacidad: 100, area_in2: 0.0973, R_ohm_km: 0.697 },
+  { calibre: '2 AWG',     ampacidad: 115, area_in2: 0.1158, R_ohm_km: 0.554 },
+  { calibre: '1 AWG',     ampacidad: 130, area_in2: 0.1562, R_ohm_km: 0.439 },
+  { calibre: '1/0 AWG',   ampacidad: 150, area_in2: 0.1855, R_ohm_km: 0.349 },
+  { calibre: '2/0 AWG',   ampacidad: 175, area_in2: 0.2223, R_ohm_km: 0.277 },
+  { calibre: '3/0 AWG',   ampacidad: 200, area_in2: 0.2679, R_ohm_km: 0.220 },
+  { calibre: '4/0 AWG',   ampacidad: 230, area_in2: 0.3237, R_ohm_km: 0.174 },
+  { calibre: '250 kcmil', ampacidad: 255, area_in2: 0.3970, R_ohm_km: 0.148 },
+  { calibre: '300 kcmil', ampacidad: 285, area_in2: 0.4608, R_ohm_km: 0.123 },
+  { calibre: '350 kcmil', ampacidad: 310, area_in2: 0.5242, R_ohm_km: 0.106 },
+  { calibre: '400 kcmil', ampacidad: 335, area_in2: 0.5863, R_ohm_km: 0.0935},
+  { calibre: '500 kcmil', ampacidad: 380, area_in2: 0.7073, R_ohm_km: 0.0758},
+  { calibre: '600 kcmil', ampacidad: 420, area_in2: 0.8676, R_ohm_km: 0.0633},
+  { calibre: '750 kcmil', ampacidad: 475, area_in2: 1.0496, R_ohm_km: 0.0521},
+  { calibre: '1000 kcmil',ampacidad: 545, area_in2: 1.3478, R_ohm_km: 0.0407},
+];
+
+// Tabla 310-15(b)(2)(a) — Factor de corrección por temperatura ambiente
+// para conductores con aislamiento de 75°C
+const TBL_FACTOR_TEMP = [
+  { tmax: 25, factor: 1.05 },
+  { tmax: 30, factor: 1.00 },
+  { tmax: 35, factor: 0.94 },
+  { tmax: 40, factor: 0.88 },
+  { tmax: 45, factor: 0.82 },
+  { tmax: 50, factor: 0.75 },
+  { tmax: 55, factor: 0.67 },
+  { tmax: 60, factor: 0.58 },
+  { tmax: 70, factor: 0.33 },
+];
+
+// Tabla 310-15(b)(3)(a) — Factor de ajuste por agrupamiento
+const TBL_FACTOR_AGRUP = [
+  { hasta: 3,  factor: 1.00 },
+  { hasta: 6,  factor: 0.80 },
+  { hasta: 9,  factor: 0.70 },
+  { hasta: 20, factor: 0.50 },
+  { hasta: 30, factor: 0.45 },
+  { hasta: 40, factor: 0.40 },
+  { hasta: 99, factor: 0.35 },
+];
+
+// Tabla 250-122 — Conductor de Puesta a Tierra de Equipos (Cobre)
+const TBL_TIERRA = [
+  { hasta_A: 15,   calibre: '14 AWG'    },
+  { hasta_A: 20,   calibre: '12 AWG'    },
+  { hasta_A: 60,   calibre: '10 AWG'    },
+  { hasta_A: 100,  calibre: '8 AWG'     },
+  { hasta_A: 200,  calibre: '6 AWG'     },
+  { hasta_A: 300,  calibre: '4 AWG'     },
+  { hasta_A: 400,  calibre: '3 AWG'     },
+  { hasta_A: 500,  calibre: '2 AWG'     },
+  { hasta_A: 600,  calibre: '1 AWG'     },
+  { hasta_A: 800,  calibre: '1/0 AWG'   },
+  { hasta_A: 1000, calibre: '2/0 AWG'   },
+  { hasta_A: 1200, calibre: '3/0 AWG'   },
+  { hasta_A: 1600, calibre: '4/0 AWG'   },
+  { hasta_A: 2000, calibre: '250 kcmil' },
+  { hasta_A: 2500, calibre: '350 kcmil' },
+  { hasta_A: 3000, calibre: '400 kcmil' },
+];
+
+// Art. 240-6 — Tamaños comerciales estándar de interruptores termomagnéticos (A)
+const PROTECCIONES_ESTANDAR = [
+  15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100,
+  110, 125, 150, 175, 200, 225, 250, 300, 350, 400, 450, 500,
+  600, 700, 800, 1000, 1200, 1600, 2000, 2500, 3000,
+];
+
+// Capítulo 9, Tabla 4 — Área interna útil al 40% (in²) de tubería EMT
+// (Art. 358 — Electrical Metallic Tubing)
+const TBL_EMT_40 = [
+  { diam: '1/2"',    area_40: 0.122 },
+  { diam: '3/4"',    area_40: 0.213 },
+  { diam: '1"',      area_40: 0.346 },
+  { diam: '1-1/4"',  area_40: 0.598 },
+  { diam: '1-1/2"',  area_40: 0.814 },
+  { diam: '2"',      area_40: 1.342 },
+  { diam: '2-1/2"',  area_40: 2.343 },
+  { diam: '3"',      area_40: 3.538 },
+  { diam: '3-1/2"',  area_40: 4.618 },
+  { diam: '4"',      area_40: 5.901 },
+];
+
+// Reglas de canalización y soportería por ambiente
+const REGLAS_AMBIENTE = {
+  interior: {
+    tuberia: 'EMT (Pared delgada) — Art. 358',
+    tuberia_corta: 'EMT',
+    soporteria: 'Abrazadera tipo uña o colgante tipo pera cada 1.5 m',
+    accesorios: 'Conectores y coples EMT de presión',
+    color: '#1976D2',
+  },
+  exterior: {
+    tuberia: 'IMC / RMC (Pared gruesa) — uso rudo',
+    tuberia_corta: 'IMC',
+    soporteria: 'Abrazadera tipo omega sobre unicanal galvanizado, espaciamiento máx. 2 m',
+    accesorios: 'Conectores roscados, sello hermético, condulets tipo LB',
+    color: '#E65100',
+  },
+  corrosivo: {
+    tuberia: 'PVC pesado Cédula 80 o aluminio recubierto (tipo Ocal)',
+    tuberia_corta: 'PVC CED-80',
+    soporteria: 'Abrazaderas y unicanal en acero inoxidable 316 o fibra de vidrio',
+    accesorios: 'Conexiones soldadas/cementadas con sello primario',
+    color: '#7B1FA2',
+  },
+  charola: {
+    tuberia: 'Charola Portacables tipo escalera de aluminio — Art. 392',
+    tuberia_corta: 'Charola escalera',
+    soporteria: 'Ménsulas a pared o trapecios (varilla 3/8"–1/2") sobre unicanal 4×4 o 4×2, espaciamiento máx. 2 m',
+    accesorios: 'Curvas horizontales/verticales, reductores, tapas, conectores de tierra cada 3 m',
+    color: '#00695C',
+  },
+};
+
+/* ════════════════════════════════════════════════════════════════════════
+   HELPERS
+   ════════════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString('es-MX', {maximumFractionDigits:2, minimumFractionDigits:0});
+const fmt2 = n => Number(n).toLocaleString('es-MX', {maximumFractionDigits:2, minimumFractionDigits:2});
+
+function factorTemperatura(t) {
+  for (const r of TBL_FACTOR_TEMP) if (t <= r.tmax) return r.factor;
+  return 0.33;
+}
+function factorAgrupamiento(n) {
+  for (const r of TBL_FACTOR_AGRUP) if (n <= r.hasta) return r.factor;
+  return 0.35;
+}
+function tierraPorAmperaje(A) {
+  for (const r of TBL_TIERRA) if (A <= r.hasta_A) return r.calibre;
+  return TBL_TIERRA[TBL_TIERRA.length-1].calibre;
+}
+function proteccionEstandar(A) {
+  for (const p of PROTECCIONES_ESTANDAR) if (p >= A) return p;
+  return PROTECCIONES_ESTANDAR[PROTECCIONES_ESTANDAR.length-1];
+}
+function tuberiaPorArea(areaTotal) {
+  for (const t of TBL_EMT_40) if (t.area_40 >= areaTotal) return t;
+  return TBL_EMT_40[TBL_EMT_40.length-1];
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   CÁLCULO PRINCIPAL
+   ════════════════════════════════════════════════════════════════════════ */
+let RESULT = null; // resultado global para PDF
+
+function calcular() {
+  // ── 1. Recolectar inputs ───────────────────────────────────────────────
+  const inp = {
+    tipo_carga: $('tipo_carga').value,           // motor | continua | general
+    fases:      +$('fases').value,                // 1 | 2 | 3
+    V:          +$('tension').value,
+    P:          +$('potencia').value,
+    unidad_pot: $('unidad_pot').value,            // hp | kw
+    fla_manual: +$('fla_manual').value || 0,
+    fp:         +$('fp').value,
+    ef:         +$('ef').value,
+    L:          +$('longitud').value,             // metros
+    Tamb:       +$('temp_amb').value,
+    n_cond:     +$('n_cond').value,
+    ambiente:   $('ambiente').value,
+  };
+
+  // ── 2. Convertir potencia a Watts ──────────────────────────────────────
+  const P_W = inp.unidad_pot === 'hp' ? inp.P * 746 : inp.P * 1000;
+
+  // ── 3. Corriente nominal (FLA) ─────────────────────────────────────────
+  let In;
+  let In_fuente;
+  if (inp.fla_manual > 0) {
+    In = inp.fla_manual;
+    In_fuente = 'FLA proporcionada manualmente';
+  } else {
+    // Trifásico: In = P / (√3 × V × FP × η)
+    // Monofásico/Bifásico: In = P / (V × FP × η)
+    const denom = inp.fases === 3
+      ? Math.sqrt(3) * inp.V * inp.fp * inp.ef
+      : inp.V * inp.fp * inp.ef;
+    In = P_W / denom;
+    In_fuente = inp.fases === 3
+      ? `In = P / (√3 × V × FP × η) = ${fmt(P_W)} / (1.732 × ${inp.V} × ${inp.fp} × ${inp.ef})`
+      : `In = P / (V × FP × η) = ${fmt(P_W)} / (${inp.V} × ${inp.fp} × ${inp.ef})`;
+  }
+
+  // ── 4. Corriente de diseño Ic = In × 1.25 si motor o carga continua ────
+  const factor_diseno = (inp.tipo_carga === 'motor' || inp.tipo_carga === 'continua') ? 1.25 : 1.00;
+  const Ic = In * factor_diseno;
+
+  // ── 5. Factores de corrección ──────────────────────────────────────────
+  const Ftemp = factorTemperatura(inp.Tamb);
+  const Fagrup = factorAgrupamiento(inp.n_cond);
+
+  // Ampacidad requerida (cable debe soportar Ic después de factores)
+  // Ic / (Ftemp × Fagrup) ≤ Ampacidad_tabla
+  const ampacidad_min = Ic / (Ftemp * Fagrup);
+
+  // ── 6. Selección de calibre por ampacidad ──────────────────────────────
+  let cable = TBL_AMPACIDAD.find(c => c.ampacidad >= ampacidad_min);
+  if (!cable) cable = TBL_AMPACIDAD[TBL_AMPACIDAD.length-1];
+
+  // ── 7. Validación por caída de tensión (máx. 3%) ───────────────────────
+  // Vd_trifásico ≈ (√3 × L × I × R) / 1000  [V] (R en ohm/km, L en m)
+  // Vd_monofásico ≈ (2 × L × I × R) / 1000
+  function caidaTension(c, fases, L, I, V) {
+    const Vd = fases === 3
+      ? (Math.sqrt(3) * L * I * c.R_ohm_km) / 1000
+      : (2 * L * I * c.R_ohm_km) / 1000;
+    return { Vd, pct: (Vd / V) * 100 };
+  }
+  let Vd_calc = caidaTension(cable, inp.fases, inp.L, Ic, inp.V);
+  let ajustePorVd = false;
+  const idx0 = TBL_AMPACIDAD.indexOf(cable);
+  let idxFinal = idx0;
+  while (Vd_calc.pct > 3 && idxFinal < TBL_AMPACIDAD.length - 1) {
+    idxFinal++;
+    cable = TBL_AMPACIDAD[idxFinal];
+    Vd_calc = caidaTension(cable, inp.fases, inp.L, Ic, inp.V);
+    ajustePorVd = true;
+  }
+
+  // ── 8. Conductor de tierra física (Tabla 250-122) ──────────────────────
+  // Se basa en el amperaje de la protección, no en el calibre del cable
+  let proteccion_calculada;
+  if (inp.tipo_carga === 'motor') {
+    // Art. 430-52: 250% del FLA para tiempo inverso
+    proteccion_calculada = proteccionEstandar(In * 2.5);
+  } else if (inp.tipo_carga === 'continua') {
+    proteccion_calculada = proteccionEstandar(Ic); // ya incluye 125%
+  } else {
+    proteccion_calculada = proteccionEstandar(In);
+  }
+  // No debe exceder ampacidad final del cable
+  const ampacidad_final_cable = cable.ampacidad * Ftemp * Fagrup;
+  if (inp.tipo_carga !== 'motor' && proteccion_calculada > ampacidad_final_cable) {
+    proteccion_calculada = proteccionEstandar(ampacidad_final_cable * 0.99);
+  }
+  const tierra = tierraPorAmperaje(proteccion_calculada);
+
+  // ── 9. Llenado de canalización ─────────────────────────────────────────
+  // # conductores = fases + 1 (tierra) — neutro si aplica
+  const n_fases_cable = inp.fases === 3 ? 3 : (inp.fases === 2 ? 3 : 2);
+  const n_total_cond = n_fases_cable + 1; // +1 tierra
+  const area_cables_total = (n_fases_cable * cable.area_in2)
+                          + (TBL_AMPACIDAD.find(c => c.calibre === tierra)?.area_in2 || 0);
+  const tuberia = tuberiaPorArea(area_cables_total);
+  const llenado_pct = (area_cables_total / (tuberia.area_40 / 0.40)) * 100;
+
+  // ── 10. Ambiente / soportería ──────────────────────────────────────────
+  const reglaAmb = REGLAS_AMBIENTE[inp.ambiente];
+
+  // ── 11. Lista de materiales ─────────────────────────────────────────────
+  const tramos_tuberia_3m = Math.ceil(inp.L / 3);
+  const tramos_uni_3m = Math.ceil(inp.L / 3);
+  const soportes = Math.max(2, Math.ceil(inp.L / (inp.ambiente === 'interior' ? 1.5 : 2.0)));
+
+  const bom = [
+    { item: `Cable Cu THHW-LS calibre ${cable.calibre} (Fases)`, cant: Math.ceil(inp.L * n_fases_cable * 1.10), unidad: 'm', notas: '10% extra por trayectoria + curvas' },
+    { item: `Cable Cu THHW-LS calibre ${tierra} (Tierra física)`, cant: Math.ceil(inp.L * 1.10), unidad: 'm', notas: 'Art. 250-122' },
+    { item: `Interruptor termomagnético ${proteccion_calculada} A, ${inp.fases} polos`, cant: 1, unidad: 'pz', notas: `Tamaño comercial Art. 240-6` },
+    { item: `Tubería ${reglaAmb.tuberia_corta} ${tuberia.diam}`, cant: tramos_tuberia_3m, unidad: 'tramo 3 m', notas: reglaAmb.tuberia },
+    { item: `Conectores ${reglaAmb.tuberia_corta} ${tuberia.diam}`, cant: 4, unidad: 'pz', notas: '2 por extremo (caja-tubo, tubo-equipo)' },
+    { item: `Coples ${reglaAmb.tuberia_corta} ${tuberia.diam}`, cant: tramos_tuberia_3m - 1, unidad: 'pz', notas: 'Unión entre tramos' },
+    { item: `Soportería: ${reglaAmb.soporteria}`, cant: soportes, unidad: 'pz', notas: 'Espaciamiento según ambiente' },
+  ];
+
+  if (inp.ambiente === 'charola') {
+    bom.push({ item: 'Varilla roscada 3/8" galvanizada × 3 m', cant: Math.ceil(soportes / 2), unidad: 'pz', notas: 'Para trapecios' });
+    bom.push({ item: 'Unicanal galvanizado 4×4 × 3 m', cant: tramos_uni_3m, unidad: 'tramo 3 m', notas: 'Soporte horizontal' });
+  }
+
+  // ── 12. Empaquetar resultado ───────────────────────────────────────────
+  RESULT = {
+    inp, P_W, In, In_fuente, factor_diseno, Ic,
+    Ftemp, Fagrup, ampacidad_min, cable, ajustePorVd,
+    Vd_V: Vd_calc.Vd, Vd_pct: Vd_calc.pct,
+    proteccion_calculada, tierra,
+    n_total_cond, area_cables_total, tuberia, llenado_pct,
+    reglaAmb, bom,
+  };
+
+  renderResultados();
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   RENDER DE RESULTADOS EN PANTALLA
+   ════════════════════════════════════════════════════════════════════════ */
+function renderResultados() {
+  const r = RESULT;
+  $('resultados').style.display = 'block';
+
+  // Cards resumen
+  const vdClass = r.Vd_pct < 1.5 ? 'ok' : (r.Vd_pct <= 3 ? 'warn' : 'bad');
+  $('result-summary').innerHTML = `
+    <div class="result-card highlight">
+      <div class="result-label">Calibre fases</div>
+      <div class="result-value">${r.cable.calibre}</div>
+      <div class="result-detail">Cu THHW-LS · ${r.cable.ampacidad} A nominal</div>
+    </div>
+    <div class="result-card highlight">
+      <div class="result-label">Tierra física</div>
+      <div class="result-value">${r.tierra}</div>
+      <div class="result-detail">Tabla 250-122</div>
+    </div>
+    <div class="result-card highlight">
+      <div class="result-label">Protección</div>
+      <div class="result-value">${r.proteccion_calculada} A</div>
+      <div class="result-detail">${r.inp.fases} polos · Art. 240-6</div>
+    </div>
+    <div class="result-card highlight">
+      <div class="result-label">Tubería ${r.reglaAmb.tuberia_corta}</div>
+      <div class="result-value">${r.tuberia.diam}</div>
+      <div class="result-detail">Llenado: ${fmt2(r.llenado_pct)}%</div>
+    </div>
+    <div class="result-card ${vdClass}">
+      <div class="result-label">Caída de tensión</div>
+      <div class="result-value">${fmt2(r.Vd_pct)}%</div>
+      <div class="result-detail">${fmt2(r.Vd_V)} V / ${r.inp.V} V · límite 3%</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">Corriente diseño Ic</div>
+      <div class="result-value">${fmt2(r.Ic)} A</div>
+      <div class="result-detail">In = ${fmt2(r.In)} A × ${r.factor_diseno}</div>
+    </div>
+  `;
+
+  // Tabla parámetros
+  $('tabla-parametros').innerHTML = `
+    <tr><td class="lbl">Potencia eléctrica</td><td class="val">${fmt(r.P_W)} W (${r.inp.P} ${r.inp.unidad_pot.toUpperCase()})</td></tr>
+    <tr><td class="lbl">Corriente nominal In</td><td class="val">${fmt2(r.In)} A</td></tr>
+    <tr><td class="lbl">Fórmula / fuente</td><td class="val" style="font-size:.78rem;">${r.In_fuente}</td></tr>
+    <tr><td class="lbl">Factor de diseño aplicado</td><td class="val">× ${r.factor_diseno} ${r.factor_diseno===1.25?'(Art. 430-22 / 210)':'(no continua)'}</td></tr>
+    <tr><td class="lbl">Corriente de diseño Ic</td><td class="val">${fmt2(r.Ic)} A</td></tr>
+    <tr><td class="lbl">Factor temperatura (${r.inp.Tamb}°C)</td><td class="val">× ${r.Ftemp.toFixed(2)} (Tabla 310-15(b)(2)(a))</td></tr>
+    <tr><td class="lbl">Factor agrupamiento (${r.inp.n_cond} cond.)</td><td class="val">× ${r.Fagrup.toFixed(2)} (Tabla 310-15(b)(3)(a))</td></tr>
+    <tr><td class="lbl">Ampacidad mínima del cable</td><td class="val">${fmt2(r.ampacidad_min)} A</td></tr>
+  `;
+
+  // Tabla cableado
+  $('tabla-cableado').innerHTML = `
+    <tr><td class="lbl">Calibre seleccionado (fases)</td><td class="val">${r.cable.calibre}</td></tr>
+    <tr><td class="lbl">Ampacidad nominal a 75°C</td><td class="val">${r.cable.ampacidad} A (Tabla 310-15(b)(16))</td></tr>
+    <tr><td class="lbl">Ampacidad corregida</td><td class="val">${fmt2(r.cable.ampacidad * r.Ftemp * r.Fagrup)} A</td></tr>
+    <tr><td class="lbl">Resistencia DC</td><td class="val">${r.cable.R_ohm_km} Ω/km</td></tr>
+    <tr><td class="lbl">Caída de tensión (${r.inp.L} m)</td><td class="val">${fmt2(r.Vd_V)} V (${fmt2(r.Vd_pct)}%)</td></tr>
+    <tr><td class="lbl">¿Calibre ajustado por caída?</td><td class="val">${r.ajustePorVd ? '<span class="tag tag-warn">SÍ — subido</span>' : '<span class="tag tag-ok">No fue necesario</span>'}</td></tr>
+    <tr><td class="lbl">Conductor de tierra física</td><td class="val">${r.tierra} (Tabla 250-122)</td></tr>
+  `;
+
+  // Tabla protección
+  $('tabla-proteccion').innerHTML = `
+    <tr><td class="lbl">Tipo de carga</td><td class="val">${r.inp.tipo_carga.toUpperCase()}</td></tr>
+    <tr><td class="lbl">Capacidad termomagnético</td><td class="val"><b>${r.proteccion_calculada} A</b></td></tr>
+    <tr><td class="lbl">Número de polos</td><td class="val">${r.inp.fases}</td></tr>
+    <tr><td class="lbl">Base normativa</td><td class="val" style="font-size:.78rem;">${r.inp.tipo_carga==='motor' ? 'Art. 430-52 (250% FLA) · Art. 240-6 (tamaño comercial)' : 'Art. 240-6'}</td></tr>
+  `;
+
+  // Tabla canalización
+  $('tabla-canalizacion').innerHTML = `
+    <tr><td class="lbl">Tipo de canalización</td><td class="val">${r.reglaAmb.tuberia}</td></tr>
+    <tr><td class="lbl">Diámetro requerido</td><td class="val"><b>${r.tuberia.diam}</b></td></tr>
+    <tr><td class="lbl">Área cables total</td><td class="val">${fmt2(r.area_cables_total*1000)/1000} in²</td></tr>
+    <tr><td class="lbl">Área útil tubería (40%)</td><td class="val">${r.tuberia.area_40} in²</td></tr>
+    <tr><td class="lbl">% de llenado real</td><td class="val">${fmt2(r.llenado_pct)}% (límite 40%)</td></tr>
+    <tr><td class="lbl">Conductores en tubería</td><td class="val">${r.n_total_cond} (incl. tierra)</td></tr>
+    <tr><td class="lbl">Soportería</td><td class="val" style="font-size:.82rem;">${r.reglaAmb.soporteria}</td></tr>
+    <tr><td class="lbl">Accesorios recomendados</td><td class="val" style="font-size:.82rem;">${r.reglaAmb.accesorios}</td></tr>
+  `;
+
+  // Tabla BOM
+  $('tabla-bom').innerHTML = `
+    <thead>
+      <tr>
+        <th>#</th><th>Descripción</th><th style="text-align:right;width:90px;">Cantidad</th>
+        <th style="width:90px;">Unidad</th><th>Notas</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${r.bom.map((b,i) => `
+        <tr>
+          <td style="text-align:center;color:#999;">${i+1}</td>
+          <td>${b.item}</td>
+          <td style="text-align:right;font-weight:700;">${fmt(b.cant)}</td>
+          <td style="text-align:center;">${b.unidad}</td>
+          <td style="font-size:.78rem;color:#666;">${b.notas}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+
+  // Alertas
+  const alertas = [];
+  if (r.Vd_pct > 3) alertas.push({tipo:'bad', txt:`⚠️ Caída de tensión excede 3% (${fmt2(r.Vd_pct)}%) incluso con el calibre máximo disponible. Considere reducir longitud o cambiar tensión.`});
+  if (r.Vd_pct > 1.5 && r.Vd_pct <= 3) alertas.push({tipo:'warn', txt:`⚡ Caída de tensión cercana al límite (${fmt2(r.Vd_pct)}%). Considere subir un calibre si la trayectoria puede crecer.`});
+  if (r.ajustePorVd) alertas.push({tipo:'warn', txt:`📐 El calibre fue ajustado al alza por caída de tensión. Calibre por ampacidad era menor.`});
+  if (r.llenado_pct > 35) alertas.push({tipo:'warn', txt:`🔧 Llenado de tubería alto (${fmt2(r.llenado_pct)}%). Considere subir un diámetro.`});
+  if (r.Ftemp < 0.7) alertas.push({tipo:'warn', txt:`🌡️ Temperatura ambiente elevada (${r.inp.Tamb}°C) penaliza fuertemente la ampacidad. Considere reubicar la trayectoria.`});
+
+  $('alertas').innerHTML = alertas.length
+    ? `<div class="sec-title">⚠️ Alertas y observaciones</div>` +
+      alertas.map(a => `<div class="${a.tipo==='bad'?'warn-box':'warn-box'}" style="margin-bottom:6px;background:${a.tipo==='bad'?'#FFEBEE':'#FFF8E1'};color:${a.tipo==='bad'?'#C62828':'#E65100'};border-color:${a.tipo==='bad'?'#E53935':'#FFA000'};">${a.txt}</div>`).join('')
+    : '';
+
+  // Tablas aplicadas (referencia)
+  $('tablas-aplicadas').innerHTML = `
+    <p style="margin-bottom:8px;font-size:.85rem;color:#555;">Este cálculo aplica las siguientes tablas y artículos de la <b>NOM-001-SEDE-2012</b>:</p>
+    <ul style="margin-left:18px;line-height:1.6;font-size:.84rem;color:#444;">
+      <li><b>Tabla 310-15(b)(16):</b> Ampacidad de conductores Cu THHW-LS a 75°C → calibre <b>${r.cable.calibre}</b> = ${r.cable.ampacidad} A</li>
+      <li><b>Tabla 310-15(b)(2)(a):</b> Factor por temperatura ambiente ${r.inp.Tamb}°C → × ${r.Ftemp.toFixed(2)}</li>
+      <li><b>Tabla 310-15(b)(3)(a):</b> Factor por ${r.inp.n_cond} conductores agrupados → × ${r.Fagrup.toFixed(2)}</li>
+      <li><b>Tabla 250-122:</b> Conductor de tierra para protección de ${r.proteccion_calculada} A → <b>${r.tierra}</b></li>
+      <li><b>Art. 430-22 / 210:</b> Factor 1.25 sobre In para motores y cargas continuas</li>
+      <li><b>Art. 430-52:</b> Dimensionamiento de protección de motor al 250% del FLA</li>
+      <li><b>Art. 240-6:</b> Tamaños comerciales estándar de interruptores → <b>${r.proteccion_calculada} A</b></li>
+      <li><b>Cap. 9, Tabla 4:</b> Llenado de tubería al 40% → diámetro <b>${r.tuberia.diam}</b></li>
+      <li><b>Art. 358 / 392:</b> Reglas de canalización y soportería según ambiente "${r.inp.ambiente}"</li>
+    </ul>
+  `;
+
+  $('resultados').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PDF — Entregable de Selección Eléctrica
+   ════════════════════════════════════════════════════════════════════════ */
+const PDF_CHAR_MAP = {
+  'Δ':'delta','α':'alpha','β':'beta','π':'pi','μ':'u','λ':'lambda',
+  'Ω':'Ohm','ρ':'rho','σ':'sigma','τ':'tau','Φ':'Phi','φ':'phi','θ':'theta','ε':'eps','η':'eta',
+  '←':'<-','→':'->','↑':'^','↓':'v','↔':'<->','⇒':'=>',
+  '—':'-','–':'-','‘':"'",'’':"'",'“':'"','”':'"','…':'...','•':'*','‣':'*',
+  '≠':'!=','≤':'<=','≥':'>=','≈':'~','∞':'inf','√':'sqrt','∑':'Sum','∫':'Int',
+  '²':'2','³':'3','¼':'1/4','½':'1/2','¾':'3/4',
+  '✓':'OK','✅':'OK','✗':'X','❌':'X','⚠':'!','⚡':'!','⭐':'*','★':'*',
+  '🔌':'','📄':'','📋':'','🔧':'','🌡':'','📐':'','📚':'','⬆':'','📅':'',
+};
+function sanitizePDF(s) {
+  if (s == null) return '';
+  s = String(s);
+  s = s.replace(/[ΔαβπμλΩρστΦφθεη←→↑↓↔⇒—–‘’“”…•‣≠≤≥≈∞√∑∫²³¼½¾✓✅✗❌⚠⚡⭐★🔌📄📋🔧🌡📐📚⬆📅]/g,
+    ch => PDF_CHAR_MAP[ch] || '?');
+  return s.replace(/[^\x00-\xFF]/g, '?');
+}
+
+function generarPDF() {
+  if (!RESULT) { alert('Primero realiza un cálculo'); return; }
+  const r = RESULT;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const ML = 13, MR = 13, HTOP = 22, FBOT = PH - 12;
+  const RED = [200, 16, 46], DARK = [30, 30, 38], GRAY = [150, 150, 160], LGRAY = [220, 220, 225];
+
+  // Monkey-patch sanitizador universal
+  const _origText = doc.text.bind(doc);
+  doc.text = function(text, x, y, options) {
+    if (Array.isArray(text)) text = text.map(sanitizePDF);
+    else if (text != null) text = sanitizePDF(text);
+    return _origText(text, x, y, options);
+  };
+  const _origSplit = doc.splitTextToSize.bind(doc);
+  doc.splitTextToSize = function(text, maxLen, options) {
+    return _origSplit(sanitizePDF(text), maxLen, options);
+  };
+
+  const fecha = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
+  const folio = `SE-${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${Date.now().toString().slice(-4)}`;
+
+  // ── Header y footer ──────────────────────────────────────────────────
+  function drawHeader() {
+    doc.setFillColor(...RED); doc.rect(0, 0, PW, 1.5, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text('Selección Eléctrica Industrial', ML, 9);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text('Gardner Denver Mexico  ·  NOM-001-SEDE-2012', ML, 13);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(folio, PW - MR, 9, { align: 'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(fecha, PW - MR, 13, { align: 'right' });
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3); doc.line(ML, 18, PW - MR, 18);
+  }
+  function drawFooter() {
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML, FBOT - 2, PW - MR, FBOT - 2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+    doc.text('GARDNER DENVER Mexico, S.A. DE C.V.  ·  Calculo conforme a NOM-001-SEDE-2012  ·  Verificacion final por ingeniero electrico certificado', ML, FBOT);
+    doc.text(folio, PW - MR, FBOT, { align: 'right' });
+  }
+  const pagesReady = new Set();
+  function setupPage() {
+    const pg = doc.internal.getCurrentPageInfo().pageNumber;
+    if (pagesReady.has(pg)) return;
+    pagesReady.add(pg);
+    drawHeader(); drawFooter();
+  }
+  function addPage() { doc.addPage(); setupPage(); return HTOP + 2; }
+  function checkY(yy, need) { return (yy + need > FBOT - 8) ? addPage() : yy; }
+
+  setupPage();
+  let y = HTOP + 2;
+
+  // ── Título y caja de proyecto ────────────────────────────────────────
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...RED);
+  doc.text('MEMORIA DE CÁLCULO ELÉCTRICO', PW/2, y, { align: 'center' });
+  y += 6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...DARK);
+  doc.text('Dimensionamiento de circuito derivado conforme a NOM-001-SEDE-2012', PW/2, y, { align: 'center' });
+  y += 8;
+
+  // Resumen ejecutivo (caja)
+  doc.setFillColor(255, 245, 247);
+  doc.setDrawColor(...RED); doc.setLineWidth(0.4);
+  doc.roundedRect(ML, y, PW - ML - MR, 36, 2, 2, 'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...RED);
+  doc.text('RESUMEN EJECUTIVO', ML + 4, y + 5);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...DARK);
+  const resumenLines = [
+    [`Calibre fases (Cu THHW-LS):`, r.cable.calibre],
+    [`Conductor de tierra fisica:`, r.tierra],
+    [`Proteccion termomagnetica:`,  `${r.proteccion_calculada} A · ${r.inp.fases} polos`],
+    [`Canalizacion ${r.reglaAmb.tuberia_corta}:`,  `${r.tuberia.diam} (llenado ${fmt2(r.llenado_pct)}%)`],
+    [`Caida de tension:`,           `${fmt2(r.Vd_pct)}% (limite 3%)`],
+  ];
+  let ry = y + 10;
+  resumenLines.forEach(([lbl, val]) => {
+    doc.setFont('helvetica','normal');
+    doc.text(lbl, ML + 5, ry);
+    doc.setFont('helvetica','bold');
+    doc.text(val, ML + 80, ry);
+    ry += 5;
+  });
+  y += 42;
+
+  // ── Datos de entrada ─────────────────────────────────────────────────
+  y = checkY(y, 12);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...RED);
+  doc.text('1. DATOS DE ENTRADA', ML, y);
+  doc.setDrawColor(...RED); doc.line(ML, y+1, PW-MR, y+1);
+  y += 5;
+
+  const datosEntrada = [
+    ['Tipo de carga',     r.inp.tipo_carga.toUpperCase()],
+    ['Sistema',           `${r.inp.fases} fase(s) · ${r.inp.V} V`],
+    ['Potencia',          `${r.inp.P} ${r.inp.unidad_pot.toUpperCase()} (${fmt(r.P_W)} W)`],
+    ['Factor de potencia / Eficiencia', `FP = ${r.inp.fp} · eficiencia = ${r.inp.ef}`],
+    ['Longitud trayectoria', `${r.inp.L} m`],
+    ['Temperatura ambiente', `${r.inp.Tamb} °C`],
+    ['Conductores en canalizacion', `${r.inp.n_cond}`],
+    ['Ambiente / canalizacion', r.reglaAmb.tuberia],
+  ];
+  doc.autoTable({
+    startY: y,
+    body: datosEntrada,
+    theme: 'grid',
+    styles: { font:'helvetica', fontSize: 8, cellPadding: 2, textColor: [40,40,40] },
+    columnStyles: { 0: { fontStyle:'bold', fillColor:[245,245,245], cellWidth: 60 }, 1: { cellWidth: 'auto' } },
+    margin: { left: ML, right: MR },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // ── Cálculos paso a paso ─────────────────────────────────────────────
+  y = checkY(y, 12);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...RED);
+  doc.text('2. CALCULOS Y FACTORES APLICADOS', ML, y);
+  doc.setDrawColor(...RED); doc.line(ML, y+1, PW-MR, y+1);
+  y += 5;
+
+  const calcs = [
+    ['Corriente nominal In',        `${fmt2(r.In)} A`,    sanitizePDF(r.In_fuente)],
+    ['Factor de diseno (motor/continua)', `x ${r.factor_diseno}`, 'Art. 430-22 / 210'],
+    ['Corriente de diseno Ic',      `${fmt2(r.Ic)} A`,    `Ic = In x ${r.factor_diseno}`],
+    [`Factor temperatura (${r.inp.Tamb} C)`, `x ${r.Ftemp.toFixed(2)}`, 'Tabla 310-15(b)(2)(a)'],
+    [`Factor agrupamiento (${r.inp.n_cond} cond.)`, `x ${r.Fagrup.toFixed(2)}`, 'Tabla 310-15(b)(3)(a)'],
+    ['Ampacidad minima requerida',  `${fmt2(r.ampacidad_min)} A`, 'Ic / (Ftemp x Fagrup)'],
+    ['Caida de tension calculada',  `${fmt2(r.Vd_pct)}% (${fmt2(r.Vd_V)} V)`, `Limite 3% de ${r.inp.V} V = ${fmt2(r.inp.V*0.03)} V`],
+  ];
+  doc.autoTable({
+    startY: y,
+    head: [['Parametro', 'Valor', 'Referencia / formula']],
+    body: calcs,
+    theme: 'striped',
+    styles: { font:'helvetica', fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [31,56,100], textColor: [255,255,255], fontStyle:'bold' },
+    columnStyles: { 1: { halign:'right', fontStyle:'bold' } },
+    margin: { left: ML, right: MR },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // ── Selección de cableado ────────────────────────────────────────────
+  y = checkY(y, 12);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...RED);
+  doc.text('3. SELECCION DE CABLEADO', ML, y);
+  doc.setDrawColor(...RED); doc.line(ML, y+1, PW-MR, y+1);
+  y += 5;
+
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Calibre fases (Cu THHW-LS, 75 C)', r.cable.calibre, `Ampacidad nominal ${r.cable.ampacidad} A`],
+      ['Conductor de tierra fisica',       r.tierra, 'Tabla 250-122 (en base a proteccion)'],
+      ['Ampacidad final (con factores)',   `${fmt2(r.cable.ampacidad * r.Ftemp * r.Fagrup)} A`, `${r.cable.ampacidad} x ${r.Ftemp.toFixed(2)} x ${r.Fagrup.toFixed(2)}`],
+      ['Resistencia DC del conductor',     `${r.cable.R_ohm_km} Ohm/km`, 'Tabla 9, Cap. 9'],
+      ['Ajuste por caida de tension',      r.ajustePorVd ? 'SI - calibre subido por Vd' : 'No fue necesario', '<= 3%'],
+    ],
+    theme: 'grid',
+    styles: { font:'helvetica', fontSize: 8, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle:'bold', fillColor:[245,245,245], cellWidth: 65 },
+      1: { halign:'center', fontStyle:'bold', cellWidth: 35 },
+      2: { cellWidth: 'auto', fontSize: 7.5, textColor:[100,100,100] },
+    },
+    margin: { left: ML, right: MR },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // ── Protección + canalización ────────────────────────────────────────
+  y = checkY(y, 12);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...RED);
+  doc.text('4. PROTECCION TERMOMAGNETICA Y CANALIZACION', ML, y);
+  doc.setDrawColor(...RED); doc.line(ML, y+1, PW-MR, y+1);
+  y += 5;
+
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Interruptor termomagnetico', `${r.proteccion_calculada} A`, `${r.inp.fases} polos · Art. 240-6`],
+      ['Base normativa',             r.inp.tipo_carga==='motor' ? 'Art. 430-52 (250% FLA)' : 'Art. 240 (100% no continua + 125% continua)', ''],
+      ['Tuberia',                     r.tuberia.diam, sanitizePDF(r.reglaAmb.tuberia)],
+      ['Llenado de tuberia',          `${fmt2(r.llenado_pct)}% (limite 40%)`, `Area cables ${fmt2(r.area_cables_total*1000)/1000} in2 / area util ${r.tuberia.area_40} in2`],
+      ['Soporteria',                  '', sanitizePDF(r.reglaAmb.soporteria)],
+      ['Accesorios',                  '', sanitizePDF(r.reglaAmb.accesorios)],
+    ],
+    theme: 'grid',
+    styles: { font:'helvetica', fontSize: 8, cellPadding: 2 },
+    columnStyles: {
+      0: { fontStyle:'bold', fillColor:[245,245,245], cellWidth: 55 },
+      1: { halign:'center', fontStyle:'bold', cellWidth: 35 },
+      2: { cellWidth: 'auto', fontSize: 7.5 },
+    },
+    margin: { left: ML, right: MR },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // ── Lista de materiales ──────────────────────────────────────────────
+  y = checkY(y, 12);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...RED);
+  doc.text('5. LISTA DE MATERIALES (BOM)', ML, y);
+  doc.setDrawColor(...RED); doc.line(ML, y+1, PW-MR, y+1);
+  y += 5;
+
+  doc.autoTable({
+    startY: y,
+    head: [['#', 'Descripcion', 'Cant.', 'Unidad', 'Notas']],
+    body: r.bom.map((b,i) => [i+1, sanitizePDF(b.item), fmt(b.cant), b.unidad, sanitizePDF(b.notas)]),
+    theme: 'striped',
+    styles: { font:'helvetica', fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [31,56,100], textColor: [255,255,255] },
+    columnStyles: {
+      0: { halign:'center', cellWidth: 8 },
+      1: { cellWidth: 'auto' },
+      2: { halign:'right', cellWidth: 18, fontStyle:'bold' },
+      3: { halign:'center', cellWidth: 22 },
+      4: { cellWidth: 55, fontSize: 7, textColor:[100,100,100] },
+    },
+    margin: { left: ML, right: MR },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // ── Firmas ───────────────────────────────────────────────────────────
+  y = checkY(y, 30);
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+  doc.line(ML + 10, y + 12, ML + 75, y + 12);
+  doc.line(PW - MR - 75, y + 12, PW - MR - 10, y + 12);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+  doc.text('Elaboro', ML + 10, y + 16);
+  doc.text('Visto Bueno (Ingeniero Electrico Responsable)', PW - MR - 75, y + 16);
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...DARK);
+  doc.text('Ing. Marco Antonio Millan Ramirez', ML + 10, y + 20);
+  doc.text('___________________________________', PW - MR - 75, y + 20);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+  doc.text('Gerente de Ingenieria · Gardner Denver Mexico', ML + 10, y + 23);
+  doc.text('Cedula profesional / Numero de registro', PW - MR - 75, y + 23);
+
+  // Guardar
+  doc.save(`Seleccion_Electrica_${folio}.pdf`);
+}
+</script>
+
+</body>
+</html>

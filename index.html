@@ -73,6 +73,9 @@ iframe.active{opacity:1;pointer-events:auto}
     <button class="tab" data-tab="presiones" onclick="showTab('presiones')">
       <i class="tab-icon">🔵</i> Caídas de Presión
     </button>
+    <button class="tab" data-tab="electrico" onclick="showTab('electrico')">
+      <i class="tab-icon">⚡</i> Selección Eléctrica
+    </button>
   </nav>
   <div class="version">PIPRO v2.0</div>
 </header>
@@ -84,6 +87,7 @@ iframe.active{opacity:1;pointer-events:auto}
   <iframe id="frame-gantt"         data-src="gantt.html"></iframe>
   <iframe id="frame-requisiciones" data-src="requisiciones.html"></iframe>
   <iframe id="frame-presiones"    data-src="presiones.html"></iframe>
+  <iframe id="frame-electrico"    data-src="electrico.html"></iframe>
 
   <div class="loader" id="loader" style="display:none">
     <div class="spinner"></div>
@@ -97,12 +101,14 @@ const NAMES = {
   gantt:        'Generador de Gantt',
   requisiciones:'Requisiciones',
   presiones:    'Caídas de Presión',
+  electrico:    'Selección Eléctrica',
 };
 const LOADER_LABELS = {
   cotizador:    'Cargando cotizador…',
   gantt:        'Cargando generador de Gantt…',
   requisiciones:'Cargando módulo de requisiciones…',
   presiones:    'Cargando módulo de presiones…',
+  electrico:    'Cargando calculadora eléctrica…',
 };
 
 function showTab(name) {
