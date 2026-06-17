@@ -12,7 +12,21 @@
 <script src="supabase-client.js"></script>
 <script src="logo_b64.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
+<!-- Tesseract.js (~10 MB) se carga on-demand al usar OCR, no en el boot inicial -->
+<script>
+window.loadTesseract = function(){
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (window._tesseractPromise) return window._tesseractPromise;
+  window._tesseractPromise = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/tesseract.js@4/dist/tesseract.min.js';
+    s.onload  = () => res(window.Tesseract);
+    s.onerror = () => rej(new Error('No se pudo cargar la librería OCR (tesseract.js). Revisa tu conexión.'));
+    document.head.appendChild(s);
+  });
+  return window._tesseractPromise;
+};
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -238,7 +252,11 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
     setImporting(true);
     setOcrProgress(0);
     try{
-      if(typeof Tesseract==='undefined')throw new Error('La librería OCR no cargó. Revisa tu conexión y recarga la página.');
+      // Carga diferida de tesseract.js (~10 MB) — solo al primer uso de OCR
+      if(typeof Tesseract==='undefined'){
+        if(typeof window.loadTesseract!=='function')throw new Error('La librería OCR no está disponible.');
+        await window.loadTesseract();
+      }
       const url=URL.createObjectURL(file);
       // Tesseract.js v4 — sin paths manuales, los resuelve desde CDN automáticamente
       const worker=await Tesseract.createWorker('spa+eng',1,{

@@ -122,7 +122,14 @@ function showTab(name) {
   // Carga diferida: asignar src solo la primera vez
   if (frame.dataset.src) {
     showLoader(LOADER_LABELS[name]);
-    frame.addEventListener('load', hideLoader, { once: true });
+    // Red de seguridad: si el iframe tarda más de 4 s en disparar 'load'
+    // (scripts pesados como tesseract.js que pueden tardar 10+ s),
+    // ocultamos el loader para que el usuario vea el módulo en cuanto el HTML
+    // y los scripts críticos estén listos. El resto carga en segundo plano.
+    let hidden = false;
+    const hideOnce = () => { if (!hidden) { hidden = true; hideLoader(); } };
+    const safety = setTimeout(hideOnce, 4000);
+    frame.addEventListener('load', () => { clearTimeout(safety); hideOnce(); }, { once: true });
     frame.src = frame.dataset.src;
     delete frame.dataset.src;
   }
