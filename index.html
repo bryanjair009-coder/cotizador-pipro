@@ -77,17 +77,17 @@ iframe.active{opacity:1;pointer-events:auto}
       <i class="tab-icon">⚡</i> Selección Eléctrica
     </button>
   </nav>
-  <div class="version">PIPRO v2.0</div>
+  <div class="version">PIPRO v2.1 · build 20260617</div>
 </header>
 
 <main id="main">
   <!-- Cotizador carga de inmediato (pestaña activa por defecto) -->
-  <iframe id="frame-cotizador" src="cotizador.html" class="active"></iframe>
-  <!-- Gantt y Requisiciones: carga diferida (data-src) -->
-  <iframe id="frame-gantt"         data-src="gantt.html"></iframe>
-  <iframe id="frame-requisiciones" data-src="requisiciones.html"></iframe>
-  <iframe id="frame-presiones"    data-src="presiones.html"></iframe>
-  <iframe id="frame-electrico"    data-src="electrico.html"></iframe>
+  <iframe id="frame-cotizador" src="cotizador.html?v=20260617" class="active"></iframe>
+  <!-- Gantt y Requisiciones: carga diferida (data-src). ?v= = cache-bust -->
+  <iframe id="frame-gantt"         data-src="gantt.html?v=20260617"></iframe>
+  <iframe id="frame-requisiciones" data-src="requisiciones.html?v=20260617"></iframe>
+  <iframe id="frame-presiones"     data-src="presiones.html?v=20260617"></iframe>
+  <iframe id="frame-electrico"     data-src="electrico.html?v=20260617"></iframe>
 
   <div class="loader" id="loader" style="display:none">
     <div class="spinner"></div>
@@ -128,7 +128,7 @@ function showTab(name) {
     // y los scripts críticos estén listos. El resto carga en segundo plano.
     let hidden = false;
     const hideOnce = () => { if (!hidden) { hidden = true; hideLoader(); } };
-    const safety = setTimeout(hideOnce, 4000);
+    const safety = setTimeout(hideOnce, 2500);
     frame.addEventListener('load', () => { clearTimeout(safety); hideOnce(); }, { once: true });
     frame.src = frame.dataset.src;
     delete frame.dataset.src;
