@@ -2022,14 +2022,20 @@ function generatePDF() {
     y += 9;
   }
 
-  if (!is_ip) { y += 2; y = para('A estos precios añadirles el 16% de I.V.A.', y, 9, DARK, 'bold'); }
+  // En IT sin descuento mostramos la leyenda corta de IVA; con descuento o IP
+  // construimos la tabla de resumen para que el cliente vea el desglose.
+  const mostrarResumen = is_ip || descuento > 0;
+  if (!is_ip && !mostrarResumen) { y += 2; y = para('A estos precios añadirles el 16% de I.V.A.', y, 9, DARK, 'bold'); }
   y += 5;
 
-  // ── RESUMEN DE COSTOS (solo IP) ───────────────────────────────────────────────
-  if (is_ip) {
+  // ── RESUMEN DE COSTOS (IP siempre, IT cuando hay descuento) ──────────────────
+  if (mostrarResumen) {
     y = secTitle('RESUMEN DE COSTOS DEL PROYECTO', y);
-    const costoBody = [['Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)', fmtPDF(subtotal_mat)]];
-    if (costo_mo > 0) costoBody.push(['Servicio de instalación y maniobras de tubería de aluminio', fmtPDF(costo_mo)]);
+    const matLabel = is_ip
+      ? 'Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)'
+      : 'Subtotal de materiales';
+    const costoBody = [[matLabel, fmtPDF(subtotal_mat)]];
+    if (is_ip && costo_mo > 0) costoBody.push(['Servicio de instalación y maniobras de tubería de aluminio', fmtPDF(costo_mo)]);
     if (descuento > 0) costoBody.push([`Descuento (${(descuento * 100).toFixed(0)}%)`, '- ' + fmtPDF(desc_monto)]);
     costoBody.push(['Subtotal sin IVA', fmtPDF(total_neto)], ['IVA (16%)', fmtPDF(iva)]);
     doc.autoTable({
@@ -2041,6 +2047,17 @@ function generatePDF() {
       alternateRowStyles: { fillColor: [237, 244, 251] },
       columnStyles: { 1: { halign: 'right', cellWidth: 30 } },
       didDrawPage: () => setupPage(),
+      didParseCell: (data) => {
+        // Resaltar la fila del descuento en rojo Gardner Denver
+        if (descuento > 0 && data.section === 'body') {
+          const descRowIdx = is_ip ? (costo_mo > 0 ? 2 : 1) : 1;
+          if (data.row.index === descRowIdx) {
+            data.cell.styles.textColor = RED;
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fillColor = [255, 249, 230];
+          }
+        }
+      },
     });
     y = doc.lastAutoTable.finalY + 2;
     y = checkY(y, 12);
@@ -2609,9 +2626,15 @@ function buildWordHTML(d) {
     </tr>`;
   }
 
-  const costTableHTML = is_ip ? (() => {
-    let rows = costRow('Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)', subtotal, '#EDF4FB','#1F1F1F','600','9pt');
-    if (costo_mo > 0) rows += costRow('Servicio de instalación y maniobras de tubería de aluminio', costo_mo, '#EDF4FB','#1F1F1F','600','9pt');
+  // En IP siempre mostramos la tabla; en IT solo cuando hay descuento
+  // (para que el cliente vea el desglose con el descuento aplicado).
+  const mostrarResumenWord = is_ip || descuento > 0;
+  const costTableHTML = mostrarResumenWord ? (() => {
+    const matLabel = is_ip
+      ? 'Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)'
+      : 'Subtotal de materiales';
+    let rows = costRow(matLabel, subtotal, '#EDF4FB','#1F1F1F','600','9pt');
+    if (is_ip && costo_mo > 0) rows += costRow('Servicio de instalación y maniobras de tubería de aluminio', costo_mo, '#EDF4FB','#1F1F1F','600','9pt');
     if (descuento > 0) rows += costRow(`Descuento (${(descuento*100).toFixed(0)}%)`, -desc_monto, '#FFF9E6','#C8102E','600','9pt');
     rows += costRow('Subtotal', total_neto, '#D6E4F0','#1F1F1F','700','9.5pt');
     rows += costRow('IVA (16%)', iva, '#F5F5F5','#555555','400','8.5pt');
@@ -2775,10 +2798,10 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
 <p style="font-size:7pt;color:#666666;margin:3pt 0 6pt 0;font-style:italic;">${amountWords(subtotal)}</p>
 ${avisoStockHTML}
 <p style="font-size:7.5pt;color:#666666;margin-bottom:4pt;">La lista de materiales es de acuerdo con la informacion que se nos proporciono; de existir alguna diferencia al colocarse el pedido, se ajustara el costo de esta cotizacion.</p>
-${!is_ip ? '<p style="font-size:9pt;font-weight:bold;margin-bottom:4pt;">A estos precios anadirles el 16% de I.V.A.</p>' : ''}
+${(!is_ip && !mostrarResumenWord) ? '<p style="font-size:9pt;font-weight:bold;margin-bottom:4pt;">A estos precios anadirles el 16% de I.V.A.</p>' : ''}
 
-<!-- ═══ RESUMEN DE COSTOS (solo IP) ══════════════════════════════════════════ -->
-${is_ip ? sectionHdr('RESUMEN DE COSTOS DEL PROYECTO') : ''}
+<!-- ═══ RESUMEN DE COSTOS (IP siempre, IT cuando hay descuento) ══════════════ -->
+${mostrarResumenWord ? sectionHdr('RESUMEN DE COSTOS DEL PROYECTO') : ''}
 ${costTableHTML}
 
 <!-- ═══ TIEMPO DE INSTALACIÓN (solo IP) ══════════════════════════════════════ -->
