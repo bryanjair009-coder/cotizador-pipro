@@ -337,6 +337,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 <!-- ── NAV ────────────────────────────────────────────────────────────────────── -->
 <nav class="gd-tabs">
   <button class="gd-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
+  <button class="gd-tab" onclick="showPage('edicion',this)">📝 Edición</button>
   <button class="gd-tab" onclick="showPage('admin',this)">🔐 Administrador</button>
 </nav>
 
@@ -947,6 +948,48 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 </div><!-- end page-cotizador -->
 
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PESTAÑA EDICIÓN — Cargar cotización previa y editarla
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-edicion">
+  <div class="sec-title">📝 Editar Cotización Previa</div>
+
+  <div class="card">
+    <div class="info-box" style="margin-bottom:14px;">
+      <b>¿Cómo funciona?</b> Sube el <b>Excel (.xlsx)</b> o <b>Word (.doc)</b> de una cotización generada previamente. El sistema reconstruirá automáticamente cliente, materiales, mano de obra, viáticos y descuento. Edita lo que necesites y descarga la nueva versión con el mismo folio + sufijo <b>"-EDITADO"</b>.
+    </div>
+
+    <div id="edicion-status" style="display:none;"></div>
+
+    <label class="upload-area" for="edicion-file" id="edicion-drop">
+      <input type="file" id="edicion-file" accept=".xlsx,.xls,.doc,.docx,.pdf" onchange="cargarParaEditar(this)">
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gd-dark);">📂 Haz clic o arrastra tu cotización</div>
+      <div style="color:#888;font-size:.85rem;margin-top:8px;">Formatos: <b>.xlsx</b> · <b>.doc/.docx</b> (recomendado) · <b>.pdf</b> (solo si tiene datos embebidos)</div>
+      <div style="color:#aaa;font-size:.78rem;margin-top:4px;">El archivo debe haber sido generado por este mismo cotizador.</div>
+    </label>
+
+    <div style="margin-top:14px;padding:10px 12px;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;font-size:.8rem;color:#555;">
+      <b style="color:var(--gd-red);">⚠️ Importante:</b> Los archivos <b>antiguos</b> (generados antes de esta función) no contienen los datos embebidos necesarios y NO podrán restaurarse automáticamente. Para esos casos, captura de nuevo o vuelve a generar la cotización con la versión actual.
+    </div>
+  </div>
+
+  <!-- Indicador modo edición activo -->
+  <div id="edicion-activa" style="display:none;background:linear-gradient(135deg,#fff8e1,#fffde7);border:2px solid #FFA000;border-radius:8px;padding:14px 16px;margin-top:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-weight:700;color:#E65100;font-size:.95rem;">🔄 MODO EDICIÓN ACTIVO</div>
+        <div style="font-size:.82rem;color:#666;margin-top:3px;">Editando folio: <b id="edicion-folio-actual"></b></div>
+        <div style="font-size:.78rem;color:#888;margin-top:2px;">Al descargar, los archivos llevarán el sufijo <b>-EDITADO</b></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="showPage('cotizador',document.querySelector('.gd-tab:first-child'))">Ir al cotizador</button>
+        <button class="btn btn-secondary btn-sm" onclick="cancelarEdicion()">Cancelar edición</button>
+      </div>
+    </div>
+  </div>
+</div><!-- end page-edicion -->
+
+
 <!-- ══════════════════════════════════════════════════════════════════════════════
      PAGE: ADMINISTRADOR
 ══════════════════════════════════════════════════════════════════════════════ -->
@@ -1172,6 +1215,9 @@ const state = {
   addProdOk: false,
   moneda: 'MXN',     // 'MXN' o 'USD'
   tipoCambio: 17.50, // MXN por 1 USD
+  // Modo edición: si está activo, los archivos descargados llevan "-EDITADO"
+  editandoFolio: null,  // folio original del archivo subido
+  editandoVersion: 0,   // contador de revisiones (1, 2, 3…)
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -1269,6 +1315,11 @@ function updateFolio() {
   }
   let folio = `${(abbrev||'XXXX').toUpperCase()}-${dateFormatted}-${tipoCode}-${initials.toUpperCase()}`;
   if (ref) folio += ` (${ref})`;
+  // Sufijo de edición: si venimos de un archivo cargado, marcamos -EDITADO + revisión
+  if (state.editandoFolio) {
+    const sufijo = state.editandoVersion > 1 ? `-EDITADO-v${state.editandoVersion}` : '-EDITADO';
+    folio += sufijo;
+  }
   el('folio-preview').textContent = '📄 ' + folio;
 }
 
@@ -1298,6 +1349,181 @@ function updateMonedaPreview() {
   state.tipoCambio = tc > 0 ? tc : state.tipoCambio;
   el('usd-preview').innerHTML =
     `Tipo de cambio: <b>$${state.tipoCambio.toFixed(4)} MXN = US$ 1.00</b> · Ej: $1,000 MXN = ${fmt(1000)}`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// EDICIÓN — Serializar / restaurar cotización desde archivo previo
+// ════════════════════════════════════════════════════════════════════════════
+const COT_DATA_VERSION = 1;
+
+// Recolecta todo el estado de la cotización en un objeto serializable
+function serializeCotizacion() {
+  const moInputs = (typeof getMOInputs === 'function') ? getMOInputs() : {};
+  return {
+    v: COT_DATA_VERSION,
+    ts: Date.now(),
+    tipo: state.tipo,
+    catMat: state.catMat,
+    moneda: state.moneda,
+    tipoCambio: state.tipoCambio,
+    editandoFolio: state.editandoFolio,
+    editandoVersion: state.editandoVersion,
+    cliente: {
+      empresa:    el('empresa').value || '',
+      atencion:   el('atencion') ? el('atencion').value : '',
+      fecha:      el('fecha').value || '',
+      abbrev:     el('abbrev').value || '',
+      initials:   el('initials').value || '',
+      refnum:     el('refnum').value || '',
+      desc_proy:  el('desc_proy') ? el('desc_proy').value : '',
+    },
+    descuento_pct: el('descuento_pct') ? (+el('descuento_pct').value || 0) : 0,
+    mo: moInputs,
+    carrito: state.carrito,
+  };
+}
+
+// Restaura el estado completo de la cotización desde un objeto previo
+function restoreCotizacion(data) {
+  if (!data || data.v == null) throw new Error('Datos inválidos o archivo no compatible.');
+  // Cliente
+  if (data.cliente) {
+    if (el('empresa'))   el('empresa').value   = data.cliente.empresa   || '';
+    if (el('atencion'))  el('atencion').value  = data.cliente.atencion  || '';
+    if (el('fecha'))     el('fecha').value     = data.cliente.fecha     || '';
+    if (el('abbrev'))    el('abbrev').value    = data.cliente.abbrev    || '';
+    if (el('initials'))  el('initials').value  = data.cliente.initials  || '';
+    if (el('refnum'))    el('refnum').value    = data.cliente.refnum    || '';
+    if (el('desc_proy')) el('desc_proy').value = data.cliente.desc_proy || '';
+  }
+  // Tipo y categoría
+  if (data.tipo) setTipo(data.tipo);
+  if (data.catMat && typeof setCatMat === 'function') setCatMat(data.catMat);
+  // Moneda
+  state.moneda     = data.moneda     || 'MXN';
+  state.tipoCambio = data.tipoCambio || 17.50;
+  if (el('cot_usd')) {
+    el('cot_usd').checked = state.moneda === 'USD';
+    if (el('tipo_cambio')) el('tipo_cambio').value = state.tipoCambio;
+    if (typeof toggleMoneda === 'function') toggleMoneda();
+  }
+  // Descuento
+  if (el('descuento_pct')) el('descuento_pct').value = data.descuento_pct || 0;
+  // MO inputs
+  if (data.mo) {
+    const setVal = (id, v) => { if (el(id) && v != null) el(id).value = v; };
+    const setChk = (id, v) => { if (el(id)) el(id).checked = !!v; };
+    setVal('n_tec', data.mo.n_tec); setVal('n_aya', data.mo.n_aya);
+    setVal('n_ing', data.mo.n_ing); setVal('n_seg', data.mo.n_seg);
+    setVal('dias_trabajo', data.mo.dias);
+    setVal('comidas_por_dia', data.mo.comidas_por_dia);
+    setVal('costo_comida', data.mo.costo_comida);
+    setChk('req_hospedaje', data.mo.req_hospedaje);
+    setVal('noches_hospedaje', data.mo.noches_hospedaje);
+    setVal('costo_hospedaje', data.mo.costo_hospedaje);
+    setVal('km_sencillo', data.mo.km_sencillo);
+    setVal('n_viajes', data.mo.n_viajes);
+    setVal('rendimiento', data.mo.rendimiento);
+    setVal('costo_gas', data.mo.costo_gas);
+    setVal('casetas_ida', data.mo.casetas_ida);
+    setVal('costo_desgaste', data.mo.costo_desgaste);
+    setChk('usar_escalera', data.mo.usar_escalera);
+    setChk('usar_gennie', data.mo.usar_gennie);
+    setChk('usar_elevador', data.mo.usar_elevador);
+    setChk('usar_plat_tijera', data.mo.usar_plat_tijera);
+    setVal('embarque', data.mo.embarque);
+    setVal('precio_vuelo', data.mo.precio_vuelo);
+    setVal('personas_vuelo', data.mo.personas_vuelo);
+  }
+  // Carrito
+  state.carrito = data.carrito || {};
+  // Marcar modo edición
+  state.editandoFolio = data.editandoFolio || (typeof getFolio === 'function' ? getFolio() : null);
+  state.editandoVersion = (data.editandoVersion || 0) + 1;
+  // Refresh UI
+  if (typeof renderCart === 'function') renderCart();
+  if (typeof updateMO === 'function') updateMO();
+  if (typeof updateTotales === 'function') updateTotales();
+  if (typeof updateFolio === 'function') updateFolio();
+}
+
+// Decodifica el JSON embebido (lo guardamos como base64 para sobrevivir
+// XML/HTML/escape del Excel y Word)
+function _b64Encode(str) {
+  try { return btoa(unescape(encodeURIComponent(str))); }
+  catch(e) { return btoa(str); }
+}
+function _b64Decode(b64) {
+  try { return decodeURIComponent(escape(atob(b64))); }
+  catch(e) { return atob(b64); }
+}
+
+// Carga un archivo y restaura la cotización
+async function cargarParaEditar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = el('edicion-status');
+  const showStatus = (msg, type) => {
+    status.style.display = 'block';
+    status.className = type === 'ok' ? 'success-box' : (type === 'warn' ? 'warning-box' : 'error-box');
+    status.innerHTML = msg;
+  };
+
+  showStatus('⏳ Procesando archivo…', 'warn');
+  try {
+    const name = file.name.toLowerCase();
+    let data = null;
+
+    if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+      data = await _parseExcelCot(file);
+    } else if (name.endsWith('.doc') || name.endsWith('.docx')) {
+      data = await _parseWordCot(file);
+    } else if (name.endsWith('.pdf')) {
+      throw new Error('Por ahora, los PDF no contienen los datos embebidos. Por favor sube el <b>Excel</b> o <b>Word</b> de la misma cotización.');
+    } else {
+      throw new Error('Formato no soportado. Usa .xlsx, .doc o .docx.');
+    }
+
+    if (!data) throw new Error('El archivo no contiene los datos embebidos. Probablemente es una cotización antigua generada antes de esta función. Vuelve a generarla desde el cotizador y entonces podrás editarla.');
+
+    restoreCotizacion(data);
+    el('edicion-activa').style.display = 'block';
+    el('edicion-folio-actual').textContent = state.editandoFolio || '(sin folio)';
+    showStatus(`✅ Cotización <b>${state.editandoFolio || '(sin folio)'}</b> cargada correctamente. Ve a la pestaña <b>Cotizador</b> y edita lo que necesites; al descargar, los archivos llevarán el sufijo <b>-EDITADO</b>.`, 'ok');
+    input.value = ''; // permitir re-subir el mismo archivo después
+  } catch(e) {
+    showStatus(`❌ ${e.message || e}`, 'err');
+    input.value = '';
+  }
+}
+
+// Parser: Excel — busca hoja oculta _cot_data, celda A1
+async function _parseExcelCot(file) {
+  const buf = await file.arrayBuffer();
+  const wb  = XLSX.read(buf, { type: 'array' });
+  const sh  = wb.Sheets['_cot_data'];
+  if (!sh || !sh.A1 || !sh.A1.v) return null;
+  const raw = String(sh.A1.v);
+  const json = raw.startsWith('{') ? raw : _b64Decode(raw);
+  return JSON.parse(json);
+}
+
+// Parser: Word — busca comentario <!--COT_DATA_V1:base64...-->
+async function _parseWordCot(file) {
+  const text = await file.text();
+  const m = text.match(/<!--\s*COT_DATA_V\d+:([A-Za-z0-9+/=]+)\s*-->/);
+  if (!m) return null;
+  return JSON.parse(_b64Decode(m[1]));
+}
+
+function cancelarEdicion() {
+  state.editandoFolio = null;
+  state.editandoVersion = 0;
+  el('edicion-activa').style.display = 'none';
+  const st = el('edicion-status');
+  if (st) st.style.display = 'none';
+  if (typeof updateFolio === 'function') updateFolio();
+  toast('Edición cancelada — los archivos descargados no llevarán -EDITADO');
 }
 
 // ── PAGE NAVIGATION ───────────────────────────────────────────────────────────
@@ -2398,6 +2624,23 @@ function buildCotizacionSheet(wb, d) {
   ws['!cols'] = [{wch:4},{wch:38},{wch:14},{wch:9},{wch:10},{wch:18},{wch:14},{wch:14}];
   ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r,c:7}});
   XLSX.utils.book_append_sheet(wb, ws, 'Cotización');
+
+  // ── Hoja oculta _cot_data: JSON serializado para poder editar después ───────
+  try {
+    const cotData = (typeof serializeCotizacion === 'function') ? serializeCotizacion() : null;
+    if (cotData) {
+      const b64 = _b64Encode(JSON.stringify(cotData));
+      const dataWs = { A1: { t:'s', v: b64 }, '!ref': 'A1:A1' };
+      XLSX.utils.book_append_sheet(wb, dataWs, '_cot_data');
+      // Marcar la hoja como oculta para que el cliente no la vea
+      const sheetIdx = wb.SheetNames.indexOf('_cot_data');
+      if (sheetIdx >= 0) {
+        wb.Workbook = wb.Workbook || { Sheets: [] };
+        wb.Workbook.Sheets = wb.Workbook.Sheets || [];
+        wb.Workbook.Sheets[sheetIdx] = { Hidden: 1 };
+      }
+    }
+  } catch(e) { console.warn('No se pudo embeber data de edición:', e); }
 }
 
 function buildMOSheet(wb, mo) {
@@ -2832,6 +3075,15 @@ ${is_ip ? P_IP_extra : P_IT_extra}
   </tr>
 </table>
 
+${(() => {
+  // ── Datos embebidos para edición: comentario HTML invisible al usuario ──
+  try {
+    const cotData = (typeof serializeCotizacion === 'function') ? serializeCotizacion() : null;
+    if (!cotData) return '';
+    const b64 = _b64Encode(JSON.stringify(cotData));
+    return `\n<!-- COT_DATA_V${COT_DATA_VERSION}:${b64} -->\n`;
+  } catch(e) { return ''; }
+})()}
 </div></body></html>`;
 }
 
