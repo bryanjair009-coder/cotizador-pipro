@@ -34,32 +34,36 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
-/* ── HEADER DEL MÓDULO (corporativo claro) ──────────────────────────────────── */
+/* ── BARRA DEL MÓDULO (compacta, sin logo — el logo vive en el portal) ─────── */
 .mod-header{
   background:#FFFFFF;
   border-bottom:1px solid #E5E7EB;
-  padding:14px 22px;
-  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:10px 22px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
   position:sticky;top:0;z-index:200;
-  box-shadow:0 1px 2px rgba(15,15,30,.04);
   flex-wrap:wrap;
 }
-.mod-header .gd-logo{text-decoration:none;color:inherit;display:flex;align-items:center;gap:14px;}
-.mod-header .gd-logo svg{height:42px;width:auto;display:block;}
-.mod-title{font-size:14.5px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
-.mod-sub{font-size:11px;color:#6B6E76;margin-top:2px;letter-spacing:.01em;}
+.mod-id{display:flex;align-items:center;gap:12px;}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  background:#FFF5F7;color:#C8102E;font-size:18px;
+  border:1px solid #FCE7EB;
+}
+.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:#898B92;margin-top:2px;letter-spacing:.01em;font-weight:500;}
 
 /* ── NAV TABS internos (estilo pills modernos) ──────────────────────────────── */
 .mod-tabs{
   display:inline-flex;
   background:#F1F2F5;
-  padding:4px;
-  border-radius:10px;
+  padding:3px;
+  border-radius:9px;
   gap:2px;
 }
 .mod-tab{
-  padding:9px 18px;border:none;background:transparent;border-radius:7px;
-  color:#6B6E76;font-size:13px;font-weight:600;cursor:pointer;
+  padding:7px 16px;border:none;background:transparent;border-radius:7px;
+  color:#6B6E76;font-size:12.5px;font-weight:600;cursor:pointer;
   font-family:'Inter','Segoe UI',Arial,sans-serif;transition:all .15s ease;
 }
 .mod-tab:hover{color:#1A1A1F;}
@@ -344,21 +348,17 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 </head>
 <body>
 
-<!-- ── HEADER del módulo (look corporativo claro, dentro del iframe del portal) ── -->
+<!-- ── BARRA DEL MÓDULO: solo título a la izquierda + tabs internos a la derecha
+     (el logo Gardner Denver vive UNA sola vez en el portal/index.html) ───────── -->
 <header class="mod-header">
-  <a class="gd-logo" href="#" onclick="event.preventDefault();showPage('cotizador',document.querySelector('.mod-tab'));">
-    <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" aria-label="Gardner Denver">
-      <text x="0" y="24" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Gardner</text>
-      <rect x="0" y="29" width="200" height="3.5" fill="#C8102E"/>
-      <text x="0" y="55" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Denver</text>
-    </svg>
+  <div class="mod-id">
+    <span class="mod-icon">📋</span>
     <div>
       <div class="mod-title">Cotizador PIPRO</div>
-      <div class="mod-sub">Tubería Neumática AIRWYN · Gardner Denver México</div>
+      <div class="mod-sub">Tubería Neumática AIRWYN</div>
     </div>
-  </a>
+  </div>
 
-  <!-- ── NAV interno (pills) ──────────────────────────────────────────────────── -->
   <nav class="mod-tabs">
     <button class="mod-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
     <button class="mod-tab" onclick="showPage('edicion',this)">📝 Edición</button>
