@@ -4,10 +4,36 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Portal PIPRO · Gardner Denver</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
+<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
+<script>
+  // Aplicar tema guardado ANTES de renderizar para evitar flash
+  (function(){
+    try {
+      var t = localStorage.getItem('gd-theme') || 'light';
+      if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    } catch(e){}
+  })();
+</script>
 <style>
 html, body { height: 100%; overflow: hidden; }
-body { background: var(--gd-50); }
+body { background: var(--gd-bg); transition: background-color .2s ease; }
+.gd-shell-header { background: var(--gd-bg-elev); border-bottom-color: var(--gd-border); }
+
+/* Toggle dark/light */
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  margin-left: 8px;
+  background: var(--gd-bg-alt); border: 1px solid var(--gd-border);
+  border-radius: 8px; cursor: pointer;
+  font-size: 16px; color: var(--gd-text-mute);
+  transition: all .15s ease;
+}
+.theme-toggle:hover { background: var(--gd-red-light); color: var(--gd-red); border-color: var(--gd-red); }
+
+/* Logo se adapta a dark mode (texto blanco) */
+[data-theme="dark"] .gd-logo svg text { fill: #FFFFFF !important; }
+[data-theme="dark"] .gd-logo-sub { color: var(--gd-text-mute); border-left-color: var(--gd-border); }
 
 /* Header del portal (sobrescribe altura para acomodar logo grande) */
 .gd-shell-header { height: 68px; padding: 0 22px; }
@@ -23,7 +49,7 @@ main {
   position: relative;
   height: calc(100vh - 68px);
   overflow: hidden;
-  background: var(--gd-50);
+  background: var(--gd-bg);
 }
 
 iframe {
@@ -31,27 +57,32 @@ iframe {
   width: 100%; height: 100%; border: none;
   opacity: 0; pointer-events: none;
   transition: opacity .18s ease;
-  background: var(--gd-50);
+  background: var(--gd-bg);
 }
 iframe.active { opacity: 1; pointer-events: auto; }
 
-/* Loader centrado, look corporativo claro */
+/* Loader centrado */
 .gd-loader {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   display: flex; flex-direction: column;
   align-items: center; gap: 14px;
-  color: var(--gd-500); font-size: 13px;
+  color: var(--gd-text-mute); font-size: 13px;
   font-weight: 500;
 }
 .gd-spinner {
   width: 36px; height: 36px;
-  border: 3px solid var(--gd-200);
+  border: 3px solid var(--gd-border);
   border-top-color: var(--gd-red);
   border-radius: 50%;
   animation: gd-spin .8s linear infinite;
 }
 @keyframes gd-spin { to { transform: rotate(360deg); } }
+
+/* Tabs y textos en dark mode */
+[data-theme="dark"] .gd-tab { color: var(--gd-text-mute); }
+[data-theme="dark"] .gd-tab:hover { color: var(--gd-text); }
+.gd-shell-version { color: var(--gd-text-soft); }
 </style>
 </head>
 <body>
@@ -95,17 +126,22 @@ iframe.active { opacity: 1; pointer-events: auto; }
     </button>
   </nav>
 
-  <div class="gd-shell-version">PIPRO v2.2 · build 20260618</div>
+  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()"
+          title="Cambiar entre modo claro y oscuro" aria-label="Cambiar tema">
+    <span id="theme-icon">🌙</span>
+  </button>
+
+  <div class="gd-shell-version">PIPRO v2.3 · build 20260619</div>
 </header>
 
 <main id="main">
   <!-- Cotizador carga de inmediato (pestaña activa por defecto) -->
-  <iframe id="frame-cotizador" src="cotizador.html?v=20260618" class="active"></iframe>
+  <iframe id="frame-cotizador" src="cotizador.html?v=20260619" class="active"></iframe>
   <!-- Resto: carga diferida (data-src). ?v= = cache-bust -->
-  <iframe id="frame-gantt"         data-src="gantt.html?v=20260618"></iframe>
-  <iframe id="frame-requisiciones" data-src="requisiciones.html?v=20260618"></iframe>
-  <iframe id="frame-presiones"     data-src="presiones.html?v=20260618"></iframe>
-  <iframe id="frame-electrico"     data-src="electrico.html?v=20260618"></iframe>
+  <iframe id="frame-gantt"         data-src="gantt.html?v=20260619"></iframe>
+  <iframe id="frame-requisiciones" data-src="requisiciones.html?v=20260619"></iframe>
+  <iframe id="frame-presiones"     data-src="presiones.html?v=20260619"></iframe>
+  <iframe id="frame-electrico"     data-src="electrico.html?v=20260619"></iframe>
 
   <div class="gd-loader" id="loader" style="display:none">
     <div class="gd-spinner"></div>
@@ -167,6 +203,33 @@ function showLoader(msg) {
 function hideLoader() {
   document.getElementById('loader').style.display = 'none';
 }
+
+// ─── DARK / LIGHT THEME ──────────────────────────────────────────────────
+function getTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'light';
+}
+function applyTheme(theme) {
+  if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+  document.getElementById('theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+  try { localStorage.setItem('gd-theme', theme); } catch(e) {}
+  // Propagar a TODOS los iframes para que cambien su tema también
+  document.querySelectorAll('iframe').forEach(f => {
+    try { f.contentWindow.postMessage({ type: 'gd-theme', theme }, '*'); } catch(e) {}
+  });
+}
+function toggleTheme() {
+  applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
+}
+// Al cargar, sincronizar icono con el tema actual
+applyTheme(getTheme());
+
+// Cuando un iframe termina de cargar, mandarle el tema actual
+document.querySelectorAll('iframe').forEach(f => {
+  f.addEventListener('load', () => {
+    try { f.contentWindow.postMessage({ type: 'gd-theme', theme: getTheme() }, '*'); } catch(e) {}
+  });
+});
 </script>
 </body>
 </html>

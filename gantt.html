@@ -6,7 +6,8 @@
 <title>Generador de Gantt · Gardner Denver</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
+<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
+<script src="gd-theme-sync.js?v=20260619"></script>
 <style>
 /* ── Barra del módulo (clara, encima del dashboard oscuro) ─────────────── */
 .mod-header{
@@ -26,11 +27,12 @@
 </style>
 <style>
 :root{
-  --rojo:#7F1D1D;--rojo-m:#991B1B;--rojo-v:#B91C1C;
-  --azul:#1E3A5F;--azul-m:#1D4ED8;--azul-v:#2563EB;
-  --bg:#0A0A0F;--bg2:#12121A;--bg3:#1A1A26;
-  --card:rgba(255,255,255,.04);--card-b:rgba(255,255,255,.07);
-  --txt:#E4E4F0;--txt2:#9999B3;--txt3:#555570;--borde:#252538;--r:12px;
+  --rojo:#C8102E;--rojo-m:#C8102E;--rojo-v:#A10D24;
+  --azul:#1D4ED8;--azul-m:#1D4ED8;--azul-v:#2563EB;
+  /* Mapear variables internas a las del theme global (gd-theme.css) */
+  --bg:var(--gd-bg);--bg2:var(--gd-bg-alt);--bg3:var(--gd-bg-elev);
+  --card:var(--gd-bg-elev);--card-b:var(--gd-border);
+  --txt:var(--gd-text);--txt2:var(--gd-text-mute);--txt3:var(--gd-text-soft);--borde:var(--gd-border);--r:12px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.5}

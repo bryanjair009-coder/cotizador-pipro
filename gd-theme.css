@@ -67,6 +67,60 @@
   --gd-space-8: 32px;
   --gd-space-10: 40px;
   --gd-space-12: 48px;
+
+  /* ── Tokens semánticos (para componentes de módulos) ──────────────────── */
+  --gd-bg:         #F8F9FB;
+  --gd-bg-elev:   #FFFFFF;
+  --gd-bg-alt:    #F1F2F5;
+  --gd-text:      #1A1A1F;
+  --gd-text-mute: #6B6E76;
+  --gd-text-soft: #898B92;
+  --gd-border:    #E5E7EB;
+  --gd-border-strong: #D0D2D8;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — se activa con [data-theme="dark"] en <html>
+   ════════════════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Mantenemos rojo Gardner Denver intacto (es el color de marca) */
+  --gd-red-light:  #3D1018;
+  --gd-red-tint:   #2A0B11;
+
+  /* Escala invertida: claros se vuelven oscuros */
+  --gd-900: #F1F2F5;
+  --gd-800: #D0D2D8;
+  --gd-700: #B1B3B8;
+  --gd-600: #898B92;
+  --gd-500: #6B6E76;
+  --gd-400: #4A4A52;
+  --gd-300: #2D2D33;
+  --gd-200: #1F1F25;
+  --gd-100: #15151B;
+  --gd-50:  #0F0F14;
+  --gd-white: #15151B;
+
+  /* Tokens semánticos */
+  --gd-bg:         #0F0F14;
+  --gd-bg-elev:    #15151B;
+  --gd-bg-alt:     #1F1F25;
+  --gd-text:       #E5E7EB;
+  --gd-text-mute:  #898B92;
+  --gd-text-soft:  #6B6E76;
+  --gd-border:     #2D2D33;
+  --gd-border-strong: #424247;
+
+  /* Estados se mantienen pero con fondos oscuros */
+  --gd-success-light: #0A2818;
+  --gd-warning-light: #2A1F08;
+  --gd-info-light:    #0B1D3A;
+  --gd-error-light:   #2A0B11;
+
+  /* Sombras más fuertes para profundidad en dark */
+  --gd-shadow-xs: 0 1px 2px rgba(0,0,0,.4);
+  --gd-shadow-sm: 0 1px 3px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.3);
+  --gd-shadow-md: 0 4px 8px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.3);
+  --gd-shadow-lg: 0 12px 24px rgba(0,0,0,.6), 0 4px 8px rgba(0,0,0,.3);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════

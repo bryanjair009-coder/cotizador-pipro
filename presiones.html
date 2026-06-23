@@ -4,13 +4,14 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Caídas de Presión · PIPRO</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
+<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
+<script src="gd-theme-sync.js?v=20260619"></script>
 <script src="logo_b64.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100%;font-family:'Inter','Segoe UI',Arial,sans-serif;background:#0f0f14;color:#e0e0e0;-webkit-font-smoothing:antialiased}
+html,body{min-height:100%;font-family:'Inter','Segoe UI',Arial,sans-serif;background:var(--gd-bg);color:var(--gd-text);-webkit-font-smoothing:antialiased}
 body{padding:0;overflow-y:auto}
 
 /* ── Barra del módulo (clara, sticky arriba — coherente con portal) ─────── */
@@ -30,9 +31,9 @@ body{padding:0;overflow-y:auto}
 .mod-sub{font-size:11px;color:#898B92;margin-top:2px;font-weight:500;}
 .mod-wrap{padding:16px;}
 
-.card{background:#15151E;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;margin-bottom:14px}
-.card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
-.card-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:.04em;text-transform:uppercase}
+.card{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:10px;padding:16px;margin-bottom:14px}
+.card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--gd-border);flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:700;color:var(--gd-text);letter-spacing:.04em;text-transform:uppercase}
 .card-badge{font-size:10px;background:#C8102E;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700}
 
 .grid{display:grid;gap:10px}
@@ -42,61 +43,61 @@ body{padding:0;overflow-y:auto}
 .g5{grid-template-columns:repeat(5,1fr)}
 
 .field{display:flex;flex-direction:column;gap:4px}
-.field label{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em}
+.field label{font-size:10px;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.06em}
 .field input,.field select{
-  background:#0f0f14;border:1px solid rgba(255,255,255,.12);border-radius:6px;
-  color:#e0e0e0;font-size:13px;padding:7px 10px;width:100%;
+  background:var(--gd-bg);border:1px solid var(--gd-border-strong);border-radius:6px;
+  color:var(--gd-text);font-size:13px;padding:7px 10px;width:100%;
   outline:none;transition:border-color .15s;font-family:Arial,sans-serif;
 }
 .field input:focus,.field select:focus{border-color:#C8102E}
 
 /* Material toggle */
-.mat-toggle{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);width:fit-content}
-.mat-btn{padding:6px 16px;font-size:12px;font-weight:700;font-family:Arial,sans-serif;border:none;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.05);color:rgba(255,255,255,.5)}
+.mat-toggle{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--gd-border);width:fit-content}
+.mat-btn{padding:6px 16px;font-size:12px;font-weight:700;font-family:Arial,sans-serif;border:none;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.05);color:var(--gd-text-mute)}
 .mat-btn.active{background:#C8102E;color:#fff}
-.mat-btn:not(.active):hover{background:rgba(255,255,255,.1);color:#fff}
+.mat-btn:not(.active):hover{background:var(--gd-bg-alt);color:var(--gd-text)}
 
-.result-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:#0f0f14;border-radius:8px;border:1px solid rgba(255,255,255,.06)}
+.result-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:var(--gd-bg);border-radius:8px;border:1px solid rgba(255,255,255,.06)}
 .ri{display:flex;flex-direction:column;gap:2px;min-width:90px}
-.rl{font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em}
-.rv{font-size:15px;font-weight:700;color:#fff}
+.rl{font-size:9px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.06em}
+.rv{font-size:15px;font-weight:700;color:var(--gd-text)}
 .rv.good{color:#22c55e}
 .rv.warn{color:#f59e0b}
 .rv.bad{color:#ef4444}
-.rs{font-size:10px;color:rgba(255,255,255,.3)}
+.rs{font-size:10px;color:var(--gd-text-soft)}
 
 .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:Arial,sans-serif;transition:all .15s;white-space:nowrap}
 .btn-red{background:#C8102E;color:#fff}.btn-red:hover{background:#a50d26}
-.btn-ghost{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1)}.btn-ghost:hover{background:rgba(255,255,255,.12)}
+.btn-ghost{background:var(--gd-border);color:var(--gd-text);border:1px solid var(--gd-border)}.btn-ghost:hover{background:var(--gd-border-strong)}
 .btn-sm{padding:4px 10px;font-size:11px}
 .btn-del{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2)}.btn-del:hover{background:rgba(239,68,68,.22)}
 
 .btbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
-.btbl th{padding:6px 6px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
+.btbl th{padding:6px 6px;text-align:left;font-size:10px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gd-border);white-space:nowrap}
 .btbl td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
 .btbl tr:last-child td{border-bottom:none}
-.btbl input,.btbl select{background:#0f0f14;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e0e0e0;font-size:12px;padding:4px 6px;width:100%;outline:none;font-family:Arial,sans-serif}
+.btbl input,.btbl select{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 6px;width:100%;outline:none;font-family:Arial,sans-serif}
 .btbl input:focus,.btbl select:focus{border-color:#C8102E}
 
-.acc-panel{background:#0a0a10;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px;margin-top:8px}
+.acc-panel{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:8px;padding:10px;margin-top:8px}
 .acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
-.acc-item{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;background:#15151E;border-radius:6px}
-.acc-name{font-size:11px;color:rgba(255,255,255,.6);flex:1}
+.acc-item{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;background:var(--gd-bg-elev);border-radius:6px}
+.acc-name{font-size:11px;color:var(--gd-text-mute);flex:1}
 .acc-ctr{display:flex;align-items:center;gap:4px}
-.acc-ctr button{width:22px;height:22px;border-radius:4px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+.acc-ctr button{width:22px;height:22px;border-radius:4px;border:1px solid var(--gd-border);background:var(--gd-bg-alt);color:var(--gd-text);cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
 .acc-ctr button:hover{background:rgba(200,16,46,.3);border-color:#C8102E}
-.acc-ctr span{min-width:22px;text-align:center;font-size:12px;font-weight:700;color:#fff}
+.acc-ctr span{min-width:22px;text-align:center;font-size:12px;font-weight:700;color:var(--gd-text)}
 .tacc-btn{font-size:10px;color:#C8102E;cursor:pointer;background:none;border:none;padding:0;font-family:Arial,sans-serif;text-decoration:underline;white-space:nowrap}
 
-.vbar{height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;margin:5px 0}
+.vbar{height:7px;border-radius:4px;background:var(--gd-border);overflow:hidden;margin:5px 0}
 .vfill{height:100%;border-radius:4px;transition:width .4s;background:#22c55e}
 .vfill.warn{background:#f59e0b}
 .vfill.bad{background:#ef4444}
 
 .ctbl{width:100%;border-collapse:collapse;font-size:12px}
-.ctbl th{padding:7px 8px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
+.ctbl th{padding:7px 8px;text-align:left;font-size:10px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gd-border);white-space:nowrap}
 .ctbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
-.ctbl input{background:#0f0f14;border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#e0e0e0;font-size:12px;padding:4px 7px;outline:none;font-family:Arial,sans-serif}
+.ctbl input{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 7px;outline:none;font-family:Arial,sans-serif}
 .ctbl input[type="text"]{width:140px}
 .ctbl input[type="number"]{width:80px}
 .ctbl input:focus{border-color:#C8102E}
@@ -108,8 +109,8 @@ body{padding:0;overflow-y:auto}
 
 .rec{font-size:10px;color:#22c55e;font-weight:700;margin-top:2px}
 .divider{height:1px;background:rgba(255,255,255,.06);margin:12px 0}
-.note{font-size:10px;color:rgba(255,255,255,.3);line-height:1.6}
-h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.note{font-size:10px;color:var(--gd-text-soft);line-height:1.6}
+h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 
 /* PIPRO highlight */
 .pipro-badge{font-size:10px;background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3);padding:2px 8px;border-radius:10px;font-weight:700}
@@ -120,18 +121,18 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 #tooltip-modal{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:9999;align-items:center;justify-content:center}
 #tooltip-modal.show{display:flex}
 .modal-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);animation:fadeIn .2s}
-.modal-card{position:relative;background:#15151E;border:1px solid rgba(255,255,255,.1);border-radius:12px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.8);animation:slideUp .25s}
-.modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
-.modal-header h3{margin:0;font-size:14px;color:#fff}
-.modal-header button{background:rgba(255,255,255,.1);border:none;color:#fff;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-card{position:relative;background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:12px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.8);animation:slideUp .25s}
+.modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px;border-bottom:1px solid var(--gd-border);flex-wrap:wrap}
+.modal-header h3{margin:0;font-size:14px;color:var(--gd-text)}
+.modal-header button{background:var(--gd-bg-alt);border:none;color:var(--gd-text);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .modal-header button:hover{background:rgba(255,255,255,.2)}
 .modal-body{padding:18px}
 .modal-section{margin-bottom:14px}
-.modal-section-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-.modal-section-content{font-size:12px;color:#e0e0e0;line-height:1.5}
-.modal-code{background:#0f0f14;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px;font-family:monospace;font-size:11px;color:#a0ff9f;margin:8px 0;overflow-x:auto}
+.modal-section-title{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.modal-section-content{font-size:12px;color:var(--gd-text);line-height:1.5}
+.modal-code{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:6px;padding:8px;font-family:monospace;font-size:11px;color:#a0ff9f;margin:8px 0;overflow-x:auto}
 .modal-list{list-style:none;padding:0;margin:8px 0}
-.modal-list li{padding:4px 0;padding-left:20px;position:relative;color:#e0e0e0;font-size:12px}
+.modal-list li{padding:4px 0;padding-left:20px;position:relative;color:var(--gd-text);font-size:12px}
 .modal-list li:before{content:'▸';position:absolute;left:0;color:#C8102E}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -151,7 +152,7 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 .guide-content{display:none;padding-top:12px;border-top:1px solid rgba(96,165,250,.15)}
 .guide-content.show{display:block}
 .guide-steps{display:grid;gap:8px;margin:12px 0}
-.guide-step{padding:10px 12px;background:#15151E;border-left:3px solid #60a5fa;border-radius:4px;font-size:11px;color:rgba(255,255,255,.7);line-height:1.5}
+.guide-step{padding:10px 12px;background:var(--gd-bg-elev);border-left:3px solid #60a5fa;border-radius:4px;font-size:11px;color:var(--gd-text);line-height:1.5}
 .guide-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:Arial,sans-serif;background:#60a5fa;color:#fff;transition:all .15s;margin-top:12px}
 .guide-btn:hover{background:#4f9ff0}
 
@@ -179,7 +180,7 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
     <span class="guide-toggle" id="guide-toggle">▸</span>
   </div>
   <div class="guide-content show" id="guide-content">
-    <p style="font-size:12px;color:#e0e0e0;margin-bottom:12px;line-height:1.6">
+    <p style="font-size:12px;color:var(--gd-text);margin-bottom:12px;line-height:1.6">
       Llena los campos de cada paso y la herramienta calcula automáticamente. Haz clic en <span style="color:#60a5fa;font-weight:700;border:1px solid rgba(96,165,250,.3);border-radius:50%;padding:0 4px">?</span> para saber qué significa cada dato y dónde obtenerlo.
     </p>
     <div class="guide-steps">
@@ -196,7 +197,7 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 <!-- ════════════ DATOS DEL PROYECTO ════════════ -->
 <div class="card" style="padding:14px 16px;margin-bottom:10px">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-    <span style="font-size:13px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em">Datos del Proyecto</span>
+    <span style="font-size:13px;font-weight:700;color:var(--gd-text);text-transform:uppercase;letter-spacing:.04em">Datos del Proyecto</span>
     <button class="btn btn-red" onclick="generarPDF()" style="gap:8px">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Exportar PDF
@@ -217,7 +218,7 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 <!-- ════════════ MATERIAL SELECTOR ════════════ -->
 <div class="card" style="padding:12px 16px;margin-bottom:10px">
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <span style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Material de tubería:</span>
+    <span style="font-size:11px;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Material de tubería:</span>
     <div class="mat-toggle">
       <button class="mat-btn active" id="mat-acero" onclick="setMaterial('acero')">Otros materiales</button>
       <button class="mat-btn" id="mat-pipro" onclick="setMaterial('pipro')">PIPRO Aluminio</button>
@@ -366,14 +367,14 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse;font-size:11px">
             <thead>
-              <tr style="border-bottom:1px solid rgba(255,255,255,.1)">
-                <th style="padding:5px 10px;text-align:left;color:rgba(255,255,255,.4)">Diámetro</th>
-                <th style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.4)">Vel. (m/s)</th>
-                <th style="padding:5px 10px;text-align:center;color:rgba(255,255,255,.4)">Régimen</th>
-                <th style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.4)">f (Darcy)</th>
-                <th style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.4)">ΔP (psi)</th>
-                <th style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.4)">%ΔP / P red</th>
-                <th style="padding:5px 10px;text-align:left;color:rgba(255,255,255,.4)">Estado</th>
+              <tr style="border-bottom:1px solid var(--gd-border)">
+                <th style="padding:5px 10px;text-align:left;color:var(--gd-text-mute)">Diámetro</th>
+                <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">Vel. (m/s)</th>
+                <th style="padding:5px 10px;text-align:center;color:var(--gd-text-mute)">Régimen</th>
+                <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">f (Darcy)</th>
+                <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">ΔP (psi)</th>
+                <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">%ΔP / P red</th>
+                <th style="padding:5px 10px;text-align:left;color:var(--gd-text-mute)">Estado</th>
               </tr>
             </thead>
             <tbody id="diam-comp-tbody"></tbody>
@@ -434,7 +435,7 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 </div>
 
 <!-- ════════════ RESUMEN FINAL DE RED ════════════ -->
-<div class="card" id="resumen-card" style="border:2px solid rgba(255,255,255,.07)">
+<div class="card" id="resumen-card" style="border:2px solid var(--gd-border)">
   <div class="card-header">
     <span class="step-label"><span class="step-badge" style="background:#22c55e">✓</span><span class="card-title">Resumen Final de Red</span></span>
     <span class="card-badge" id="rsm-estado-badge" style="background:#374151;font-size:11px">— Agrega datos para ver resultado</span>
@@ -463,10 +464,10 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
   </div>
   <!-- Barra de estado visual -->
   <div style="margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.3);margin-bottom:4px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gd-text-soft);margin-bottom:4px">
       <span>0%</span><span>2%</span><span>5%</span><span>10%</span>
     </div>
-    <div style="height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden;position:relative">
+    <div style="height:12px;background:var(--gd-border);border-radius:6px;overflow:hidden;position:relative">
       <div id="rsm-bar" style="height:100%;border-radius:6px;background:#22c55e;transition:width .5s,background .3s;width:0%"></div>
       <!-- Marcadores -->
       <div style="position:absolute;left:20%;top:0;height:100%;border-right:2px solid rgba(34,197,94,.4)"></div>
@@ -626,11 +627,11 @@ function buildPiproCatalogTable() {
     tr.style.background   = i % 2 === 0 ? 'rgba(96,165,250,.04)' : 'transparent';
     tr.innerHTML = `
       <td style="padding:5px 10px;color:#60a5fa;font-weight:700;white-space:nowrap">${t.label.split('—')[0].trim()}</td>
-      <td style="padding:5px 10px;color:rgba(255,255,255,.5);font-family:monospace">${t.codigo}</td>
-      <td style="padding:5px 10px;text-align:right;color:#e0e0e0">${(t.odMm).toFixed(1)}</td>
+      <td style="padding:5px 10px;color:var(--gd-text-mute);font-family:monospace">${t.codigo}</td>
+      <td style="padding:5px 10px;text-align:right;color:var(--gd-text)">${(t.odMm).toFixed(1)}</td>
       <td style="padding:5px 10px;text-align:right;color:#22c55e;font-weight:700">${(t.idM*1000).toFixed(1)}</td>
-      <td style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.6)">${t.esp}</td>
-      <td style="padding:5px 10px;text-align:right;color:rgba(255,255,255,.4)">5800</td>`;
+      <td style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">${t.esp}</td>
+      <td style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">5800</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1061,11 +1062,11 @@ function renderDiamTable() {
     tr.style.background = isSel ? 'rgba(200,16,46,.12)' : '';
     tr.style.fontWeight  = isSel ? '700' : '';
     tr.innerHTML = `
-      <td style="padding:4px 10px;color:${isSel?'#C8102E':'#e0e0e0'};white-space:nowrap">
+      <td style="padding:4px 10px;color:${isSel?'#C8102E':'var(--gd-text)'};white-space:nowrap">
         ${tube.label.split('—')[0].trim()}${isSel?' ◀':''}</td>
       <td style="padding:4px 10px;text-align:right;color:${v>12?'#ef4444':v>6?'#f59e0b':'#22c55e'}">${v.toFixed(2)}</td>
-      <td style="padding:4px 10px;text-align:center;color:rgba(255,255,255,.5)">${regime}</td>
-      <td style="padding:4px 10px;text-align:right;color:rgba(255,255,255,.5)">${f.toFixed(4)}</td>
+      <td style="padding:4px 10px;text-align:center;color:var(--gd-text-mute)">${regime}</td>
+      <td style="padding:4px 10px;text-align:right;color:var(--gd-text-mute)">${f.toFixed(4)}</td>
       <td style="padding:4px 10px;text-align:right;color:${pct>5?'#ef4444':pct>3?'#f59e0b':'#22c55e'}">${dP_psi.toFixed(3)}</td>
       <td style="padding:4px 10px;text-align:right;color:${pct>5?'#ef4444':pct>3?'#f59e0b':'#22c55e'}">${pct.toFixed(2)}%</td>
       <td style="padding:4px 10px">${statusHtml}</td>`;
@@ -1840,7 +1841,7 @@ function updateResumen() {
     estado = '✅ RED EXCELENTE';
     badgeColor = '#15803d'; barColor = '#16a34a';
     rsmTotal.style.color = '#16a34a'; rsmPct.style.color = '#16a34a';
-    recHtml = `<div style="padding:10px 14px;background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.30);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+    recHtml = `<div style="padding:10px 14px;background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.30);border-radius:8px;font-size:12px;color:var(--gd-text);line-height:1.7">
       <strong style="color:#16a34a">✅ Diseño correcto</strong> — La caída de presión es <strong>${pctLoss.toFixed(1)}%</strong> de la presión de red, lo que es excelente (límite recomendado: 5%).<br>
       Los equipos recibirán la presión nominal sin problemas. No es necesario ajustar diámetros.
     </div>`;
@@ -1848,7 +1849,7 @@ function updateResumen() {
     estado = '🟢 RED ACEPTABLE';
     badgeColor = '#4d7c0f'; barColor = '#84cc16';
     rsmTotal.style.color = '#84cc16'; rsmPct.style.color = '#84cc16';
-    recHtml = `<div style="padding:10px 14px;background:rgba(132,204,22,.10);border:1px solid rgba(132,204,22,.30);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+    recHtml = `<div style="padding:10px 14px;background:rgba(132,204,22,.10);border:1px solid rgba(132,204,22,.30);border-radius:8px;font-size:12px;color:var(--gd-text);line-height:1.7">
       <strong style="color:#84cc16">🟢 Diseño aceptable</strong> — Pérdida de <strong>${pctLoss.toFixed(1)}%</strong> está dentro del límite del 5%, pero es mejorable.<br>
       <strong>Recomendación:</strong> Considera aumentar un diámetro en el tramo de mayor pérdida, o ajustar la longitud de tuberías.
     </div>`;
@@ -1856,7 +1857,7 @@ function updateResumen() {
     estado = '⚠️ FUERA DE RANGO';
     badgeColor = '#9a3412'; barColor = '#f97316';
     rsmTotal.style.color = '#f97316'; rsmPct.style.color = '#f97316';
-    recHtml = `<div style="padding:10px 14px;background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.30);border-radius:8px;font-size:12px;color:#e0e0e0;line-height:1.7">
+    recHtml = `<div style="padding:10px 14px;background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.30);border-radius:8px;font-size:12px;color:var(--gd-text);line-height:1.7">
       <strong style="color:#f97316">⚠️ Diseño fuera de rango</strong> — La pérdida de <strong>${pctLoss.toFixed(1)}%</strong> supera el límite del 5%. Los equipos recibirán presión insuficiente.<br>
       <strong>Acciones recomendadas:</strong>
       <ul style="margin:8px 0 0 16px;line-height:1.8">

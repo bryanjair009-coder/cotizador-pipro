@@ -12,7 +12,8 @@
 <script src="supabase-client.js"></script>
 <script src="logo_b64.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
+<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
+<script src="gd-theme-sync.js?v=20260619"></script>
 <!-- Tesseract.js (~10 MB) se carga on-demand al usar OCR, no en el boot inicial -->
 <script>
 window.loadTesseract = function(){
@@ -31,7 +32,7 @@ window.loadTesseract = function(){
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#0b0d11;font-family:'Archivo',sans-serif}
+html,body{background:var(--gd-bg);color:var(--gd-text);font-family:'Inter','Archivo',sans-serif}
 
 /* ── Barra del módulo (clara, encima del dashboard oscuro) ─────────────── */
 .mod-header{
@@ -100,7 +101,9 @@ const{useState,useEffect,useMemo,useRef}=React;
 
 const APPROVER="Marco Antonio Millan Ramirez";
 const DELIVERY_DEFAULT="Entrega al Depto. de Ingeniería";
-const C={bg:"#0b0d11",panel:"#13161c",panel2:"#1a1e26",border:"#262b35",borderLight:"#323844",text:"#e8eaed",textDim:"#8b94a3",textFaint:"#5a6270",accent:"#f0b429",accentDim:"#a87d12",green:"#3fb950",red:"#f85149"};
+// Colores mapeados al theme global (gd-theme.css). Usar var() permite
+// que cambien automáticamente con dark/light mode sin re-renderizar React.
+const C={bg:"var(--gd-bg)",panel:"var(--gd-bg-elev)",panel2:"var(--gd-bg-alt)",border:"var(--gd-border)",borderLight:"var(--gd-border-strong)",text:"var(--gd-text)",textDim:"var(--gd-text-mute)",textFaint:"var(--gd-text-soft)",accent:"#C8102E",accentDim:"#A10D24",green:"#16A34A",red:"#DC2626"};
 
 // ─── IndexedDB (fallback cuando Supabase no está configurado) ────────────────
 const IDB_NAME="RequisicionesDB",IDB_VER=1;
@@ -224,7 +227,7 @@ function downloadPDF(req){
 }
 
 // ─── Componentes base ─────────────────────────────────────────────────────────
-const IS={width:'100%',background:'#0b0d11',border:'1px solid #262b35',borderRadius:8,padding:'10px 12px',color:'#e8eaed',fontSize:14,fontFamily:"'Archivo',sans-serif",outline:'none',transition:'border-color 0.15s'};
+const IS={width:'100%',background:'var(--gd-bg)',border:'1px solid var(--gd-border)',borderRadius:8,padding:'10px 12px',color:'var(--gd-text)',fontSize:14,fontFamily:"'Inter','Archivo',sans-serif",outline:'none',transition:'border-color 0.15s'};
 function Field({label,hint,children}){return(<div style={{marginBottom:16}}><label style={{display:'block',fontSize:11,fontWeight:700,letterSpacing:'0.6px',textTransform:'uppercase',color:C.textDim,marginBottom:6}}>{label}{hint&&<span style={{color:C.textFaint,fontWeight:400,textTransform:'none',letterSpacing:0,marginLeft:6}}>{hint}</span>}</label>{children}</div>);}
 function TI({value,onChange,placeholder,disabled,mono}){return(<input className="req-input" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} disabled={disabled} style={{...IS,fontFamily:mono?"'Spline Sans Mono',monospace":"'Archivo',sans-serif",opacity:disabled?0.4:1,cursor:disabled?'not-allowed':'text'}} onFocus={e=>e.target.style.borderColor=C.accent} onBlur={e=>e.target.style.borderColor=C.border}/>);}
 
