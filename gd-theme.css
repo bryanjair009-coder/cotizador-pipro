@@ -488,6 +488,82 @@ p { margin: 0; }
 .gd-metric.is-accent .gd-metric-value { color: var(--gd-red); }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   MODALES / DIALOGS
+   ════════════════════════════════════════════════════════════════════════════ */
+.gd-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 15, 30, .55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: gd-fade-in .15s ease;
+}
+.gd-modal {
+  background: var(--gd-white);
+  border-radius: var(--gd-radius-lg);
+  box-shadow: var(--gd-shadow-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: gd-slide-up .2s ease;
+}
+.gd-modal.is-lg { max-width: 780px; }
+.gd-modal.is-xl { max-width: 1040px; }
+.gd-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gd-200);
+  background: var(--gd-50);
+}
+.gd-modal-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gd-900);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.gd-modal-close {
+  width: 30px; height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 16px;
+  color: var(--gd-600);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.gd-modal-close:hover { background: var(--gd-200); color: var(--gd-900); }
+.gd-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+.gd-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--gd-200);
+  background: var(--gd-50);
+}
+@keyframes gd-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gd-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    SCROLLBARS (look corporativo)
    ════════════════════════════════════════════════════════════════════════════ */
 ::-webkit-scrollbar { width: 10px; height: 10px; }

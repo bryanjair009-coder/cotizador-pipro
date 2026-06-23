@@ -53,6 +53,18 @@ body{
 .mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
 .mod-sub{font-size:11px;color:#898B92;margin-top:2px;letter-spacing:.01em;font-weight:500;}
 
+/* ── Acciones del módulo (botón Cargar + tabs internos) ───────────────────── */
+.mod-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.mod-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 14px;border:1px solid #E5E7EB;background:#FFFFFF;
+  color:#4A4A52;border-radius:8px;font-size:12.5px;font-weight:600;
+  cursor:pointer;font-family:'Inter','Segoe UI',Arial,sans-serif;
+  transition:all .15s ease;
+}
+.mod-btn:hover{border-color:#C8102E;color:#C8102E;background:#FFF5F7;}
+.mod-btn span{font-size:14px;line-height:1;}
+
 /* ── NAV TABS internos (estilo pills modernos) ──────────────────────────────── */
 .mod-tabs{
   display:inline-flex;
@@ -191,6 +203,12 @@ summary::-webkit-details-marker{display:none;}
 
 /* ── METRIC CARDS ───────────────────────────────────────────────────────────── */
 .metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:12px 0;}
+
+/* ── Resumen de obra: filas tipo factura ─────────────────────────────────── */
+.r-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:3px 0;}
+.r-lbl{color:#4A4A52;font-weight:500;}
+.r-val{color:#1A1A1F;font-weight:700;font-variant-numeric:tabular-nums;}
+.r-sub{font-size:11px;color:#898B92;font-weight:400;line-height:1.3;padding:1px 0 3px 0;display:block;}
 .metric-card{
   background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);
   padding:12px;text-align:center;
@@ -359,12 +377,27 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
   </div>
 
-  <nav class="mod-tabs">
-    <button class="mod-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
-    <button class="mod-tab" onclick="showPage('edicion',this)">📝 Edición</button>
-    <button class="mod-tab" onclick="showPage('admin',this)">🔐 Administrador</button>
-  </nav>
+  <div class="mod-actions">
+    <button class="mod-btn" onclick="openEditModal()" title="Cargar cotización previa para editar">
+      <span>📂</span> Cargar para editar
+    </button>
+    <nav class="mod-tabs">
+      <button class="mod-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
+      <button class="mod-tab" onclick="showPage('admin',this)">🔐 Administrador</button>
+    </nav>
+  </div>
 </header>
+
+<!-- Banner persistente "MODO EDICIÓN ACTIVO" — visible en cualquier pestaña -->
+<div id="edicion-banner" style="display:none;background:linear-gradient(90deg,#FFFBEB,#FEF3C7);
+     border-bottom:1px solid #FCD34D;padding:10px 22px;font-size:13px;color:#92400E;
+     display:none;align-items:center;justify-content:space-between;gap:14px;">
+  <div>
+    🔄 <b>Modo edición activo:</b> editando folio <b id="edicion-folio-actual">—</b> ·
+    los archivos descargados llevarán sufijo <b>-EDITADO</b>
+  </div>
+  <button class="gd-btn gd-btn-ghost gd-btn-sm" onclick="cancelarEdicion()">Cancelar edición</button>
+</div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -815,23 +848,71 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
 
     <!-- Resumen MO -->
-    <div class="card" id="mo-resumen">
-      <div class="sec-title" style="margin-top:0;">📊 Resumen Programación de Obra</div>
-      <div class="metric-grid">
-        <div class="metric-card"><div class="metric-label">💼 Mano de Obra</div><div class="metric-value" id="r-mo">$0.00</div><div class="metric-delta" id="r-mo-d">3 pers × 0 días</div></div>
-        <div class="metric-card"><div class="metric-label">🍽️ Comidas</div><div class="metric-value" id="r-comidas">$0.00</div></div>
-        <div class="metric-card"><div class="metric-label">🏨 Hospedaje</div><div class="metric-value" id="r-hospedaje">$0.00</div><div class="metric-delta" id="r-hospedaje-d">no aplica</div></div>
-        <div class="metric-card"><div class="metric-label">🚗 Automóvil</div><div class="metric-value" id="r-auto">$0.00</div><div class="metric-delta" id="r-auto-d">0 km</div></div>
-        <div class="metric-card"><div class="metric-label">✈️ Vuelo</div><div class="metric-value" id="r-vuelo">$0.00</div><div class="metric-delta" id="r-vuelo-d">0 pers</div></div>
-        <div class="metric-card"><div class="metric-label">🏗️ Plataformas</div><div class="metric-value" id="r-plat">$0.00</div></div>
-        <div class="metric-card" style="background:#fff8e1;border-color:#FFC107;"><div class="metric-label" style="color:#e65100;">Viáticos real (com+hosp)</div><div class="metric-value" id="r-viat-real">$0.00</div></div>
-        <div class="metric-card" style="background:#fff8e1;border-color:#FF8F00;"><div class="metric-label" style="color:#e65100;" id="r-viat-gan-label">Ganancia viáticos 30%</div><div class="metric-value" id="r-viat-gan">$0.00</div></div>
-        <div class="metric-card"><div class="metric-label">Viáticos cobrado</div><div class="metric-value" id="r-viat">$0.00</div></div>
-        <div class="metric-card" style="background:#e3f2fd;border-color:#1976D2;"><div class="metric-label" style="color:#1565C0;">Movilidad real (auto+vuelo)</div><div class="metric-value" id="r-mov-real">$0.00</div></div>
-        <div class="metric-card" style="background:#e3f2fd;border-color:#1565C0;"><div class="metric-label" style="color:#1565C0;" id="r-mov-gan-label">Utilidad movilidad 40%</div><div class="metric-value" id="r-mov-gan">$0.00</div></div>
-        <div class="metric-card"><div class="metric-label">Movilidad cobrada</div><div class="metric-value" id="r-mov">$0.00</div></div>
-        <div class="metric-card" style="background:#fff0f3;border-color:#C8102E;"><div class="metric-label" style="color:#C8102E;">🔩 Soportería</div><div class="metric-value" id="r-sop">$0.00</div><div class="metric-delta">Mat. de apoyo</div></div>
-        <div class="metric-card highlight"><div class="metric-label">💰 TOTAL M.O.</div><div class="metric-value" id="r-total">$0.00</div></div>
+    <div class="card" id="mo-resumen" style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:0;overflow:hidden;">
+      <!-- Encabezado con TOTAL destacado (hero) -->
+      <div style="background:linear-gradient(135deg,#C8102E,#A10D24);color:#FFFFFF;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.85;margin-bottom:4px;">📊 Resumen Programación de Obra</div>
+          <div style="font-size:13px;opacity:.9;">Total M.O. + Equipo + Viáticos cobrado al cliente</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;" id="r-total">$0.00</div>
+          <div style="font-size:11px;opacity:.8;margin-top:4px;" id="r-total-sub">Incluye personal, equipo, viáticos, movilidad y soportería</div>
+        </div>
+      </div>
+
+      <!-- Grid de 4 grupos compactos -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0;background:#E5E7EB;">
+
+        <!-- 👥 Personal y Equipo -->
+        <div style="background:#FFFFFF;padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+            <span style="font-size:14px;">👥</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Personal y Equipo</span>
+          </div>
+          <div class="r-row"><span class="r-lbl">💼 Mano de obra</span><span class="r-val" id="r-mo">$0.00</span></div>
+          <div class="r-row r-sub" id="r-mo-d">3 pers × 0 días</div>
+          <div class="r-row"><span class="r-lbl">🍽️ Comidas</span><span class="r-val" id="r-comidas">$0.00</span></div>
+          <div class="r-row"><span class="r-lbl">🏨 Hospedaje</span><span class="r-val" id="r-hospedaje">$0.00</span></div>
+          <div class="r-row r-sub" id="r-hospedaje-d">no aplica</div>
+          <div class="r-row"><span class="r-lbl">🏗️ Plataformas</span><span class="r-val" id="r-plat">$0.00</span></div>
+        </div>
+
+        <!-- 🚗 Movilidad -->
+        <div style="background:#FFFFFF;padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+            <span style="font-size:14px;">🚗</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Movilidad (Auto + Vuelo)</span>
+          </div>
+          <div class="r-row"><span class="r-lbl">🚗 Automóvil</span><span class="r-val" id="r-auto">$0.00</span></div>
+          <div class="r-row r-sub" id="r-auto-d">0 km</div>
+          <div class="r-row"><span class="r-lbl">✈️ Vuelo</span><span class="r-val" id="r-vuelo">$0.00</span></div>
+          <div class="r-row r-sub" id="r-vuelo-d">0 pers</div>
+          <div class="r-row r-sub" id="r-mov-real-row" style="margin-top:6px;padding-top:6px;border-top:1px dashed #E5E7EB;">Subtotal real <span id="r-mov-real" style="float:right;font-weight:600;color:#6B6E76;">$0.00</span></div>
+          <div class="r-row r-sub" id="r-mov-gan-row"><span id="r-mov-gan-label">+ Util. movilidad 40%</span> <span id="r-mov-gan" style="float:right;font-weight:600;color:#E65100;">$0.00</span></div>
+          <div class="r-row" style="margin-top:4px;"><span class="r-lbl" style="color:#1565C0;font-weight:700;">Movilidad cobrada</span><span class="r-val" id="r-mov" style="color:#1565C0;">$0.00</span></div>
+        </div>
+
+        <!-- 🧾 Viáticos (comidas + hospedaje) -->
+        <div style="background:#FFFFFF;padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+            <span style="font-size:14px;">🧾</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Viáticos (Com + Hosp)</span>
+          </div>
+          <div class="r-row"><span class="r-lbl">Sub-viáticos real</span><span class="r-val" id="r-viat-real">$0.00</span></div>
+          <div class="r-row r-sub"><span id="r-viat-gan-label">+ Ganancia 30%</span> <span id="r-viat-gan" style="float:right;font-weight:600;color:#E65100;">$0.00</span></div>
+          <div class="r-row" style="margin-top:4px;"><span class="r-lbl" style="color:#E65100;font-weight:700;">Viáticos cobrado</span><span class="r-val" id="r-viat" style="color:#E65100;">$0.00</span></div>
+        </div>
+
+        <!-- 📦 Materiales -->
+        <div style="background:#FFFFFF;padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+            <span style="font-size:14px;">📦</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Materiales de Apoyo</span>
+          </div>
+          <div class="r-row"><span class="r-lbl">🔩 Soportería</span><span class="r-val" id="r-sop" style="color:#C8102E;">$0.00</span></div>
+          <div class="r-row r-sub">Material de instalación y soportes</div>
+        </div>
       </div>
     </div>
   </div><!-- end #mo-section -->
@@ -894,9 +975,18 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <input type="number" id="descuento_pct" value="0" min="0" max="100" step="5" style="width:120px;" oninput="updateTotales()">
       </div>
       <div class="cart-totals" id="cart-totals"></div>
-      <div style="margin-top:10px;">
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-danger btn-sm" onclick="clearCart()">🗑 Limpiar carrito</button>
+        <button class="btn btn-secondary btn-sm" onclick="openNewProdModal()" title="Agregar un producto nuevo al catálogo">
+          ➕ Nuevo producto al catálogo
+        </button>
       </div>
+    </div>
+    <!-- Botón también visible cuando carrito está vacío -->
+    <div id="cart-add-prod-empty" style="text-align:center;margin-top:10px;">
+      <button class="btn btn-secondary btn-sm" onclick="openNewProdModal()" title="Agregar un producto nuevo al catálogo">
+        ➕ Nuevo producto al catálogo
+      </button>
     </div>
   </div>
 
@@ -912,107 +1002,118 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
   </div>
 
-  <!-- ➕ AGREGAR PRODUCTO ────────────────────────────────────────────────────── -->
-  <div class="sec-title">➕ Agregar Producto a la Base de Datos</div>
-  <div class="card">
-    <div id="add-prod-gate">
-      <details>
-        <summary>🔒 Requiere acceso de administrador</summary>
-        <div class="details-body">
-          <div class="grid-2">
-            <div>
-              <label>Contraseña de administrador</label>
-              <input type="password" id="add-prod-pwd" placeholder="Contraseña">
-            </div>
-            <div style="display:flex;align-items:flex-end;">
-              <button class="btn btn-primary" onclick="unlockAddProduct()">Desbloquear</button>
-            </div>
-          </div>
-          <div class="error-box hidden" id="add-prod-err">Contraseña incorrecta.</div>
-        </div>
-      </details>
-    </div>
-    <div id="add-prod-form" style="display:none;">
-      <div class="grid-3">
-        <div>
-          <label>Descripción del producto</label>
-          <input type="text" id="new-desc" placeholder="Descripción completa">
-        </div>
-        <div>
-          <label>Número de parte</label>
-          <input type="text" id="new-part" placeholder="Ej: 12B00 00">
-        </div>
-        <div>
-          <label>Precio Unitario MXN</label>
-          <input type="number" id="new-price" min="0" step="10" placeholder="0.00">
-        </div>
-      </div>
-      <div style="margin-top:10px;display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="addProduct()">✅ Agregar a la base de datos</button>
-        <button class="btn btn-secondary btn-sm" onclick="lockAddProduct()">🔒 Cerrar acceso</button>
-      </div>
-      <div class="success-box hidden" id="add-prod-ok"></div>
-
-      <!-- ── Importar desde Excel ─────────────────────────────────────── -->
-      <div style="margin-top:16px;padding-top:14px;border-top:1.5px solid var(--gd-lgray);">
-        <label style="font-size:.82rem;font-weight:600;color:#444;margin-bottom:6px;display:block;">
-          📎 Importar múltiples productos desde Excel
-        </label>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;">
-            📂 Seleccionar archivo .xlsx / .xls
-            <input type="file" id="qx-file" accept=".xls,.xlsx" style="display:none" onchange="initQuickExcel(this)">
-          </label>
-          <span id="qx-fname" style="font-size:.82rem;color:#888;"></span>
-        </div>
-        <div id="qx-preview" style="display:none;margin-top:12px;"></div>
-      </div>
-    </div>
-  </div>
 
 </div><!-- end page-cotizador -->
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
-     PESTAÑA EDICIÓN — Cargar cotización previa y editarla
+     MODAL — AGREGAR PRODUCTO AL CATÁLOGO (sale del carrito)
      ═══════════════════════════════════════════════════════════════════════════ -->
-<div class="page" id="page-edicion">
-  <div class="sec-title">📝 Editar Cotización Previa</div>
-
-  <div class="card">
-    <div class="info-box" style="margin-bottom:14px;">
-      <b>¿Cómo funciona?</b> Sube el <b>Excel (.xlsx)</b> o <b>Word (.doc)</b> de una cotización generada previamente. El sistema reconstruirá automáticamente cliente, materiales, mano de obra, viáticos y descuento. Edita lo que necesites y descarga la nueva versión con el mismo folio + sufijo <b>"-EDITADO"</b>.
+<div id="newprod-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)closeNewProdModal()">
+  <div class="gd-modal is-lg" role="dialog" aria-modal="true" aria-labelledby="newprod-title">
+    <div class="gd-modal-header">
+      <h3 id="newprod-title">➕ Agregar producto al catálogo</h3>
+      <button class="gd-modal-close" onclick="closeNewProdModal()" aria-label="Cerrar">✕</button>
     </div>
+    <div class="gd-modal-body">
 
-    <div id="edicion-status" style="display:none;"></div>
+      <!-- Gate de contraseña -->
+      <div id="add-prod-gate">
+        <div class="info-box" style="margin-bottom:14px;">
+          🔒 Para modificar el catálogo necesitas el <b>acceso de administrador</b>.
+        </div>
+        <div class="grid-2">
+          <div>
+            <label>Contraseña de administrador</label>
+            <input type="password" id="add-prod-pwd" placeholder="Contraseña"
+                   onkeydown="if(event.key==='Enter')unlockAddProduct()">
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" onclick="unlockAddProduct()">🔓 Desbloquear</button>
+          </div>
+        </div>
+        <div class="error-box hidden" id="add-prod-err" style="margin-top:10px;">Contraseña incorrecta.</div>
+      </div>
 
-    <label class="upload-area" for="edicion-file" id="edicion-drop">
-      <input type="file" id="edicion-file" accept=".xlsx,.xls,.doc,.docx,.pdf" onchange="cargarParaEditar(this)">
-      <div style="font-size:1.1rem;font-weight:700;color:var(--gd-dark);">📂 Haz clic o arrastra tu cotización</div>
-      <div style="color:#888;font-size:.85rem;margin-top:8px;">Formatos: <b>.xlsx</b> · <b>.doc/.docx</b> (recomendado) · <b>.pdf</b> (solo si tiene datos embebidos)</div>
-      <div style="color:#aaa;font-size:.78rem;margin-top:4px;">El archivo debe haber sido generado por este mismo cotizador.</div>
-    </label>
+      <!-- Formulario (visible después de desbloquear) -->
+      <div id="add-prod-form" style="display:none;">
+        <div class="grid-3">
+          <div>
+            <label>Descripción del producto</label>
+            <input type="text" id="new-desc" placeholder="Descripción completa">
+          </div>
+          <div>
+            <label>Número de parte</label>
+            <input type="text" id="new-part" placeholder="Ej: 12B00 00">
+          </div>
+          <div>
+            <label>Precio Unitario MXN</label>
+            <input type="number" id="new-price" min="0" step="10" placeholder="0.00">
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="addProduct()">✅ Agregar al catálogo</button>
+          <button class="btn btn-secondary btn-sm" onclick="lockAddProduct()">🔒 Cerrar acceso</button>
+        </div>
+        <div class="success-box hidden" id="add-prod-ok" style="margin-top:10px;"></div>
 
-    <div style="margin-top:14px;padding:10px 12px;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;font-size:.8rem;color:#555;">
-      <b style="color:var(--gd-red);">⚠️ Importante:</b> Los archivos <b>antiguos</b> (generados antes de esta función) no contienen los datos embebidos necesarios y NO podrán restaurarse automáticamente. Para esos casos, captura de nuevo o vuelve a generar la cotización con la versión actual.
+        <!-- Importar desde Excel -->
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #E5E7EB;">
+          <label style="font-size:.82rem;font-weight:600;color:#444;margin-bottom:6px;display:block;">
+            📎 Importar múltiples productos desde Excel
+          </label>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;">
+              📂 Seleccionar archivo .xlsx / .xls
+              <input type="file" id="qx-file" accept=".xls,.xlsx" style="display:none" onchange="initQuickExcel(this)">
+            </label>
+            <span id="qx-fname" style="font-size:.82rem;color:#888;"></span>
+          </div>
+          <div id="qx-preview" style="display:none;margin-top:12px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="gd-modal-footer">
+      <button class="gd-btn gd-btn-ghost" onclick="closeNewProdModal()">Cerrar</button>
     </div>
   </div>
+</div>
 
-  <!-- Indicador modo edición activo -->
-  <div id="edicion-activa" style="display:none;background:linear-gradient(135deg,#fff8e1,#fffde7);border:2px solid #FFA000;border-radius:8px;padding:14px 16px;margin-top:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-      <div>
-        <div style="font-weight:700;color:#E65100;font-size:.95rem;">🔄 MODO EDICIÓN ACTIVO</div>
-        <div style="font-size:.82rem;color:#666;margin-top:3px;">Editando folio: <b id="edicion-folio-actual"></b></div>
-        <div style="font-size:.78rem;color:#888;margin-top:2px;">Al descargar, los archivos llevarán el sufijo <b>-EDITADO</b></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL — CARGAR COTIZACIÓN PARA EDITAR
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="edit-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)closeEditModal()">
+  <div class="gd-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <div class="gd-modal-header">
+      <h3 id="edit-modal-title">📝 Cargar cotización para editar</h3>
+      <button class="gd-modal-close" onclick="closeEditModal()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="gd-modal-body">
+      <div class="info-box" style="margin-bottom:14px;">
+        <b>¿Cómo funciona?</b> Sube el <b>Excel (.xlsx)</b> o <b>Word (.doc)</b> de una cotización previa. El sistema reconstruirá cliente, materiales, M.O., viáticos y descuento. Al editar y descargar, los archivos llevarán sufijo <b>-EDITADO</b>.
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary btn-sm" onclick="showPage('cotizador',document.querySelector('.mod-tab'))">Ir al cotizador</button>
-        <button class="btn btn-secondary btn-sm" onclick="cancelarEdicion()">Cancelar edición</button>
+
+      <div id="edicion-status" style="display:none;"></div>
+
+      <label class="upload-area" for="edicion-file" id="edicion-drop">
+        <input type="file" id="edicion-file" accept=".xlsx,.xls,.doc,.docx,.pdf" onchange="cargarParaEditar(this)">
+        <div style="font-size:1.05rem;font-weight:700;color:var(--gd-dark);">📂 Haz clic o arrastra tu cotización aquí</div>
+        <div style="color:#888;font-size:.85rem;margin-top:8px;">Formatos: <b>.xlsx</b> · <b>.doc/.docx</b> (recomendado)</div>
+        <div style="color:#aaa;font-size:.78rem;margin-top:4px;">El archivo debe haber sido generado por este cotizador.</div>
+      </label>
+
+      <div style="margin-top:14px;padding:10px 12px;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;font-size:.8rem;color:#555;">
+        <b style="color:var(--gd-red);">⚠️</b> Los archivos <b>antiguos</b> (sin datos embebidos) no podrán restaurarse. Regenera la cotización con la versión actual.
       </div>
     </div>
+    <div class="gd-modal-footer">
+      <button class="gd-btn gd-btn-ghost" onclick="closeEditModal()">Cancelar</button>
+    </div>
   </div>
-</div><!-- end page-edicion -->
+</div>
+<!-- Placeholder oculto del div page-edicion (las pestañas internas ya no lo usan) -->
+<div id="page-edicion" class="page" style="display:none;"></div>
 
 
 <!-- ══════════════════════════════════════════════════════════════════════════════
@@ -1483,12 +1584,28 @@ function _b64Decode(b64) {
   catch(e) { return atob(b64); }
 }
 
+// Modal: abrir / cerrar el dialog de edición
+function openEditModal() {
+  const m = el('edit-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  const st = el('edicion-status');
+  if (st) { st.style.display = 'none'; st.innerHTML = ''; }
+  const fi = el('edicion-file');
+  if (fi) fi.value = '';
+}
+function closeEditModal() {
+  const m = el('edit-modal');
+  if (m) m.style.display = 'none';
+}
+
 // Carga un archivo y restaura la cotización
 async function cargarParaEditar(input) {
   const file = input.files[0];
   if (!file) return;
   const status = el('edicion-status');
   const showStatus = (msg, type) => {
+    if (!status) return;
     status.style.display = 'block';
     status.className = type === 'ok' ? 'success-box' : (type === 'warn' ? 'warning-box' : 'error-box');
     status.innerHTML = msg;
@@ -1512,10 +1629,24 @@ async function cargarParaEditar(input) {
     if (!data) throw new Error('El archivo no contiene los datos embebidos. Probablemente es una cotización antigua generada antes de esta función. Vuelve a generarla desde el cotizador y entonces podrás editarla.');
 
     restoreCotizacion(data);
-    el('edicion-activa').style.display = 'block';
-    el('edicion-folio-actual').textContent = state.editandoFolio || '(sin folio)';
-    showStatus(`✅ Cotización <b>${state.editandoFolio || '(sin folio)'}</b> cargada correctamente. Ve a la pestaña <b>Cotizador</b> y edita lo que necesites; al descargar, los archivos llevarán el sufijo <b>-EDITADO</b>.`, 'ok');
-    input.value = ''; // permitir re-subir el mismo archivo después
+
+    // Mostrar banner persistente con folio en edición
+    const banner = el('edicion-banner');
+    if (banner) {
+      banner.style.display = 'flex';
+      const f = el('edicion-folio-actual');
+      if (f) f.textContent = state.editandoFolio || '(sin folio)';
+    }
+
+    showStatus(`✅ Cotización <b>${state.editandoFolio || '(sin folio)'}</b> cargada. Cerrando…`, 'ok');
+    input.value = '';
+    // Cerrar el modal automáticamente, asegurar que estamos en la pestaña Cotizador
+    setTimeout(() => {
+      closeEditModal();
+      const firstTab = document.querySelector('.mod-tab');
+      if (firstTab) showPage('cotizador', firstTab);
+      toast('🔄 Cotización cargada — modo edición activo');
+    }, 900);
   } catch(e) {
     showStatus(`❌ ${e.message || e}`, 'err');
     input.value = '';
@@ -1544,7 +1675,10 @@ async function _parseWordCot(file) {
 function cancelarEdicion() {
   state.editandoFolio = null;
   state.editandoVersion = 0;
-  el('edicion-activa').style.display = 'none';
+  const banner = el('edicion-banner');
+  if (banner) banner.style.display = 'none';
+  const ea = el('edicion-activa');
+  if (ea) ea.style.display = 'none';
   const st = el('edicion-status');
   if (st) st.style.display = 'none';
   if (typeof updateFolio === 'function') updateFolio();
@@ -1901,6 +2035,8 @@ function renderCart() {
   const items = Object.entries(state.carrito);
   el('cart-empty').style.display = items.length ? 'none' : '';
   el('cart-content').style.display = items.length ? '' : 'none';
+  const emptyBtn = el('cart-add-prod-empty');
+  if (emptyBtn) emptyBtn.style.display = items.length ? 'none' : 'block';
   if (!items.length) return;
 
   let html = '';
@@ -3280,6 +3416,29 @@ function confirmModal(title, htmlBody) {
     };
   });
 }
+function openNewProdModal() {
+  const m = el('newprod-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  // Si el admin ya está desbloqueado, mostrar form directamente
+  if (state.addProdOk) {
+    hide('add-prod-gate');
+    show('add-prod-form');
+  } else {
+    show('add-prod-gate');
+    hide('add-prod-form');
+    const pwd = el('add-prod-pwd');
+    if (pwd) { pwd.value = ''; setTimeout(()=>pwd.focus(), 100); }
+  }
+  hideCls('add-prod-err');
+  const ok = el('add-prod-ok');
+  if (ok) ok.classList.add('hidden');
+}
+function closeNewProdModal() {
+  const m = el('newprod-modal');
+  if (m) m.style.display = 'none';
+}
+
 function unlockAddProduct() {
   if (el('add-prod-pwd').value === ADMIN_PASSWORD) {
     state.addProdOk = true;
