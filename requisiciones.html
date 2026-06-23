@@ -12,6 +12,7 @@
 <script src="supabase-client.js"></script>
 <script src="logo_b64.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
 <!-- Tesseract.js (~10 MB) se carga on-demand al usar OCR, no en el boot inicial -->
 <script>
 window.loadTesseract = function(){
@@ -31,6 +32,22 @@ window.loadTesseract = function(){
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#0b0d11;font-family:'Archivo',sans-serif}
+
+/* ── Barra del módulo (clara, encima del dashboard oscuro) ─────────────── */
+.mod-header{
+  background:#FFFFFF;border-bottom:1px solid #E5E7EB;
+  padding:10px 22px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  background:#FFF5F7;color:#C8102E;font-size:18px;
+  border:1px solid #FCE7EB;
+}
+.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;font-family:'Inter','Archivo',sans-serif;}
+.mod-sub{font-size:11px;color:#898B92;margin-top:2px;font-weight:500;font-family:'Inter','Archivo',sans-serif;}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:#0e1116}
 ::-webkit-scrollbar-thumb{background:#2d3340;border-radius:6px}
@@ -44,6 +61,16 @@ select{color-scheme:dark}
 </style>
 </head>
 <body>
+
+<!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────── -->
+<header class="mod-header">
+  <span class="mod-icon">📦</span>
+  <div>
+    <div class="mod-title">Requisiciones</div>
+    <div class="mod-sub">Departamento de Ingeniería · Gardner Denver México</div>
+  </div>
+</header>
+
 <div id="root">
   <div id="loading" style="color:#8b94a3;font-size:14px;text-align:center;padding:80px 20px;">
     <div style="font-size:22px;margin-bottom:14px;">📦</div>

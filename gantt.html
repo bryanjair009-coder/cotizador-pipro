@@ -6,6 +6,24 @@
 <title>Generador de Gantt · Gardner Denver</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
+<style>
+/* ── Barra del módulo (clara, encima del dashboard oscuro) ─────────────── */
+.mod-header{
+  background:#FFFFFF;border-bottom:1px solid #E5E7EB;
+  padding:10px 22px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  background:#FFF5F7;color:#C8102E;font-size:18px;
+  border:1px solid #FCE7EB;
+}
+.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;font-family:'Inter',sans-serif;}
+.mod-sub{font-size:11px;color:#898B92;margin-top:2px;font-weight:500;font-family:'Inter',sans-serif;}
+</style>
 <style>
 :root{
   --rojo:#7F1D1D;--rojo-m:#991B1B;--rojo-v:#B91C1C;
@@ -128,12 +146,22 @@ select option{background:#1A1A26}
 </head>
 <body>
 
-<div class="header" id="main-header">
+<!-- ── BARRA DEL MÓDULO (sustituye al header viejo con logo) ─────────────── -->
+<header class="mod-header">
+  <span class="mod-icon">📅</span>
+  <div>
+    <div class="mod-title">Generador de Gantt</div>
+    <div class="mod-sub" id="header-sub">Planificación de proyectos · Cotización y estudios</div>
+  </div>
+  <div class="header-steps" id="header-steps" style="margin-left:auto;"></div>
+</header>
+
+<!-- Header viejo oculto: lo dejamos en el DOM por si algún JS lo busca por id -->
+<div class="header" id="main-header" style="display:none;">
   <div class="header-logo">Gardner Denver</div>
   <div class="header-div"></div>
-  <div class="header-sub" id="header-sub">Generador de Diagramas de Gantt</div>
-  <div class="header-steps" id="header-steps"></div>
 </div>
+
 <div id="app"></div>
 
 <script>

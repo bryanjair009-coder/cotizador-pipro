@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Selección Eléctrica · NOM-001-SEDE-2012</title>
+<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -15,8 +16,24 @@
   --gd-lgray:#e0e0e0;
   --radius:8px;
 }
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
-body{background:#f4f6f8;color:#333;padding:18px;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter','Segoe UI',Arial,sans-serif;}
+body{background:#F8F9FB;color:#1A1A1F;-webkit-font-smoothing:antialiased;}
+.mod-wrap{padding:18px;max-width:1100px;margin:0 auto;}
+
+/* ── Barra del módulo (clara, coherente con cotizador) ─────────────────── */
+.mod-header{
+  background:#FFFFFF;border-bottom:1px solid #E5E7EB;
+  padding:10px 22px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  background:#FFF5F7;color:#C8102E;font-size:18px;
+  border:1px solid #FCE7EB;
+}
+.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:#898B92;margin-top:2px;font-weight:500;}
 
 h1{color:var(--gd-dark);font-size:1.4rem;margin-bottom:4px;}
 .subtitle{color:var(--gd-gray);font-size:.85rem;margin-bottom:18px;}
@@ -126,8 +143,16 @@ details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
 </head>
 <body>
 
-<h1>🔌 Selección Eléctrica Industrial</h1>
-<p class="subtitle">Calculadora de dimensionamiento conforme a la <b>NOM-001-SEDE-2012</b> · Cableado, protecciones, canalización y soportería</p>
+<!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────── -->
+<header class="mod-header">
+  <span class="mod-icon">⚡</span>
+  <div>
+    <div class="mod-title">Selección Eléctrica Industrial</div>
+    <div class="mod-sub">Cálculo conforme a NOM-001-SEDE-2012 · Cableado, protecciones, canalización y soportería</div>
+  </div>
+</header>
+
+<div class="mod-wrap">
 
 <!-- ────────── DATOS DEL EQUIPO ────────── -->
 <div class="sec-title">1. Datos del Equipo</div>
@@ -967,5 +992,6 @@ function generarPDF() {
 }
 </script>
 
+</div><!-- end .mod-wrap -->
 </body>
 </html>

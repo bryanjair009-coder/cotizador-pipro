@@ -4,13 +4,31 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Caídas de Presión · PIPRO</title>
+<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
 <script src="logo_b64.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100%;font-family:Arial,sans-serif;background:#0f0f14;color:#e0e0e0}
-body{padding:16px;overflow-y:auto}
+html,body{min-height:100%;font-family:'Inter','Segoe UI',Arial,sans-serif;background:#0f0f14;color:#e0e0e0;-webkit-font-smoothing:antialiased}
+body{padding:0;overflow-y:auto}
+
+/* ── Barra del módulo (clara, sticky arriba — coherente con portal) ─────── */
+.mod-header{
+  background:#FFFFFF;border-bottom:1px solid #E5E7EB;
+  padding:10px 22px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  background:#FFF5F7;color:#C8102E;font-size:18px;
+  border:1px solid #FCE7EB;
+}
+.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:#898B92;margin-top:2px;font-weight:500;}
+.mod-wrap{padding:16px;}
 
 .card{background:#15151E;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px;margin-bottom:14px}
 .card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
@@ -142,6 +160,17 @@ h3{font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppe
 </style>
 </head>
 <body>
+
+<!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────── -->
+<header class="mod-header">
+  <span class="mod-icon">🔵</span>
+  <div>
+    <div class="mod-title">Caídas de Presión</div>
+    <div class="mod-sub">Análisis de redes de aire comprimido · Selección de diámetros</div>
+  </div>
+</header>
+
+<div class="mod-wrap">
 
 <!-- ════════════ GUÍA INTERACTIVA ════════════ -->
 <div class="guide-card">
@@ -2114,5 +2143,6 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+</div><!-- end .mod-wrap -->
 </body>
 </html>
