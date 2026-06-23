@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Cotizador PIPRO · Gardner Denver México</title>
+<link rel="stylesheet" href="gd-theme.css?v=20260618"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
@@ -14,40 +15,58 @@
 <script src="logo_b64.js"></script>
 <style>
 :root {
+  /* Variables locales legacy — apuntan al theme global cuando es posible.
+     Se mantienen los nombres para no romper estilos específicos más abajo. */
   --gd-red:   #C8102E;
-  --gd-dark:  #1F1F1F;
-  --gd-gray:  #F5F5F5;
-  --gd-lgray: #E8E8E8;
+  --gd-dark:  #1A1A1F;
+  --gd-gray:  #F8F9FB;
+  --gd-lgray: #E5E7EB;
   --gd-blue:  #1F3864;
   --gd-lblue: #D6E4F0;
   --radius:   8px;
-  --shadow:   0 2px 8px rgba(0,0,0,.12);
+  --shadow:   0 1px 3px rgba(15,15,30,.06), 0 1px 2px rgba(15,15,30,.04);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:16px;}
-body{font-family:Arial,sans-serif;background:#f0f2f5;color:#1F1F1F;min-height:100vh;}
+body{
+  font-family:'Inter','Segoe UI',Arial,sans-serif;
+  background:#F8F9FB;color:#1A1A1F;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
 
-/* ── HEADER ─────────────────────────────────────────────────────────────────── */
-.gd-header{
-  background:var(--gd-dark);
-  border-bottom:4px solid var(--gd-red);
-  padding:10px 20px;
-  display:flex;align-items:center;gap:14px;
+/* ── HEADER DEL MÓDULO (corporativo claro) ──────────────────────────────────── */
+.mod-header{
+  background:#FFFFFF;
+  border-bottom:1px solid #E5E7EB;
+  padding:14px 22px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
   position:sticky;top:0;z-index:200;
+  box-shadow:0 1px 2px rgba(15,15,30,.04);
+  flex-wrap:wrap;
 }
-.gd-header img{height:44px;}
-.gd-header-text .title{color:#fff;font-size:1.15rem;font-weight:700;letter-spacing:.03em;}
-.gd-header-text .sub{color:var(--gd-red);font-size:.78rem;font-weight:600;margin-top:2px;}
+.mod-header .gd-logo{text-decoration:none;color:inherit;display:flex;align-items:center;gap:14px;}
+.mod-header .gd-logo svg{height:42px;width:auto;display:block;}
+.mod-title{font-size:14.5px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:#6B6E76;margin-top:2px;letter-spacing:.01em;}
 
-/* ── NAV TABS ───────────────────────────────────────────────────────────────── */
-.gd-tabs{background:var(--gd-dark);display:flex;gap:4px;padding:0 16px;}
-.gd-tab{
-  padding:9px 20px;border:none;background:transparent;
-  color:#aaa;font-size:.9rem;cursor:pointer;border-bottom:3px solid transparent;
-  font-family:Arial,sans-serif;transition:color .2s,border-color .2s;
+/* ── NAV TABS internos (estilo pills modernos) ──────────────────────────────── */
+.mod-tabs{
+  display:inline-flex;
+  background:#F1F2F5;
+  padding:4px;
+  border-radius:10px;
+  gap:2px;
 }
-.gd-tab.active{color:#fff;border-bottom-color:var(--gd-red);}
-.gd-tab:hover{color:#fff;}
+.mod-tab{
+  padding:9px 18px;border:none;background:transparent;border-radius:7px;
+  color:#6B6E76;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Inter','Segoe UI',Arial,sans-serif;transition:all .15s ease;
+}
+.mod-tab:hover{color:#1A1A1F;}
+.mod-tab.active{
+  background:#FFFFFF;color:#C8102E;
+  box-shadow:0 1px 3px rgba(15,15,30,.08), 0 1px 2px rgba(15,15,30,.04);
+}
 
 /* ── MAIN CONTENT ───────────────────────────────────────────────────────────── */
 .page{display:none;padding:16px;max-width:960px;margin:0 auto;}
@@ -325,21 +344,27 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 </head>
 <body>
 
-<!-- ── HEADER ─────────────────────────────────────────────────────────────────── -->
-<header class="gd-header">
-  <img src="assets/logo_gd.png" alt="Gardner Denver" onerror="this.style.display='none'">
-  <div class="gd-header-text">
-    <div class="title">Cotizador PIPRO</div>
-    <div class="sub">Gardner Denver México · Tubería Neumática AIRWYN</div>
-  </div>
-</header>
+<!-- ── HEADER del módulo (look corporativo claro, dentro del iframe del portal) ── -->
+<header class="mod-header">
+  <a class="gd-logo" href="#" onclick="event.preventDefault();showPage('cotizador',document.querySelector('.mod-tab'));">
+    <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" aria-label="Gardner Denver">
+      <text x="0" y="24" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Gardner</text>
+      <rect x="0" y="29" width="200" height="3.5" fill="#C8102E"/>
+      <text x="0" y="55" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Denver</text>
+    </svg>
+    <div>
+      <div class="mod-title">Cotizador PIPRO</div>
+      <div class="mod-sub">Tubería Neumática AIRWYN · Gardner Denver México</div>
+    </div>
+  </a>
 
-<!-- ── NAV ────────────────────────────────────────────────────────────────────── -->
-<nav class="gd-tabs">
-  <button class="gd-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
-  <button class="gd-tab" onclick="showPage('edicion',this)">📝 Edición</button>
-  <button class="gd-tab" onclick="showPage('admin',this)">🔐 Administrador</button>
-</nav>
+  <!-- ── NAV interno (pills) ──────────────────────────────────────────────────── -->
+  <nav class="mod-tabs">
+    <button class="mod-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
+    <button class="mod-tab" onclick="showPage('edicion',this)">📝 Edición</button>
+    <button class="mod-tab" onclick="showPage('admin',this)">🔐 Administrador</button>
+  </nav>
+</header>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -982,7 +1007,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <div style="font-size:.78rem;color:#888;margin-top:2px;">Al descargar, los archivos llevarán el sufijo <b>-EDITADO</b></div>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary btn-sm" onclick="showPage('cotizador',document.querySelector('.gd-tab:first-child'))">Ir al cotizador</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('cotizador',document.querySelector('.mod-tab'))">Ir al cotizador</button>
         <button class="btn btn-secondary btn-sm" onclick="cancelarEdicion()">Cancelar edición</button>
       </div>
     </div>
@@ -1529,9 +1554,9 @@ function cancelarEdicion() {
 // ── PAGE NAVIGATION ───────────────────────────────────────────────────────────
 function showPage(pageId, btn) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.gd-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.mod-tab').forEach(b=>b.classList.remove('active'));
   el('page-'+pageId).classList.add('active');
-  btn.classList.add('active');
+  if (btn && btn.classList) btn.classList.add('active');
   if (pageId==='admin') renderAdminTable();
 }
 
