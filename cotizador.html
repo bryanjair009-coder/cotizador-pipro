@@ -13,6 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="supabase-client.js"></script>
 <script src="materiales.js"></script>
+<script src="materiales_truper.js?v=20260619"></script>
 <script src="logo_b64.js"></script>
 <style>
 :root {
@@ -384,6 +385,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </button>
     <nav class="mod-tabs">
       <button class="mod-tab active" onclick="showPage('cotizador',this)">📋 Cotizador</button>
+      <button class="mod-tab" onclick="showPage('truper',this)">🛠️ Truper</button>
       <button class="mod-tab" onclick="showPage('admin',this)">🔐 Administrador</button>
     </nav>
   </div>
@@ -1225,6 +1227,176 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 </div><!-- end page-admin -->
 
 
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PESTAÑA TRUPER — Cotización especial con precios y flujo Truper
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-truper">
+
+  <!-- Banner introductorio -->
+  <div class="gd-card" style="border-left:4px solid #F59E0B;background:linear-gradient(90deg,#FFFBEB,#FFFFFF);margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div style="font-size:32px;">🛠️</div>
+      <div style="flex:1;min-width:220px;">
+        <div style="font-size:15px;font-weight:700;color:#92400E;">Cotización TRUPER</div>
+        <div style="font-size:12px;color:#666;margin-top:2px;">
+          Precios especiales Truper · Carga automática desde PDF · Formato Gardner Denver
+        </div>
+      </div>
+      <div style="font-size:11px;color:#898B92;background:#FEF3C7;padding:6px 10px;border-radius:6px;font-weight:600;">
+        Catálogo: <b id="truper-count">222</b> ítems
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. Datos del cliente Truper -->
+  <div class="sec-title">1. Datos del Proyecto</div>
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <label>Empresa</label>
+        <input type="text" id="tp-empresa" value="TRUPER S.A. DE C.V." readonly style="background:#F1F2F5;">
+      </div>
+      <div>
+        <label>Atención a</label>
+        <input type="text" id="tp-atencion" placeholder="Ej. Alfredo Morales J.">
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div>
+        <label>No. Cotización Truper</label>
+        <input type="text" id="tp-cot-num" placeholder="Ej. 0005720977">
+      </div>
+      <div>
+        <label>Fecha</label>
+        <input type="date" id="tp-fecha">
+      </div>
+      <div>
+        <label>Planta / Área</label>
+        <input type="text" id="tp-planta" placeholder="Ej. N19 Mezzanine">
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label>Descripción del proyecto</label>
+      <input type="text" id="tp-desc-proy" placeholder="Ej. Instalación de línea de conversión de bandas abrasivas">
+    </div>
+  </div>
+
+  <!-- 2. Cargar PDF Truper -->
+  <div class="sec-title">2. Cargar Cotización PDF de Truper</div>
+  <div class="card">
+    <label class="upload-area" for="tp-pdf-file" id="tp-drop">
+      <input type="file" id="tp-pdf-file" accept=".pdf" onchange="parsearPDFTruper(this)">
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gd-text);">📎 Sube el PDF de Truper</div>
+      <div style="color:#888;font-size:.85rem;margin-top:8px;">
+        El sistema extraerá automáticamente las partidas y las cruzará con el catálogo Truper.
+      </div>
+      <div style="color:#aaa;font-size:.78rem;margin-top:4px;">
+        Formatos aceptados: .pdf · La primera carga descargará la librería PDF (~500 KB)
+      </div>
+    </label>
+    <div id="tp-parse-status" style="display:none;margin-top:10px;"></div>
+  </div>
+
+  <!-- 3. Tabla de partidas parseadas -->
+  <div class="sec-title" id="tp-partidas-title" style="display:none;">3. Partidas del Proyecto</div>
+  <div class="card" id="tp-partidas-card" style="display:none;">
+    <div style="font-size:.82rem;color:#666;margin-bottom:10px;">
+      Revisa las partidas detectadas. Puedes ajustar cantidades o precios manualmente.
+      Las filas <b style="color:#DC2626;">en rojo</b> no matchearon con el catálogo — completa el código o precio manualmente.
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="cart-table" id="tp-partidas-table">
+        <thead>
+          <tr>
+            <th style="width:32px;text-align:center;">#</th>
+            <th>Descripción</th>
+            <th style="width:110px;">No. Parte</th>
+            <th style="width:70px;text-align:center;">Cant.</th>
+            <th style="width:110px;text-align:right;">P. Unit. Truper</th>
+            <th style="width:80px;text-align:center;">🏗️ Plat.</th>
+            <th style="width:110px;text-align:right;">Total</th>
+            <th style="width:30px;text-align:center;">✕</th>
+          </tr>
+        </thead>
+        <tbody id="tp-partidas-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-secondary btn-sm" onclick="tpAgregarPartidaManual()">➕ Agregar partida manual</button>
+      <button class="btn btn-danger btn-sm" onclick="tpLimpiarPartidas()">🗑 Limpiar todo</button>
+      <div style="margin-left:auto;font-size:.9rem;color:#666;">
+        Subtotal materiales: <b id="tp-subtotal-mat" style="color:var(--gd-red);">$0.00</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. M.O., Viáticos y Plataformas (editable) -->
+  <div class="sec-title" id="tp-mo-title" style="display:none;">4. M.O., Viáticos y Costo de Plataforma</div>
+  <div class="card" id="tp-mo-card" style="display:none;">
+    <div class="info-box" style="margin-bottom:14px;">
+      💡 Estos valores se distribuyen entre las partidas del PDF. La <b>M.O. total</b> se prorratea por partida y el <b>costo de plataforma</b> se aplica solo a las partidas marcadas con 🏗️ Plat.
+    </div>
+
+    <div class="grid-4">
+      <div>
+        <label>Días de trabajo</label>
+        <input type="number" id="tp-dias" value="10" min="1" step="1" oninput="tpRecalcTotales()">
+      </div>
+      <div>
+        <label># Personas</label>
+        <input type="number" id="tp-personas" value="3" min="1" step="1" oninput="tpRecalcTotales()">
+      </div>
+      <div>
+        <label>M.O. total (MXN)</label>
+        <input type="number" id="tp-mo-total" value="0" min="0" step="100" oninput="tpRecalcTotales()"
+               placeholder="Costo mano de obra completo">
+      </div>
+      <div>
+        <label>Viáticos total (MXN)</label>
+        <input type="number" id="tp-viaticos-total" value="0" min="0" step="100" oninput="tpRecalcTotales()"
+               placeholder="Viáticos completos">
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:10px;">
+      <div>
+        <label>Días de plataforma / elevación</label>
+        <input type="number" id="tp-dias-plat" value="0" min="0" step="1" oninput="tpRecalcTotales()">
+      </div>
+      <div>
+        <label>Costo diario plataforma (MXN)</label>
+        <input type="number" id="tp-costo-plat-dia" value="2500" min="0" step="100" oninput="tpRecalcTotales()">
+      </div>
+      <div>
+        <label>Total costo plataforma</label>
+        <input type="number" id="tp-plat-total" value="0" readonly style="background:#F1F2F5;">
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Resumen y generar -->
+  <div class="sec-title" id="tp-resumen-title" style="display:none;">5. Resumen y Generar Cotización</div>
+  <div class="card" id="tp-resumen-card" style="display:none;">
+    <div class="gd-metric-grid" style="margin-bottom:14px;">
+      <div class="gd-metric"><div class="gd-metric-label">Materiales</div><div class="gd-metric-value" id="tp-r-mat">$0.00</div></div>
+      <div class="gd-metric"><div class="gd-metric-label">M.O. + Viáticos</div><div class="gd-metric-value" id="tp-r-mo">$0.00</div></div>
+      <div class="gd-metric"><div class="gd-metric-label">Plataforma</div><div class="gd-metric-value" id="tp-r-plat">$0.00</div></div>
+      <div class="gd-metric is-accent"><div class="gd-metric-label">TOTAL sin IVA</div><div class="gd-metric-value" id="tp-r-total">$0.00</div></div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="tpGenerarPDF()" style="background:#C8102E;color:#fff;">🖨 Generar PDF</button>
+      <button class="btn btn-dark" onclick="tpGenerarWord()">📄 Generar Word (.doc)</button>
+      <button class="btn btn-secondary" onclick="tpGenerarExcel()">📊 Generar Excel (.xlsx)</button>
+    </div>
+    <div style="font-size:.78rem;color:#888;margin-top:8px;">
+      Los archivos llevan el mismo diseño Gardner Denver (rojo + logo) pero con precios y datos Truper.
+    </div>
+  </div>
+
+</div><!-- end page-truper -->
+
+
 <!-- ══════════════════════════════════════════════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════════════════════════════════════════════ -->
@@ -1685,6 +1857,330 @@ function cancelarEdicion() {
   if (typeof updateFolio === 'function') updateFolio();
   toast('Edición cancelada — los archivos descargados no llevarán -EDITADO');
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   TRUPER — Cotización especial con precios y flujo Truper
+   ════════════════════════════════════════════════════════════════════════════ */
+const TRUPER_STATE = {
+  partidas: [],   // { idx, desc, codigo, cantidad, precio, usa_plataforma, matched }
+};
+
+// Carga on-demand de pdf.js para parsear el PDF Truper
+function loadPDFJS() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (window._pdfjsPromise) return window._pdfjsPromise;
+  window._pdfjsPromise = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      res(window.pdfjsLib);
+    };
+    s.onerror = () => rej(new Error('No se pudo cargar PDF.js. Revisa tu conexión.'));
+    document.head.appendChild(s);
+  });
+  return window._pdfjsPromise;
+}
+
+// Extrae texto completo de un PDF
+async function extractPDFText(file) {
+  const pdfjs = await loadPDFJS();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: buf }).promise;
+  let full = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const text = content.items.map(it => it.str).join(' ');
+    full += text + '\n';
+  }
+  return full;
+}
+
+// Busca un item en el catálogo Truper por código o descripción parcial
+function matchTruperItem(codigo, descripcion) {
+  const cat = window.MATERIALES_TRUPER || [];
+  const codClean = String(codigo || '').trim().toUpperCase();
+  // 1. Match exacto por código
+  if (codClean) {
+    const exact = cat.find(m => (m.numero_parte || '').trim().toUpperCase() === codClean);
+    if (exact) return exact;
+    // 2. Match con espacios/guiones ignorados
+    const codNorm = codClean.replace(/[\s\-_]/g, '');
+    const norm = cat.find(m => (m.numero_parte || '').trim().toUpperCase().replace(/[\s\-_]/g, '') === codNorm);
+    if (norm) return norm;
+  }
+  // 3. Match por descripción (contiene palabras clave)
+  if (descripcion) {
+    const descLower = String(descripcion).toLowerCase();
+    // Buscar por diámetro + tipo de pieza (ej. "DN25 codo", "DN20 abrazadera")
+    const diamMatch = descLower.match(/dn\s?(\d+)|(\d+)\s?mm/);
+    const tipoKeys = ['tubo', 'codo', 'tee', 'v[aá]lvula', 'abrazadera', 'derivaci[oó]n',
+                      'tap[oó]n', 'manguera', 'niple', 'adaptador', 'brida', 'cople'];
+    if (diamMatch) {
+      const diam = diamMatch[1] || diamMatch[2];
+      for (const key of tipoKeys) {
+        const re = new RegExp(key, 'i');
+        if (re.test(descLower)) {
+          const found = cat.find(m => {
+            const d = m.descripcion.toLowerCase();
+            return d.includes(diam + 'mm') && re.test(d);
+          });
+          if (found) return found;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// Parsea el PDF de Truper y extrae partidas
+async function parsearPDFTruper(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const status = el('tp-parse-status');
+  const showStatus = (msg, type) => {
+    status.style.display = 'block';
+    status.className = (type === 'ok' ? 'success-box' : (type === 'warn' ? 'warning-box' : 'error-box'));
+    status.innerHTML = msg;
+  };
+  showStatus('⏳ Cargando y procesando PDF…', 'warn');
+  try {
+    const text = await extractPDFText(file);
+    // Regex de partidas: número + descripción + código + Pza. + cantidad
+    // Ej: "1 Suministro e instalación de derivación tipo abrazadera ... Código: 66525 01 ... Pza. 2"
+    // Los saltos son variables; buscamos patrones amplios.
+    const rePartida = /(?:^|\s)(\d{1,3})\s+((?:Suministro|Instalaci[oó]n|Servicio|Suministro y|Colocaci[oó]n|Provisi[oó]n)[\s\S]{20,800}?)(?:C[oó]digo:\s*([A-Z0-9][A-Z0-9\s\-]{2,20}?))?[\s\S]{0,200}?(Pza\.?|Pieza|Servicio|Servicios|Global)\s*\.?\s*(\d+(?:[.,]\d+)?)/gi;
+    const partidas = [];
+    let m;
+    const seen = new Set();
+    while ((m = rePartida.exec(text)) !== null) {
+      const idx = parseInt(m[1], 10);
+      // Evitar duplicados por partida#
+      if (seen.has(idx)) continue;
+      // Filtrar números de página o líneas espurias
+      if (idx > 500) continue;
+      const descRaw = (m[2] || '').replace(/\s+/g, ' ').trim();
+      // Limpiar descripción: quitar "Código: XXX" y "Incluye: ..." largo
+      const desc = descRaw
+        .replace(/C[oó]digo:.*$/, '')
+        .replace(/Incluye:.*$/, '')
+        .trim()
+        .slice(0, 200);
+      const codigo = (m[3] || '').replace(/\s+/g, ' ').trim();
+      const cantidad = parseFloat(String(m[5]).replace(',', '.')) || 1;
+      const matched = matchTruperItem(codigo, desc);
+      partidas.push({
+        idx,
+        desc: desc || (matched ? matched.descripcion : '(sin descripción)'),
+        codigo: codigo || (matched ? matched.numero_parte : ''),
+        cantidad,
+        precio: matched ? matched.precio : 0,
+        usa_plataforma: matched ? !!matched.usa_plataforma : false,
+        matched: !!matched,
+      });
+      seen.add(idx);
+    }
+    if (!partidas.length) {
+      throw new Error('No se pudieron extraer partidas del PDF. Verifica que sea el formato de cotización de Truper. Puedes agregarlas manualmente con el botón "Agregar partida manual".');
+    }
+    // Ordenar por número de partida
+    partidas.sort((a, b) => a.idx - b.idx);
+    TRUPER_STATE.partidas = partidas;
+    tpRenderPartidas();
+    const noMatch = partidas.filter(p => !p.matched).length;
+    showStatus(`✅ ${partidas.length} partidas detectadas${noMatch ? ` · <b style="color:#DC2626;">${noMatch} sin match automático</b> (completa el código o precio)` : ''}.`, 'ok');
+    input.value = '';
+  } catch (e) {
+    showStatus('❌ ' + (e.message || e), 'err');
+    input.value = '';
+  }
+}
+
+// Renderiza la tabla de partidas
+function tpRenderPartidas() {
+  const tbody = el('tp-partidas-tbody');
+  if (!tbody) return;
+  const items = TRUPER_STATE.partidas;
+  el('tp-partidas-title').style.display = items.length ? '' : 'none';
+  el('tp-partidas-card').style.display = items.length ? '' : 'none';
+  el('tp-mo-title').style.display = items.length ? '' : 'none';
+  el('tp-mo-card').style.display = items.length ? '' : 'none';
+  el('tp-resumen-title').style.display = items.length ? '' : 'none';
+  el('tp-resumen-card').style.display = items.length ? '' : 'none';
+  tbody.innerHTML = items.map((p, i) => {
+    const total = p.cantidad * p.precio;
+    const cls = p.matched ? '' : 'row-insuf';
+    return `<tr class="${cls}">
+      <td style="text-align:center;color:#888;">${p.idx}</td>
+      <td><input type="text" value="${_attrEsc(p.desc)}" oninput="tpEditPartida(${i},'desc',this.value)"
+                 style="width:100%;padding:5px;border:1px solid #ccc;border-radius:4px;font-size:.82rem;"></td>
+      <td><input type="text" value="${_attrEsc(p.codigo)}" oninput="tpEditPartida(${i},'codigo',this.value);tpRematchPartida(${i})"
+                 style="width:100%;padding:5px;border:1px solid #ccc;border-radius:4px;font-size:.78rem;font-family:monospace;"></td>
+      <td><input type="number" value="${p.cantidad}" min="0.01" step="0.5" oninput="tpEditPartida(${i},'cantidad',+this.value)"
+                 style="width:100%;padding:5px;text-align:center;border:1px solid #ccc;border-radius:4px;"></td>
+      <td><input type="number" value="${p.precio}" min="0" step="10" oninput="tpEditPartida(${i},'precio',+this.value)"
+                 style="width:100%;padding:5px;text-align:right;border:1px solid #ccc;border-radius:4px;"></td>
+      <td style="text-align:center;">
+        <input type="checkbox" ${p.usa_plataforma?'checked':''} onchange="tpEditPartida(${i},'usa_plataforma',this.checked)"
+               style="width:18px;height:18px;accent-color:var(--gd-red);cursor:pointer;">
+      </td>
+      <td style="text-align:right;font-weight:700;">${fmt(total)}</td>
+      <td style="text-align:center;">
+        <button onclick="tpEliminarPartida(${i})"
+                style="background:none;border:none;color:#aaa;cursor:pointer;padding:4px 8px;border-radius:4px;font-size:14px;">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+  tpRecalcTotales();
+}
+
+// Edita una partida
+function tpEditPartida(i, field, value) {
+  if (!TRUPER_STATE.partidas[i]) return;
+  TRUPER_STATE.partidas[i][field] = value;
+  tpRecalcTotales();
+}
+
+// Re-intenta match cuando el usuario cambia el código
+function tpRematchPartida(i) {
+  const p = TRUPER_STATE.partidas[i];
+  if (!p) return;
+  const matched = matchTruperItem(p.codigo, p.desc);
+  if (matched) {
+    p.precio = matched.precio;
+    p.usa_plataforma = !!matched.usa_plataforma;
+    p.matched = true;
+    tpRenderPartidas();
+  }
+}
+
+// Elimina una partida
+function tpEliminarPartida(i) {
+  TRUPER_STATE.partidas.splice(i, 1);
+  TRUPER_STATE.partidas.forEach((p, idx) => p.idx = idx + 1);
+  tpRenderPartidas();
+}
+
+// Agrega una partida manual
+function tpAgregarPartidaManual() {
+  const next = TRUPER_STATE.partidas.length + 1;
+  TRUPER_STATE.partidas.push({
+    idx: next, desc: '(descripción)', codigo: '', cantidad: 1,
+    precio: 0, usa_plataforma: false, matched: false,
+  });
+  tpRenderPartidas();
+}
+
+// Limpia todas las partidas
+function tpLimpiarPartidas() {
+  if (!confirm('¿Vaciar todas las partidas Truper?')) return;
+  TRUPER_STATE.partidas = [];
+  tpRenderPartidas();
+}
+
+// Recalcula subtotales y totales
+function tpRecalcTotales() {
+  const items = TRUPER_STATE.partidas;
+  const subtotalMat = items.reduce((s, p) => s + p.cantidad * p.precio, 0);
+  const dias = +el('tp-dias').value || 0;
+  const moTotal = +el('tp-mo-total').value || 0;
+  const viatTotal = +el('tp-viaticos-total').value || 0;
+  const diasPlat = +el('tp-dias-plat').value || 0;
+  const costoPlatDia = +el('tp-costo-plat-dia').value || 0;
+  const platTotal = diasPlat * costoPlatDia;
+  el('tp-plat-total').value = platTotal.toFixed(2);
+  const total = subtotalMat + moTotal + viatTotal + platTotal;
+  el('tp-subtotal-mat').textContent = fmt(subtotalMat);
+  el('tp-r-mat').textContent = fmt(subtotalMat);
+  el('tp-r-mo').textContent = fmt(moTotal + viatTotal);
+  el('tp-r-plat').textContent = fmt(platTotal);
+  el('tp-r-total').textContent = fmt(total);
+}
+
+// Genera folio Truper único
+function tpMakeFolio() {
+  const cotNum = (el('tp-cot-num').value || '').trim() || Date.now().toString().slice(-6);
+  const d = new Date();
+  const yymmdd = String(d.getDate()).padStart(2,'0') + String(d.getMonth()+1).padStart(2,'0') + String(d.getFullYear()).slice(-2);
+  return `TRUPER-${yymmdd}-${cotNum}`;
+}
+
+// Adapta los datos Truper al formato de collectData() para reutilizar generarPDF/Word/Excel
+function tpBuildDataForGenerator() {
+  const items = TRUPER_STATE.partidas.map((p, i) => ({
+    descripcion: p.desc,
+    numero_parte: p.codigo || 'N/A',
+    precio: p.precio,
+    cantidad: p.cantidad,
+    disponibilidad: p.cantidad,
+    fechaEntrega: '',
+  }));
+  const moTotal = +el('tp-mo-total').value || 0;
+  const viatTotal = +el('tp-viaticos-total').value || 0;
+  const platTotal = (+el('tp-dias-plat').value || 0) * (+el('tp-costo-plat-dia').value || 0);
+  const costoMO = moTotal + viatTotal + platTotal;
+  const folio = tpMakeFolio();
+  return {
+    cliente: {
+      empresa: el('tp-empresa').value || 'TRUPER S.A. DE C.V.',
+      atencion: el('tp-atencion').value || '',
+      fecha: el('tp-fecha').value || new Date().toISOString().slice(0, 10),
+      folio,
+      desc_proy: el('tp-desc-proy').value || '',
+      abbrev: 'TRUP',
+      initials: 'GD',
+    },
+    items,
+    costo_mo: costoMO,
+    descuento: 0,
+    mo_res: { dias: +el('tp-dias').value || 0, total_mo_equipo_viaticos: costoMO,
+              total_personas: +el('tp-personas').value || 3 },
+    tipo: 'ip',
+    catMat: 'pipro',
+  };
+}
+
+// Sobrescribe temporalmente state para reutilizar generarPDF/generateWord/generateExcel
+function tpWithTruperState(fn) {
+  const savedTipo = state.tipo, savedMoneda = state.moneda, savedEdit = state.editandoFolio;
+  state.tipo = 'ip';
+  state.moneda = 'MXN';
+  state.editandoFolio = null;
+  try { fn(); }
+  finally {
+    state.tipo = savedTipo;
+    state.moneda = savedMoneda;
+    state.editandoFolio = savedEdit;
+  }
+}
+
+function tpGenerarPDF() {
+  if (!TRUPER_STATE.partidas.length) { alert('No hay partidas para generar.'); return; }
+  const data = tpBuildDataForGenerator();
+  tpWithTruperState(() => generatePDF(data));
+}
+function tpGenerarWord() {
+  if (!TRUPER_STATE.partidas.length) { alert('No hay partidas para generar.'); return; }
+  const data = tpBuildDataForGenerator();
+  tpWithTruperState(() => generateWord(data));
+}
+function tpGenerarExcel() {
+  if (!TRUPER_STATE.partidas.length) { alert('No hay partidas para generar.'); return; }
+  const data = tpBuildDataForGenerator();
+  tpWithTruperState(() => generateExcel(data));
+}
+
+// Inicializar campos Truper al cargar (contador y fecha por defecto)
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.MATERIALES_TRUPER && el('truper-count')) {
+    el('truper-count').textContent = window.MATERIALES_TRUPER.length;
+  }
+  if (el('tp-fecha') && !el('tp-fecha').value) {
+    el('tp-fecha').value = new Date().toISOString().slice(0, 10);
+  }
+});
 
 // ── PAGE NAVIGATION ───────────────────────────────────────────────────────────
 function showPage(pageId, btn) {
@@ -2181,9 +2677,10 @@ function collectData() {
 }
 
 // ─ EXCEL GENERATOR ────────────────────────────────────────────────────────────
-function generateExcel() {
-  if (!validateForm()) return;
-  const d = collectData();
+function generateExcel(externalData) {
+  let d;
+  if (externalData) { d = externalData; }
+  else { if (!validateForm()) return; d = collectData(); }
   const wb = XLSX.utils.book_new();
   buildCotizacionSheet(wb, d);
   if (d.tipo==='ip' && d.mo_res) buildMOSheet(wb, d.mo_res);
@@ -2192,9 +2689,10 @@ function generateExcel() {
   toast('📊 Excel descargado');
 }
 
-function generatePDF() {
-  if (!validateForm()) return;
-  const d = collectData();
+function generatePDF(externalData) {
+  let d;
+  if (externalData) { d = externalData; }
+  else { if (!validateForm()) return; d = collectData(); }
   const { cliente, items, costo_mo, descuento } = d;
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'letter' });
@@ -2944,9 +3442,10 @@ function buildMOSheet(wb, mo) {
 }
 
 // ─ WORD GENERATOR ────────────────────────────────────────────────────────────
-function generateWord() {
-  if (!validateForm()) return;
-  const d = collectData();
+function generateWord(externalData) {
+  let d;
+  if (externalData) { d = externalData; }
+  else { if (!validateForm()) return; d = collectData(); }
   const html = buildWordHTML(d);
   const blob = new Blob(['﻿', html], {type:'application/msword'});
   const url = URL.createObjectURL(blob);
