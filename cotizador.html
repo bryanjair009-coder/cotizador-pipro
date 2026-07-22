@@ -1248,6 +1248,14 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
   </div>
 
+  <!-- Barra de progreso 1-2-3-4 -->
+  <div style="display:flex;gap:6px;margin-bottom:18px;">
+    <div style="flex:1;height:4px;border-radius:2px;background:#F59E0B;"></div>
+    <div style="flex:1;height:4px;border-radius:2px;background:#F59E0B;"></div>
+    <div style="flex:1;height:4px;border-radius:2px;background:#F59E0B;"></div>
+    <div style="flex:1;height:4px;border-radius:2px;background:#F59E0B;"></div>
+  </div>
+
   <!-- 1. Datos del cliente Truper -->
   <div class="sec-title">1. Datos del Proyecto</div>
   <div class="card">
@@ -1281,17 +1289,29 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
   </div>
 
-  <!-- 2. Cargar PDF Truper -->
-  <div class="sec-title">2. Cargar Cotización PDF de Truper</div>
+  <!-- 2. Partidas desde Excel (plantilla del catálogo) -->
+  <div class="sec-title">2. Cargar Partidas desde Excel</div>
   <div class="card">
-    <label class="upload-area" for="tp-pdf-file" id="tp-drop">
-      <input type="file" id="tp-pdf-file" accept=".pdf" onchange="parsearPDFTruper(this)">
-      <div style="font-size:1.1rem;font-weight:700;color:var(--gd-text);">📎 Sube el PDF de Truper</div>
+    <div class="info-box" style="margin-bottom:14px;">
+      💡 <b>Flujo sin errores de captura:</b> descarga la plantilla con el <b>catálogo Truper completo</b> (222 ítems,
+      precio y número de parte ya cargados). Llena solo la columna <b>Cantidad</b> con lo que requiere el proyecto y
+      súbela de regreso. El sistema toma el precio y el número de parte <b>directo del catálogo</b> — nunca de lo que
+      escribas en esas celdas — así que es imposible que se transfiera un costo o número de parte equivocado.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+      <button class="btn btn-secondary" onclick="tpDescargarPlantilla()">
+        📥 Descargar plantilla Excel (catálogo completo)
+      </button>
+      <span style="font-size:.78rem;color:#888;">Ábrela, llena la columna "Cantidad" y guárdala.</span>
+    </div>
+    <label class="upload-area" for="tp-xlsx-file" id="tp-drop">
+      <input type="file" id="tp-xlsx-file" accept=".xlsx,.xls" onchange="tpCargarPlantilla(this)">
+      <div style="font-size:1.1rem;font-weight:700;color:var(--gd-text);">📤 Sube la plantilla ya llena</div>
       <div style="color:#888;font-size:.85rem;margin-top:8px;">
-        El sistema extraerá automáticamente las partidas y las cruzará con el catálogo Truper.
+        El sistema lee la columna "Cantidad" y arma la tabla de partidas automáticamente.
       </div>
       <div style="color:#aaa;font-size:.78rem;margin-top:4px;">
-        Formatos aceptados: .pdf · La primera carga descargará la librería PDF (~500 KB)
+        Formatos aceptados: .xlsx / .xls
       </div>
     </label>
     <div id="tp-parse-status" style="display:none;margin-top:10px;"></div>
@@ -1301,8 +1321,8 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
   <div class="sec-title" id="tp-partidas-title" style="display:none;">3. Partidas del Proyecto</div>
   <div class="card" id="tp-partidas-card" style="display:none;">
     <div style="font-size:.82rem;color:#666;margin-bottom:10px;">
-      Revisa las partidas detectadas. Puedes ajustar cantidades o precios manualmente.
-      Las filas <b style="color:#DC2626;">en rojo</b> no matchearon con el catálogo — completa el código o precio manualmente.
+      Partidas cargadas desde la plantilla. Puedes ajustar cantidades o agregar partidas manuales si algo no está en el catálogo.
+      La columna 🏗️ Plat. es solo de referencia — el costo real de equipo/plataforma se calcula en la sección 4.
     </div>
     <div style="overflow-x:auto;">
       <table class="cart-table" id="tp-partidas-table">
@@ -1330,58 +1350,153 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
   </div>
 
-  <!-- 4. M.O., Viáticos y Plataformas (editable) -->
-  <div class="sec-title" id="tp-mo-title" style="display:none;">4. M.O., Viáticos y Costo de Plataforma</div>
+  <!-- 4. M.O., Viáticos, Movilidad y Equipo de Maniobras -->
+  <div class="sec-title" id="tp-mo-title" style="display:none;">4. M.O., Viáticos y Equipo de Maniobras</div>
   <div class="card" id="tp-mo-card" style="display:none;">
     <div class="info-box" style="margin-bottom:14px;">
-      💡 Estos valores se distribuyen entre las partidas del PDF. La <b>M.O. total</b> se prorratea por partida y el <b>costo de plataforma</b> se aplica solo a las partidas marcadas con 🏗️ Plat.
+      💡 Mismo desglose que la <b>"Hoja de presupuestos"</b> de Truper (sueldos idénticos). Ajusta cada campo según
+      tu evaluación de costos para este proyecto — todo se recalcula en vivo.
     </div>
 
+    <!-- Personal -->
+    <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">👷 Personal y días de trabajo</h4>
     <div class="grid-4">
       <div>
+        <label>Técnicos</label>
+        <input type="number" id="tp-n_tec" value="1" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Ayudantes</label>
+        <input type="number" id="tp-n_aya" value="1" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Ingenieros</label>
+        <input type="number" id="tp-n_ing" value="1" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Seguristas</label>
+        <input type="number" id="tp-n_seg" value="0" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:10px;">
+      <div>
         <label>Días de trabajo</label>
-        <input type="number" id="tp-dias" value="10" min="1" step="1" oninput="tpRecalcTotales()">
+        <input type="number" id="tp-dias_trabajo" value="0" min="0" step="0.5" oninput="tpUpdateMO()">
       </div>
-      <div>
-        <label># Personas</label>
-        <input type="number" id="tp-personas" value="3" min="1" step="1" oninput="tpRecalcTotales()">
-      </div>
-      <div>
-        <label>M.O. total (MXN)</label>
-        <input type="number" id="tp-mo-total" value="0" min="0" step="100" oninput="tpRecalcTotales()"
-               placeholder="Costo mano de obra completo">
-      </div>
-      <div>
-        <label>Viáticos total (MXN)</label>
-        <input type="number" id="tp-viaticos-total" value="0" min="0" step="100" oninput="tpRecalcTotales()"
-               placeholder="Viáticos completos">
+      <div style="display:flex;align-items:flex-end;">
+        <div class="success-box" id="tp-mo-preview" style="width:100%;margin:0;">Costo M.O.: $0.00</div>
       </div>
     </div>
 
-    <div class="grid-3" style="margin-top:10px;">
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+
+    <!-- Viáticos: Comidas + Hospedaje -->
+    <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">🍽️ Viáticos (Comidas + Hospedaje)</h4>
+    <div class="grid-2">
       <div>
-        <label>Días de plataforma / elevación</label>
-        <input type="number" id="tp-dias-plat" value="0" min="0" step="1" oninput="tpRecalcTotales()">
+        <label># Comidas por persona/día</label>
+        <input type="number" id="tp-comidas_por_dia" value="3" min="1" step="1" oninput="tpUpdateMO()">
       </div>
       <div>
-        <label>Costo diario plataforma (MXN)</label>
-        <input type="number" id="tp-costo-plat-dia" value="2500" min="0" step="100" oninput="tpRecalcTotales()">
-      </div>
-      <div>
-        <label>Total costo plataforma</label>
-        <input type="number" id="tp-plat-total" value="0" readonly style="background:#F1F2F5;">
+        <label>Costo por comida/persona ($)</label>
+        <input type="number" id="tp-costo_comida" value="80" min="0" step="10" oninput="tpUpdateMO()">
       </div>
     </div>
+    <label class="check-label" style="margin:10px 0;">
+      <input type="checkbox" id="tp-req_hospedaje" onchange="tpUpdateMO()">
+      ¿Requiere hospedaje? (obra foránea)
+    </label>
+    <div class="grid-2">
+      <div>
+        <label>Noches de hospedaje <span style="font-weight:normal;color:#888;">(default = días)</span></label>
+        <input type="number" id="tp-noches_hospedaje" value="0" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Costo hospedaje/persona/noche ($)</label>
+        <input type="number" id="tp-costo_hospedaje" value="450" min="0" step="50" oninput="tpUpdateMO()">
+      </div>
+    </div>
+    <div class="success-box" id="tp-viaticos-preview" style="margin-top:10px;">Viáticos: $0.00</div>
+
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+
+    <!-- Movilidad: Auto + Vuelo -->
+    <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">🚗 Movilidad (Automóvil + Vuelo)</h4>
+    <div class="grid-3">
+      <div>
+        <label>Distancia al sitio (km, ida)</label>
+        <input type="number" id="tp-km_sencillo" value="0" min="0" step="10" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label># Viajes redondos</label>
+        <input type="number" id="tp-n_viajes" value="0" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Rendimiento (km/L)</label>
+        <input type="number" id="tp-rendimiento" value="6" min="0.1" step="0.5" oninput="tpUpdateMO()">
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px;">
+      <div>
+        <label>Precio gasolina ($/L)</label>
+        <input type="number" id="tp-costo_gas" value="25" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Casetas ida ($)</label>
+        <input type="number" id="tp-casetas_ida" value="0" min="0" step="50" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Desgaste vehículo ($/km)</label>
+        <input type="number" id="tp-costo_desgaste" value="0" min="0" step="0.5" oninput="tpUpdateMO()">
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:10px;">
+      <div>
+        <label>Precio vuelo redondo ($/persona)</label>
+        <input type="number" id="tp-precio_vuelo" value="0" min="0" step="100" oninput="tpUpdateMO()">
+      </div>
+      <div>
+        <label>Personas en avión</label>
+        <input type="number" id="tp-personas_vuelo" value="0" min="0" step="1" oninput="tpUpdateMO()">
+      </div>
+    </div>
+    <div class="success-box" id="tp-movilidad-preview" style="margin-top:10px;">Movilidad: $0.00</div>
+
+    <hr style="margin:16px 0;border:none;border-top:1px solid #eee;">
+
+    <!-- Equipo de Maniobras -->
+    <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">🏗️ Equipo de Maniobras y Elevación</h4>
+    <div class="grid-4">
+      <div>
+        <label class="check-label"><input type="checkbox" id="tp-usar_escalera" onchange="tpUpdateMO()"> Escalera</label>
+      </div>
+      <div>
+        <label class="check-label"><input type="checkbox" id="tp-usar_gennie" onchange="tpUpdateMO()"> Genie 10 m</label>
+      </div>
+      <div>
+        <label class="check-label"><input type="checkbox" id="tp-usar_elevador" onchange="tpUpdateMO()"> Elevador vertical</label>
+      </div>
+      <div>
+        <label class="check-label"><input type="checkbox" id="tp-usar_plat_tijera" onchange="tpUpdateMO()"> Plat. tijera</label>
+      </div>
+    </div>
+    <div style="margin-top:10px;max-width:240px;">
+      <label>Embarque (fijo, MXN)</label>
+      <input type="number" id="tp-embarque" value="0" min="0" step="500" oninput="tpUpdateMO()">
+    </div>
+    <div class="success-box" id="tp-equipo-preview" style="margin-top:10px;">Equipo: $0.00</div>
   </div>
 
   <!-- 5. Resumen y generar -->
-  <div class="sec-title" id="tp-resumen-title" style="display:none;">5. Resumen y Generar Cotización</div>
+  <div class="sec-title" id="tp-resumen-title" style="display:none;">5. Resumen General y Generar Cotización</div>
   <div class="card" id="tp-resumen-card" style="display:none;">
     <div class="gd-metric-grid" style="margin-bottom:14px;">
-      <div class="gd-metric"><div class="gd-metric-label">Materiales</div><div class="gd-metric-value" id="tp-r-mat">$0.00</div></div>
-      <div class="gd-metric"><div class="gd-metric-label">M.O. + Viáticos</div><div class="gd-metric-value" id="tp-r-mo">$0.00</div></div>
-      <div class="gd-metric"><div class="gd-metric-label">Plataforma</div><div class="gd-metric-value" id="tp-r-plat">$0.00</div></div>
-      <div class="gd-metric is-accent"><div class="gd-metric-label">TOTAL sin IVA</div><div class="gd-metric-value" id="tp-r-total">$0.00</div></div>
+      <div class="gd-metric"><div class="gd-metric-label">Total Material</div><div class="gd-metric-value" id="tp-r-mat">$0.00</div></div>
+      <div class="gd-metric"><div class="gd-metric-label">Total M.O.</div><div class="gd-metric-value" id="tp-r-mo">$0.00</div></div>
+      <div class="gd-metric"><div class="gd-metric-label">Total Viáticos</div><div class="gd-metric-value" id="tp-r-viat">$0.00</div></div>
+      <div class="gd-metric"><div class="gd-metric-label">Total Movilidad</div><div class="gd-metric-value" id="tp-r-movil">$0.00</div></div>
+      <div class="gd-metric"><div class="gd-metric-label">Total Equipos</div><div class="gd-metric-value" id="tp-r-equipo">$0.00</div></div>
+      <div class="gd-metric is-accent"><div class="gd-metric-label">TOTAL PROYECTO sin IVA</div><div class="gd-metric-value" id="tp-r-total">$0.00</div></div>
     </div>
 
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1865,56 +1980,20 @@ const TRUPER_STATE = {
   partidas: [],   // { idx, desc, codigo, cantidad, precio, usa_plataforma, matched }
 };
 
-// Carga on-demand de pdf.js para parsear el PDF Truper
-function loadPDFJS() {
-  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-  if (window._pdfjsPromise) return window._pdfjsPromise;
-  window._pdfjsPromise = new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    s.onload = () => {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      res(window.pdfjsLib);
-    };
-    s.onerror = () => rej(new Error('No se pudo cargar PDF.js. Revisa tu conexión.'));
-    document.head.appendChild(s);
-  });
-  return window._pdfjsPromise;
-}
-
-// Extrae texto completo de un PDF
-async function extractPDFText(file) {
-  const pdfjs = await loadPDFJS();
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data: buf }).promise;
-  let full = '';
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const content = await page.getTextContent();
-    const text = content.items.map(it => it.str).join(' ');
-    full += text + '\n';
-  }
-  return full;
-}
-
-// Busca un item en el catálogo Truper por código o descripción parcial
+// Busca un item en el catálogo Truper por código o descripción parcial.
+// Se usa solo como respaldo para filas fuera de catálogo o al editar un código a mano.
 function matchTruperItem(codigo, descripcion) {
   const cat = window.MATERIALES_TRUPER || [];
   const codClean = String(codigo || '').trim().toUpperCase();
-  // 1. Match exacto por código
   if (codClean) {
     const exact = cat.find(m => (m.numero_parte || '').trim().toUpperCase() === codClean);
     if (exact) return exact;
-    // 2. Match con espacios/guiones ignorados
     const codNorm = codClean.replace(/[\s\-_]/g, '');
     const norm = cat.find(m => (m.numero_parte || '').trim().toUpperCase().replace(/[\s\-_]/g, '') === codNorm);
     if (norm) return norm;
   }
-  // 3. Match por descripción (contiene palabras clave)
   if (descripcion) {
     const descLower = String(descripcion).toLowerCase();
-    // Buscar por diámetro + tipo de pieza (ej. "DN25 codo", "DN20 abrazadera")
     const diamMatch = descLower.match(/dn\s?(\d+)|(\d+)\s?mm/);
     const tipoKeys = ['tubo', 'codo', 'tee', 'v[aá]lvula', 'abrazadera', 'derivaci[oó]n',
                       'tap[oó]n', 'manguera', 'niple', 'adaptador', 'brida', 'cople'];
@@ -1935,8 +2014,43 @@ function matchTruperItem(codigo, descripcion) {
   return null;
 }
 
-// Parsea el PDF de Truper y extrae partidas
-async function parsearPDFTruper(input) {
+// ── PLANTILLA EXCEL: descarga con catálogo completo (fuente de verdad) ───────
+function tpDescargarPlantilla() {
+  const cat = window.MATERIALES_TRUPER || [];
+  if (!cat.length) { alert('Catálogo Truper no disponible.'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = {};
+  const setCell = (r, c, cell) => { ws[XLSX.utils.encode_cell({ r, c })] = cell; };
+
+  // Título / instrucciones (fila 0, combinada)
+  setCell(0, 0, xlCell('PLANTILLA TRUPER — Llena solo la columna "Cantidad" y sube este archivo de regreso al cotizador. No modifiques Descripción, No. de Parte ni Precio.', true, 'FFF3CD', '92400E', null, 'left'));
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+
+  // Encabezados (fila 1)
+  const hdrs = ['Item', 'Descripción', 'No. de Parte', 'Precio Unitario Truper (MXN)', 'Cantidad', '¿Usa plataforma? (ref)'];
+  hdrs.forEach((h, c) => setCell(1, c, xlCell(h, true, '1F3864', 'FFFFFF', null, 'center')));
+
+  // Datos (desde fila 2)
+  cat.forEach((m, i) => {
+    const r = i + 2;
+    setCell(r, 0, xlCell(i + 1, false, null, null, '0', 'center'));
+    setCell(r, 1, xlCell(m.descripcion, false, null, null, null, 'left'));
+    setCell(r, 2, xlCell(m.numero_parte || '', false, null, null, null, 'center'));
+    setCell(r, 3, xlCell(m.precio, false, null, null, '$#,##0.00', 'right'));
+    setCell(r, 4, xlCell(0, false, 'FFF9E6', null, '0', 'center')); // ← celda a llenar
+    setCell(r, 5, xlCell(m.usa_plataforma ? 'Sí' : 'No', false, null, '888888', null, 'center'));
+  });
+
+  ws['!cols'] = [{ wch: 8 }, { wch: 62 }, { wch: 16 }, { wch: 24 }, { wch: 12 }, { wch: 18 }];
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: cat.length + 1, c: 5 } });
+  XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Truper');
+  XLSX.writeFile(wb, 'Plantilla_Truper_Catalogo.xlsx');
+  toast('📥 Plantilla descargada');
+}
+
+// ── PLANTILLA EXCEL: carga — el precio y No. de Parte SIEMPRE vienen del catálogo,
+//    nunca de lo que el usuario haya escrito en esas celdas (cero riesgo de error) ──
+async function tpCargarPlantilla(input) {
   const file = input.files && input.files[0];
   if (!file) return;
   const status = el('tp-parse-status');
@@ -1945,52 +2059,78 @@ async function parsearPDFTruper(input) {
     status.className = (type === 'ok' ? 'success-box' : (type === 'warn' ? 'warning-box' : 'error-box'));
     status.innerHTML = msg;
   };
-  showStatus('⏳ Cargando y procesando PDF…', 'warn');
+  showStatus('⏳ Leyendo plantilla…', 'warn');
   try {
-    const text = await extractPDFText(file);
-    // Regex de partidas: número + descripción + código + Pza. + cantidad
-    // Ej: "1 Suministro e instalación de derivación tipo abrazadera ... Código: 66525 01 ... Pza. 2"
-    // Los saltos son variables; buscamos patrones amplios.
-    const rePartida = /(?:^|\s)(\d{1,3})\s+((?:Suministro|Instalaci[oó]n|Servicio|Suministro y|Colocaci[oó]n|Provisi[oó]n)[\s\S]{20,800}?)(?:C[oó]digo:\s*([A-Z0-9][A-Z0-9\s\-]{2,20}?))?[\s\S]{0,200}?(Pza\.?|Pieza|Servicio|Servicios|Global)\s*\.?\s*(\d+(?:[.,]\d+)?)/gi;
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheetName = wb.SheetNames.includes('Plantilla Truper') ? 'Plantilla Truper' : wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+    // Buscar la fila de encabezados (columnas "Item" y "Cantidad") en las primeras filas
+    let headerRow = -1, colItem = -1, colDesc = -1, colParte = -1, colPrecio = -1, colCantidad = -1;
+    for (let i = 0; i < Math.min(rows.length, 6); i++) {
+      const r = rows[i] || [];
+      const idxItem = r.findIndex(c => String(c || '').trim().toLowerCase() === 'item');
+      const idxCant = r.findIndex(c => String(c || '').trim().toLowerCase().startsWith('cantidad'));
+      if (idxItem >= 0 && idxCant >= 0) {
+        headerRow = i; colItem = idxItem; colCantidad = idxCant;
+        colDesc   = r.findIndex(c => /descripci/i.test(String(c || '')));
+        colParte  = r.findIndex(c => /parte/i.test(String(c || '')));
+        colPrecio = r.findIndex(c => /precio/i.test(String(c || '')));
+        break;
+      }
+    }
+    if (headerRow < 0) {
+      throw new Error('No se encontraron las columnas "Item" y "Cantidad". Usa la plantilla descargada sin modificar los encabezados.');
+    }
+
+    const cat = window.MATERIALES_TRUPER || [];
     const partidas = [];
-    let m;
-    const seen = new Set();
-    while ((m = rePartida.exec(text)) !== null) {
-      const idx = parseInt(m[1], 10);
-      // Evitar duplicados por partida#
-      if (seen.has(idx)) continue;
-      // Filtrar números de página o líneas espurias
-      if (idx > 500) continue;
-      const descRaw = (m[2] || '').replace(/\s+/g, ' ').trim();
-      // Limpiar descripción: quitar "Código: XXX" y "Incluye: ..." largo
-      const desc = descRaw
-        .replace(/C[oó]digo:.*$/, '')
-        .replace(/Incluye:.*$/, '')
-        .trim()
-        .slice(0, 200);
-      const codigo = (m[3] || '').replace(/\s+/g, ' ').trim();
-      const cantidad = parseFloat(String(m[5]).replace(',', '.')) || 1;
-      const matched = matchTruperItem(codigo, desc);
-      partidas.push({
-        idx,
-        desc: desc || (matched ? matched.descripcion : '(sin descripción)'),
-        codigo: codigo || (matched ? matched.numero_parte : ''),
-        cantidad,
-        precio: matched ? matched.precio : 0,
-        usa_plataforma: matched ? !!matched.usa_plataforma : false,
-        matched: !!matched,
-      });
-      seen.add(idx);
+    let manualCount = 0;
+    for (let i = headerRow + 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r) continue;
+      const cantidad = parseFloat(r[colCantidad]);
+      if (!cantidad || cantidad <= 0) continue;
+      const itemNum = parseInt(r[colItem], 10);
+      const catEntry = (itemNum >= 1 && itemNum <= cat.length) ? cat[itemNum - 1] : null;
+      let desc, codigo, precio, usaPlat, matched;
+      if (catEntry) {
+        // Fuente de verdad: SIEMPRE el catálogo — ignora lo que haya en las celdas de texto/precio
+        desc = catEntry.descripcion;
+        codigo = catEntry.numero_parte;
+        precio = catEntry.precio;
+        usaPlat = !!catEntry.usa_plataforma;
+        matched = true;
+      } else {
+        // Fila fuera de catálogo (agregada a mano) — intenta match por No. de Parte tecleado
+        const parteTecleada = colParte >= 0 ? String(r[colParte] || '').trim() : '';
+        const found = matchTruperItem(parteTecleada, colDesc >= 0 ? r[colDesc] : '');
+        if (found) {
+          desc = found.descripcion; codigo = found.numero_parte; precio = found.precio;
+          usaPlat = !!found.usa_plataforma; matched = true;
+        } else {
+          desc = colDesc >= 0 ? String(r[colDesc] || '(sin descripción)') : '(sin descripción)';
+          codigo = parteTecleada;
+          precio = colPrecio >= 0 ? (parseFloat(r[colPrecio]) || 0) : 0;
+          usaPlat = false; matched = false;
+          manualCount++;
+        }
+      }
+      partidas.push({ idx: partidas.length + 1, desc, codigo, cantidad, precio, usa_plataforma: usaPlat, matched });
     }
     if (!partidas.length) {
-      throw new Error('No se pudieron extraer partidas del PDF. Verifica que sea el formato de cotización de Truper. Puedes agregarlas manualmente con el botón "Agregar partida manual".');
+      throw new Error('No se detectaron cantidades mayores a 0. Llena la columna "Cantidad" en la plantilla y vuelve a subirla.');
     }
-    // Ordenar por número de partida
-    partidas.sort((a, b) => a.idx - b.idx);
     TRUPER_STATE.partidas = partidas;
     tpRenderPartidas();
-    const noMatch = partidas.filter(p => !p.matched).length;
-    showStatus(`✅ ${partidas.length} partidas detectadas${noMatch ? ` · <b style="color:#DC2626;">${noMatch} sin match automático</b> (completa el código o precio)` : ''}.`, 'ok');
+    showStatus(
+      manualCount
+        ? `✅ ${partidas.length} partidas cargadas · <b style="color:#DC2626;">${manualCount} fuera de catálogo</b> (revisar precio/descripción)`
+        : `✅ ${partidas.length} partidas cargadas directo del catálogo Truper — precios y números de parte verificados, sin errores de captura.`,
+      'ok'
+    );
     input.value = '';
   } catch (e) {
     showStatus('❌ ' + (e.message || e), 'err');
@@ -2033,17 +2173,17 @@ function tpRenderPartidas() {
       </td>
     </tr>`;
   }).join('');
-  tpRecalcTotales();
+  tpUpdateMO();
 }
 
 // Edita una partida
 function tpEditPartida(i, field, value) {
   if (!TRUPER_STATE.partidas[i]) return;
   TRUPER_STATE.partidas[i][field] = value;
-  tpRecalcTotales();
+  tpUpdateMO();
 }
 
-// Re-intenta match cuando el usuario cambia el código
+// Re-intenta match cuando el usuario cambia el código a mano
 function tpRematchPartida(i) {
   const p = TRUPER_STATE.partidas[i];
   if (!p) return;
@@ -2063,7 +2203,7 @@ function tpEliminarPartida(i) {
   tpRenderPartidas();
 }
 
-// Agrega una partida manual
+// Agrega una partida manual (fuera de catálogo)
 function tpAgregarPartidaManual() {
   const next = TRUPER_STATE.partidas.length + 1;
   TRUPER_STATE.partidas.push({
@@ -2080,23 +2220,50 @@ function tpLimpiarPartidas() {
   tpRenderPartidas();
 }
 
-// Recalcula subtotales y totales
-function tpRecalcTotales() {
-  const items = TRUPER_STATE.partidas;
-  const subtotalMat = items.reduce((s, p) => s + p.cantidad * p.precio, 0);
-  const dias = +el('tp-dias').value || 0;
-  const moTotal = +el('tp-mo-total').value || 0;
-  const viatTotal = +el('tp-viaticos-total').value || 0;
-  const diasPlat = +el('tp-dias-plat').value || 0;
-  const costoPlatDia = +el('tp-costo-plat-dia').value || 0;
-  const platTotal = diasPlat * costoPlatDia;
-  el('tp-plat-total').value = platTotal.toFixed(2);
-  const total = subtotalMat + moTotal + viatTotal + platTotal;
+// ── M.O./Viáticos/Movilidad/Equipo — reutiliza el MISMO motor calcularMO() ───
+// que el cotizador regular (sueldos y costos de equipo idénticos a la
+// "Hoja de presupuestos" de Truper), solo con inputs prefijados tp-.
+function tpGetMOInputs() {
+  return {
+    n_tec: +el('tp-n_tec').value, n_aya: +el('tp-n_aya').value,
+    n_ing: +el('tp-n_ing').value, n_seg: +el('tp-n_seg').value,
+    dias: +el('tp-dias_trabajo').value,
+    comidas_por_dia: +el('tp-comidas_por_dia').value, costo_comida: +el('tp-costo_comida').value,
+    req_hospedaje: el('tp-req_hospedaje').checked,
+    noches_hospedaje: +el('tp-noches_hospedaje').value, costo_hospedaje: +el('tp-costo_hospedaje').value,
+    km_sencillo: +el('tp-km_sencillo').value, n_viajes: +el('tp-n_viajes').value,
+    rendimiento: +el('tp-rendimiento').value, costo_gas: +el('tp-costo_gas').value,
+    casetas_ida: +el('tp-casetas_ida').value, costo_desgaste: +el('tp-costo_desgaste').value,
+    usar_escalera: el('tp-usar_escalera').checked, usar_gennie: el('tp-usar_gennie').checked,
+    usar_elevador: el('tp-usar_elevador').checked, usar_plat_tijera: el('tp-usar_plat_tijera').checked,
+    embarque: +el('tp-embarque').value,
+    precio_vuelo: +el('tp-precio_vuelo').value,
+    personas_vuelo: +el('tp-personas_vuelo').value,
+  };
+}
+
+function tpUpdateMO() {
+  if (!el('tp-mo-preview')) return; // la página Truper aún no está en el DOM visible
+  const inp = tpGetMOInputs();
+  const r = calcularMO(inp);
+
+  el('tp-mo-preview').innerHTML =
+    `M.O. real: <b>${fmt(r.costo_mo_real)}</b> · cobrado: <b style="color:#2e7d32;">${fmt(r.costo_mo)}</b> (${r.total_personas} pers × ${fmtNum(r.dias,1)} días)`;
+  el('tp-viaticos-preview').innerHTML =
+    `Comidas + Hospedaje: <b>${fmt(r.total_viaticos_real)}</b> + ganancia = <b style="color:#e65100;">${fmt(r.total_viaticos)}</b>`;
+  el('tp-movilidad-preview').innerHTML =
+    `Auto + Vuelo: <b>${fmt(r.total_movilidad_real)}</b> + utilidad = <b style="color:#1565C0;">${fmt(r.total_movilidad)}</b>`;
+  el('tp-equipo-preview').innerHTML =
+    `Total Equipo: <b>${fmt(r.total_plataformas)}</b>`;
+
+  const subtotalMat = TRUPER_STATE.partidas.reduce((s, p) => s + p.cantidad * p.precio, 0);
   el('tp-subtotal-mat').textContent = fmt(subtotalMat);
-  el('tp-r-mat').textContent = fmt(subtotalMat);
-  el('tp-r-mo').textContent = fmt(moTotal + viatTotal);
-  el('tp-r-plat').textContent = fmt(platTotal);
-  el('tp-r-total').textContent = fmt(total);
+  el('tp-r-mat').textContent    = fmt(subtotalMat);
+  el('tp-r-mo').textContent     = fmt(r.costo_mo);
+  el('tp-r-viat').textContent   = fmt(r.total_viaticos);
+  el('tp-r-movil').textContent  = fmt(r.total_movilidad);
+  el('tp-r-equipo').textContent = fmt(r.total_plataformas);
+  el('tp-r-total').textContent  = fmt(subtotalMat + r.total_mo_equipo_viaticos);
 }
 
 // Genera folio Truper único
@@ -2107,9 +2274,11 @@ function tpMakeFolio() {
   return `TRUPER-${yymmdd}-${cotNum}`;
 }
 
-// Adapta los datos Truper al formato de collectData() para reutilizar generarPDF/Word/Excel
+// Adapta los datos Truper al formato de collectData() para reutilizar generarPDF/Word/Excel.
+// mo_res = el resultado COMPLETO de calcularMO(), igual que en el cotizador regular, así
+// las secciones de "Tiempo de instalación" y desglose de costos del PDF/Word funcionan igual.
 function tpBuildDataForGenerator() {
-  const items = TRUPER_STATE.partidas.map((p, i) => ({
+  const items = TRUPER_STATE.partidas.map(p => ({
     descripcion: p.desc,
     numero_parte: p.codigo || 'N/A',
     precio: p.precio,
@@ -2117,10 +2286,7 @@ function tpBuildDataForGenerator() {
     disponibilidad: p.cantidad,
     fechaEntrega: '',
   }));
-  const moTotal = +el('tp-mo-total').value || 0;
-  const viatTotal = +el('tp-viaticos-total').value || 0;
-  const platTotal = (+el('tp-dias-plat').value || 0) * (+el('tp-costo-plat-dia').value || 0);
-  const costoMO = moTotal + viatTotal + platTotal;
+  const r = calcularMO(tpGetMOInputs());
   const folio = tpMakeFolio();
   return {
     cliente: {
@@ -2133,10 +2299,9 @@ function tpBuildDataForGenerator() {
       initials: 'GD',
     },
     items,
-    costo_mo: costoMO,
+    costo_mo: r.total_mo_equipo_viaticos,
     descuento: 0,
-    mo_res: { dias: +el('tp-dias').value || 0, total_mo_equipo_viaticos: costoMO,
-              total_personas: +el('tp-personas').value || 3 },
+    mo_res: r,
     tipo: 'ip',
     catMat: 'pipro',
   };
