@@ -1048,10 +1048,24 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
             <input type="text" id="new-part" placeholder="Ej: 12B00 00">
           </div>
           <div>
-            <label>Precio Unitario MXN</label>
-            <input type="number" id="new-price" min="0" step="10" placeholder="0.00">
+            <label>Moneda del precio</label>
+            <select id="new-moneda" onchange="toggleNewProdMoneda()">
+              <option value="MXN" selected>MXN — Pesos mexicanos</option>
+              <option value="USD">USD — Dólares</option>
+            </select>
           </div>
         </div>
+        <div class="grid-2" style="margin-top:10px;">
+          <div>
+            <label id="new-price-label">Precio Unitario (MXN)</label>
+            <input type="number" id="new-price" min="0" step="10" placeholder="0.00" oninput="updateNewProdPreview()">
+          </div>
+          <div id="new-tc-wrap" style="display:none;">
+            <label>Tipo de cambio (MXN por 1 USD)</label>
+            <input type="number" id="new-tc" min="0" step="0.01" placeholder="17.50" oninput="updateNewProdPreview()">
+          </div>
+        </div>
+        <div class="info-box hidden" id="new-price-preview" style="margin-top:8px;font-size:.8rem;"></div>
         <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="addProduct()">✅ Agregar al catálogo</button>
           <button class="btn btn-secondary btn-sm" onclick="lockAddProduct()">🔒 Cerrar acceso</button>
@@ -3434,6 +3448,9 @@ function openNewProdModal() {
   hideCls('add-prod-err');
   const ok = el('add-prod-ok');
   if (ok) ok.classList.add('hidden');
+  // Reiniciar selector de moneda a MXN cada vez que se abre
+  const moneda = el('new-moneda');
+  if (moneda) { moneda.value = 'MXN'; toggleNewProdMoneda(); }
 }
 function closeNewProdModal() {
   const m = el('newprod-modal');
@@ -3456,19 +3473,70 @@ function lockAddProduct() {
   hide('add-prod-form');
   el('add-prod-pwd').value = '';
 }
+// Muestra/oculta el campo de tipo de cambio según la moneda elegida
+// y actualiza la etiqueta del precio. El catálogo SIEMPRE guarda en MXN;
+// USD es solo una forma de captura que se convierte antes de guardar.
+function toggleNewProdMoneda() {
+  const moneda = el('new-moneda') ? el('new-moneda').value : 'MXN';
+  const tcWrap = el('new-tc-wrap');
+  const label = el('new-price-label');
+  if (moneda === 'USD') {
+    if (tcWrap) tcWrap.style.display = '';
+    if (label) label.textContent = 'Precio Unitario (USD)';
+    const tc = el('new-tc');
+    if (tc && !tc.value) tc.value = (state.tipoCambio || 17.50).toFixed(2);
+  } else {
+    if (tcWrap) tcWrap.style.display = 'none';
+    if (label) label.textContent = 'Precio Unitario (MXN)';
+  }
+  updateNewProdPreview();
+}
+
+// Vista previa en vivo del precio convertido a MXN cuando se captura en USD
+function updateNewProdPreview() {
+  const preview = el('new-price-preview');
+  if (!preview) return;
+  const moneda = el('new-moneda') ? el('new-moneda').value : 'MXN';
+  const price = parseFloat(el('new-price').value) || 0;
+  if (moneda === 'USD' && price > 0) {
+    const tc = parseFloat(el('new-tc').value) || 0;
+    preview.classList.remove('hidden');
+    if (tc > 0) {
+      const mxn = price * tc;
+      preview.innerHTML = `US$${price.toFixed(2)} × $${tc.toFixed(2)} = <b>${fmt(mxn)}</b> — así se guardará en el catálogo (MXN).`;
+    } else {
+      preview.innerHTML = 'Ingresa el tipo de cambio para ver el precio equivalente en MXN.';
+    }
+  } else {
+    preview.classList.add('hidden');
+  }
+}
+
 async function addProduct() {
   const desc = el('new-desc').value.trim();
   const part = el('new-part').value.trim();
-  const price = parseFloat(el('new-price').value)||0;
-  if (!desc||!part||price<=0) { alert('Completa todos los campos con un precio mayor a 0.'); return; }
+  const moneda = el('new-moneda') ? el('new-moneda').value : 'MXN';
+  const priceInput = parseFloat(el('new-price').value)||0;
+  if (!desc||!part||priceInput<=0) { alert('Completa todos los campos con un precio mayor a 0.'); return; }
+
+  // El catálogo siempre guarda en MXN. Si se capturó en USD, se convierte aquí.
+  let price = priceInput;
+  let conversionNote = '';
+  if (moneda === 'USD') {
+    const tc = parseFloat(el('new-tc').value) || 0;
+    if (tc <= 0) { alert('Ingresa un tipo de cambio válido para convertir de USD a MXN.'); return; }
+    price = priceInput * tc;
+    conversionNote = ` (US$${priceInput.toFixed(2)} × $${tc.toFixed(2)} = ${fmt(price)})`;
+  }
+
   const existing = state.materiales.findIndex(m=>m.numero_parte===part);
   if (existing>=0) {
     state.materiales[existing].descripcion = desc;
     state.materiales[existing].precio = price;
-    el('add-prod-ok').textContent = `✅ Producto ${part} actualizado.`;
+    el('add-prod-ok').textContent = `✅ Producto ${part} actualizado.${conversionNote}`;
   } else {
     state.materiales.push({descripcion:desc,numero_parte:part,precio:price});
-    el('add-prod-ok').textContent = `✅ Producto ${part} agregado.`;
+    el('add-prod-ok').textContent = `✅ Producto ${part} agregado.${conversionNote}`;
   }
   // Guardar en caché local siempre
   try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
@@ -3483,7 +3551,9 @@ async function addProduct() {
     }
   }
   el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
-  showCls('add-prod-ok'); el('new-desc').value=''; el('new-part').value=''; el('new-price').value='';
+  showCls('add-prod-ok');
+  el('new-desc').value=''; el('new-part').value=''; el('new-price').value='';
+  el('new-moneda').value='MXN'; el('new-tc').value=''; toggleNewProdMoneda();
   if (state.adminOk) renderAdminTable();
 }
 
