@@ -916,6 +916,20 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         </div>
       </div>
     </div>
+
+    <!-- Descuento Global sobre el Total del Pedido -->
+    <div class="card" id="descuento-ip-card" style="margin-top:14px;border-left:4px solid #C8102E;">
+      <div class="sec-title" style="margin-top:0;">🏷️ Descuento Global</div>
+      <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;">
+        <div style="max-width:180px;">
+          <label>Descuento sobre el total (%)</label>
+          <input type="number" id="descuento_pct_ip" value="0" min="0" max="100" step="5" oninput="updateTotales()">
+        </div>
+        <div style="font-size:.85rem;color:#666;flex:1;min-width:240px;" id="descuento-ip-preview">
+          Se aplica sobre el total del pedido: materiales + M.O. + viáticos + movilidad + equipo.
+        </div>
+      </div>
+    </div>
   </div><!-- end #mo-section -->
 
   <!-- 4. MATERIALES ───────────────────────────────────────────────────────────── -->
@@ -1591,6 +1605,7 @@ function serializeCotizacion() {
       desc_proy:  el('desc_proy') ? el('desc_proy').value : '',
     },
     descuento_pct: el('descuento_pct') ? (+el('descuento_pct').value || 0) : 0,
+    descuento_pct_ip: el('descuento_pct_ip') ? (+el('descuento_pct_ip').value || 0) : 0,
     mo: moInputs,
     carrito: state.carrito,
   };
@@ -1622,6 +1637,7 @@ function restoreCotizacion(data) {
   }
   // Descuento
   if (el('descuento_pct')) el('descuento_pct').value = data.descuento_pct || 0;
+  if (el('descuento_pct_ip')) el('descuento_pct_ip').value = data.descuento_pct_ip || 0;
   // MO inputs
   if (data.mo) {
     const setVal = (id, v) => { if (el(id) && v != null) el(id).value = v; };
@@ -2385,13 +2401,22 @@ function getCartSubtotal() {
   return Object.values(state.carrito).reduce((s,item)=>s+item.cantidad*item.precio, 0);
 }
 
+// Descuento global: en IT usa el campo junto al carrito (aplica solo a materiales,
+// ya que en IT no hay M.O.). En IP usa el campo al final de la sección de M.O.
+// (aplica sobre materiales + M.O. + viáticos + movilidad + equipo, el pedido completo).
+function getDescuentoPct() {
+  const id = state.tipo === 'ip' ? 'descuento_pct_ip' : 'descuento_pct';
+  const inp = el(id);
+  return inp ? (+inp.value || 0) / 100 : 0;
+}
+
 function updateTotales() {
   const items = Object.entries(state.carrito);
   if (!items.length) return;
   const subtotal_mat = getCartSubtotal();
   const mo_res = getMOResult();
   const costo_mo = mo_res ? mo_res.total_mo_equipo_viaticos : 0;
-  const descuento = state.tipo==='it' ? ((+el('descuento_pct').value||0)/100) : 0;
+  const descuento = getDescuentoPct();
   const total_bruto = subtotal_mat + costo_mo;
   const desc_monto = total_bruto * descuento;
   const total_neto = total_bruto - desc_monto;
@@ -2409,6 +2434,14 @@ function updateTotales() {
   html += `<div class="cart-total-row"><span class="label">IVA (16%)</span><span class="amount">${fmt(iva)}</span></div>`;
   html += `<div class="cart-total-row grand"><span class="label">TOTAL CON IVA 16%</span><span class="amount">${fmt(total_final)}</span></div>`;
   el('cart-totals').innerHTML = html;
+
+  // Vista previa del descuento global en la sección M.O. (solo IP)
+  const prevEl = el('descuento-ip-preview');
+  if (prevEl) {
+    prevEl.innerHTML = descuento > 0
+      ? `Total del pedido: <b>${fmt(total_bruto)}</b> · Descuento ${(descuento*100).toFixed(0)}%: <b style="color:#C8102E;">-${fmt(desc_monto)}</b> · Queda en <b>${fmt(total_neto)}</b> antes de IVA.`
+      : `Se aplica sobre el total del pedido: materiales + M.O. + viáticos + movilidad + equipo.`;
+  }
 }
 
 // ── DOCUMENT GENERATION ───────────────────────────────────────────────────────
@@ -2428,7 +2461,7 @@ function collectData() {
   const mo_res = getMOResult();
   const subtotal_mat = getCartSubtotal();
   if (mo_res) mo_res.subtotal_material = subtotal_mat;
-  const descuento = state.tipo==='it' ? ((+el('descuento_pct').value||0)/100) : 0;
+  const descuento = getDescuentoPct();
   const costo_mo = mo_res ? mo_res.total_mo_equipo_viaticos : 0;
   const items = Object.values(state.carrito);
   const cliente = {
