@@ -921,8 +921,13 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
   <!-- 4. MATERIALES ───────────────────────────────────────────────────────────── -->
   <div class="sec-title" id="sec-materiales">4. Selección de Materiales</div>
   <div class="card">
-    <div style="font-size:.85rem;color:#666;margin-bottom:8px;" id="mat-count-label">
-      Base de datos: <b>234</b> materiales · Escribe en el buscador para filtrar.
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+      <div style="font-size:.85rem;color:#666;" id="mat-count-label">
+        Base de datos: <b>234</b> materiales · Escribe en el buscador para filtrar.
+      </div>
+      <button class="mod-btn" onclick="openQuickMatModal()" title="Agregar un material temporal al carrito — no se guarda en el catálogo">
+        <span>⚡</span> Material rápido
+      </button>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <label style="font-size:.85rem;font-weight:600;white-space:nowrap;color:#444;">Diámetro:</label>
@@ -1090,6 +1095,73 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
     <div class="gd-modal-footer">
       <button class="gd-btn gd-btn-ghost" onclick="closeNewProdModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL — MATERIAL RÁPIDO (temporal, NO se guarda en el catálogo/Supabase)
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="quickmat-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)closeQuickMatModal()">
+  <div class="gd-modal is-lg" role="dialog" aria-modal="true" aria-labelledby="quickmat-title">
+    <div class="gd-modal-header">
+      <h3 id="quickmat-title">⚡ Material Rápido</h3>
+      <button class="gd-modal-close" onclick="closeQuickMatModal()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="gd-modal-body">
+      <div class="info-box" style="margin-bottom:14px;">
+        Estos materiales se agregan <b>solo al carrito de esta cotización</b> — nunca se guardan en el catálogo
+        ni en la base de datos. Úsalos para partidas especiales, de único uso o que no vale la pena registrar.
+      </div>
+
+      <!-- Alta individual -->
+      <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">Agregar uno al carrito</h4>
+      <div class="grid-4">
+        <div style="grid-column:span 2;">
+          <label>Descripción</label>
+          <input type="text" id="qm-desc" placeholder="Descripción del material">
+        </div>
+        <div>
+          <label>No. Parte <span style="font-weight:normal;color:#888;">(opcional)</span></label>
+          <input type="text" id="qm-part" placeholder="Ej. TEMP-01">
+        </div>
+        <div>
+          <label>Precio Unit. MXN</label>
+          <input type="number" id="qm-price" min="0" step="10" placeholder="0.00">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:10px;">
+        <div>
+          <label>Cantidad</label>
+          <input type="number" id="qm-qty" value="1" min="1" step="1">
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <button class="btn btn-primary btn-full" onclick="addQuickMaterial()">➕ Agregar al carrito</button>
+        </div>
+      </div>
+      <div class="success-box hidden" id="qm-ok" style="margin-top:10px;"></div>
+
+      <!-- Carga masiva desde Excel -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid #E5E7EB;">
+        <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">
+          📎 Subir lista rápida desde Excel
+        </h4>
+        <div style="font-size:.78rem;color:#888;margin-bottom:8px;">
+          Columnas: Descripción, No. de Parte (opcional), Precio Unitario, Cantidad (opcional, por defecto 1).
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;">
+            📂 Seleccionar archivo .xlsx / .xls
+            <input type="file" id="qm-file" accept=".xls,.xlsx" style="display:none" onchange="initQuickMatExcel(this)">
+          </label>
+          <span id="qm-fname" style="font-size:.82rem;color:#888;"></span>
+        </div>
+        <div id="qm-preview" style="display:none;margin-top:12px;"></div>
+      </div>
+    </div>
+    <div class="gd-modal-footer">
+      <button class="gd-btn gd-btn-ghost" onclick="closeQuickMatModal()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -2044,6 +2116,181 @@ function clearCart() {
   state.carrito = {};
   renderCart();
   updateTotales();
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MATERIAL RÁPIDO — items temporales SOLO para esta cotización.
+   Van directo a state.carrito vía addToCart(); NUNCA tocan state.materiales
+   ni Supabase, así que no quedan registrados en el catálogo general.
+   ════════════════════════════════════════════════════════════════════════════ */
+let _qmTempCounter = 0;
+function _qmTempPart() {
+  return 'TEMP-' + Date.now().toString().slice(-6) + '-' + (++_qmTempCounter);
+}
+
+function openQuickMatModal() {
+  const m = el('quickmat-modal');
+  if (!m) return;
+  m.style.display = 'flex';
+  el('qm-desc').value = '';
+  el('qm-part').value = '';
+  el('qm-price').value = '';
+  el('qm-qty').value = 1;
+  el('qm-ok').classList.add('hidden');
+  el('qm-preview').style.display = 'none';
+  el('qm-file').value = '';
+  el('qm-fname').textContent = '';
+  setTimeout(() => el('qm-desc') && el('qm-desc').focus(), 100);
+}
+function closeQuickMatModal() {
+  const m = el('quickmat-modal');
+  if (m) m.style.display = 'none';
+}
+
+function addQuickMaterial() {
+  const desc = el('qm-desc').value.trim();
+  let part = el('qm-part').value.trim();
+  const price = parseFloat(el('qm-price').value) || 0;
+  const qty = Math.max(1, parseInt(el('qm-qty').value) || 1);
+  if (!desc || price <= 0) { alert('Ingresa al menos la descripción y un precio mayor a 0.'); return; }
+  if (!part) part = _qmTempPart();
+  addToCart({ descripcion: desc, numero_parte: part, precio: price }, qty);
+  el('qm-ok').classList.remove('hidden');
+  el('qm-ok').textContent = `✅ ${qty}× "${shortDesc(desc,40)}" agregado al carrito (temporal — no se guardó en el catálogo).`;
+  toast('⚡ Material rápido agregado al carrito');
+  el('qm-desc').value = ''; el('qm-part').value = ''; el('qm-price').value = ''; el('qm-qty').value = 1;
+  el('qm-desc').focus();
+}
+
+// ── Carga masiva desde Excel (mapeo de columnas, igual patrón que el importador
+//    de catálogo, pero SOLO agrega al carrito de esta cotización) ────────────
+function initQuickMatExcel(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  el('qm-fname').textContent = file.name;
+  el('qm-preview').innerHTML = '<div class="info-box">Leyendo archivo…</div>';
+  el('qm-preview').style.display = 'block';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const sName = wb.SheetNames.find(s => /material|lista|catalog|producto/i.test(s)) || wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sName], {header:1, defval:''});
+      window._qmRows = rows;
+      renderQmMapper(rows, sName);
+    } catch(err) {
+      el('qm-preview').innerHTML = `<div class="error-box">Error al leer el archivo: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function autoDetectQmCols(rows) {
+  let hdrRow = -1, colMap = {desc:-1, part:-1, price:-1, qty:-1};
+  for (let i = 0; i < Math.min(rows.length, 8); i++) {
+    rows[i].forEach((cell, j) => {
+      const c = String(cell||'').toLowerCase().trim();
+      if (/desc|mercancía|mercanc|articulo|artículo|producto|material/.test(c)) { colMap.desc = j;  hdrRow = i; }
+      if (/parte|part|no\.|num|código|codigo|clave|sku/.test(c))                { colMap.part = j;  hdrRow = i; }
+      if (/precio|price|unit|mxn|costo|cost/.test(c))                           { colMap.price = j; hdrRow = i; }
+      if (/cant|qty|piezas|pzas?\b/.test(c))                                    { colMap.qty = j;   hdrRow = i; }
+    });
+    if (hdrRow === i) break;
+  }
+  return {hdrRow, colMap};
+}
+
+function renderQmMapper(rows, sheetName) {
+  const {hdrRow, colMap} = autoDetectQmCols(rows);
+  const dataStart = hdrRow >= 0 ? hdrRow + 1 : 0;
+  const hdrRowArr = hdrRow >= 0 ? rows[hdrRow] : [];
+  const ncols     = Math.max(...rows.slice(0, dataStart + 5).map(r => r.length), 3);
+  const letters   = Array.from({length: ncols}, (_, i) => String.fromCharCode(65 + i));
+
+  const colOpts = (selected) => [
+    `<option value="-1">– No usar –</option>`,
+    ...letters.map((l, i) => {
+      const hint = hdrRowArr[i] ? ` – ${String(hdrRowArr[i]).slice(0,22)}` : '';
+      return `<option value="${i}"${i===selected?' selected':''}>${l}${hint}</option>`;
+    })
+  ].join('');
+
+  const SS = 'width:100%;padding:7px 8px;border:1.5px solid #ccc;border-radius:6px;font-size:.84rem;font-family:Arial,sans-serif;';
+  const LS = 'font-size:.79rem;font-weight:600;color:#555;display:block;margin-bottom:3px;';
+
+  const previewRows = rows.slice(dataStart, dataStart + 5);
+  const previewHtml = `<div style="overflow-x:auto;margin:8px 0 12px;">
+    <table style="border-collapse:collapse;font-size:.78rem;width:100%;">
+      <thead><tr>${letters.map(l=>`<th style="border:1px solid #ddd;padding:3px 8px;background:#e9ecef;white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
+      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(r[i]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+
+  const totalRows = rows.length - dataStart;
+  const detected  = hdrRow >= 0 ? '✅ Encabezados detectados automáticamente' : '⚠️ Sin encabezados detectados — ajusta las columnas manualmente';
+
+  el('qm-preview').innerHTML = `
+    <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:14px;">
+      <div style="font-size:.82rem;color:#555;margin-bottom:10px;">
+        Hoja: <b>${sheetName}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:8px;">
+        <div><span style="${LS}">📝 Descripción</span><select id="qm-col-desc"  style="${SS}">${colOpts(colMap.desc)}</select></div>
+        <div><span style="${LS}">🔢 No. de Parte <span style="font-weight:400;color:#999;">(opc.)</span></span><select id="qm-col-part"  style="${SS}">${colOpts(colMap.part)}</select></div>
+        <div><span style="${LS}">💲 Precio Unitario MXN</span><select id="qm-col-price" style="${SS}">${colOpts(colMap.price)}</select></div>
+        <div><span style="${LS}">🔢 Cantidad <span style="font-weight:400;color:#999;">(opc., def. 1)</span></span><select id="qm-col-qty" style="${SS}">${colOpts(colMap.qty)}</select></div>
+      </div>
+      <div style="font-size:.78rem;color:#777;margin-bottom:2px;">Vista previa — primeras 5 filas a partir de la fila ${dataStart+1}:</div>
+      ${previewHtml}
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="importQuickMatExcel(${dataStart})">✅ Agregar ${totalRows} al carrito</button>
+        <button class="btn btn-secondary btn-sm" onclick="el('qm-preview').style.display='none';el('qm-file').value='';el('qm-fname').textContent='';">✕ Cancelar</button>
+        <span id="qm-status" style="font-size:.82rem;font-weight:600;"></span>
+      </div>
+    </div>`;
+  el('qm-preview').style.display = 'block';
+}
+
+function importQuickMatExcel(dataStart) {
+  const rows = window._qmRows;
+  if (!rows) return;
+  const dCol  = parseInt(el('qm-col-desc').value);
+  const pCol  = parseInt(el('qm-col-part').value);
+  const prCol = parseInt(el('qm-col-price').value);
+  const qCol  = parseInt(el('qm-col-qty').value);
+
+  if (dCol < 0 || prCol < 0) {
+    el('qm-status').style.color = '#c00';
+    el('qm-status').textContent = '⚠️ Selecciona al menos Descripción y Precio antes de importar.';
+    return;
+  }
+
+  el('qm-status').style.color = '#555';
+  el('qm-status').textContent = '⏳ Procesando filas…';
+
+  let added = 0, skipped = 0;
+  rows.slice(dataStart).forEach(row => {
+    const desc  = String(row[dCol]  || '').trim();
+    let   part  = pCol  >= 0 ? String(row[pCol]  || '').trim() : '';
+    const price = parseFloat(String(row[prCol] || '').replace(/[$,\s]/g,'')) || 0;
+    const qtyRaw = qCol >= 0 ? parseFloat(String(row[qCol] || '').replace(/[,\s]/g,'')) : 1;
+    const qty = Math.max(1, Math.round(qtyRaw) || 1);
+    if (!desc || price <= 0) { skipped++; return; }
+    if (!part) part = _qmTempPart();
+    addToCart({ descripcion: desc, numero_parte: part, precio: price }, qty);
+    added++;
+  });
+
+  if (added === 0) {
+    el('qm-status').style.color = '#c00';
+    el('qm-status').textContent = `⚠️ Ningún renglón válido (${skipped} omitidos). Revisa las columnas seleccionadas.`;
+    return;
+  }
+  el('qm-status').style.color = '#2a7a2a';
+  el('qm-status').textContent = `✅ ${added} materiales agregados al carrito (temporales) · ${skipped} omitidos.`;
+  toast(`⚡ ${added} materiales rápidos agregados al carrito`);
+  window._qmRows = null;
+  el('qm-file').value = '';
+  el('qm-fname').textContent = '';
 }
 
 function renderCart() {
