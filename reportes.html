@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reportes de Entrega · Gardner Denver México</title>
+<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
+<script src="gd-theme-sync.js?v=20260619"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="logo_b64.js"></script>
+<style>
+:root{
+  --gd-red:   #C8102E;
+  --gd-dark:  #1A1A1F;
+  --gd-lgray: #E5E7EB;
+  --gd-blue:  #1F3864;
+  --radius:   8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{
+  font-family:'Inter','Segoe UI',Arial,sans-serif;
+  background:var(--gd-bg);color:var(--gd-text);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Barra del módulo ─────────────────────────────────────────────────────── */
+.mod-header{
+  background:var(--gd-bg-elev);
+  border-bottom:1px solid var(--gd-border);
+  padding:10px 22px;
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  background:var(--gd-red-light);color:#C8102E;font-size:18px;
+  border:1px solid var(--gd-red-light);
+}
+.mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;font-weight:500;}
+.mod-wrap{padding:18px;max-width:1000px;margin:0 auto;}
+
+/* ── Secciones ────────────────────────────────────────────────────────────── */
+.sec-title{
+  display:flex;align-items:center;gap:10px;
+  font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--gd-text-mute);margin:22px 0 12px;padding-bottom:8px;
+  border-bottom:2px solid var(--gd-red);
+}
+.sec-title::before{
+  content:'';display:inline-block;width:4px;height:16px;
+  background:var(--gd-red);border-radius:2px;
+}
+.card{
+  background:var(--gd-bg-elev);border:1px solid var(--gd-border);
+  border-radius:12px;padding:18px;margin-bottom:12px;
+}
+label{display:block;font-size:12px;font-weight:600;color:var(--gd-text-mute);margin-bottom:6px;}
+input[type=text],input[type=date],textarea,select{
+  width:100%;padding:9px 12px;border:1px solid var(--gd-border-strong);
+  border-radius:8px;font-family:inherit;font-size:13.5px;
+  color:var(--gd-text);background:var(--gd-bg-elev);
+  transition:border-color .15s,box-shadow .15s;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none;border-color:var(--gd-red);box-shadow:0 0 0 3px rgba(200,16,46,.12);
+}
+textarea{resize:vertical;line-height:1.55;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:720px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 18px;border-radius:8px;border:1px solid transparent;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.btn-primary{background:var(--gd-red);color:#fff;}
+.btn-primary:hover{background:#A10D24;}
+.btn-secondary{background:var(--gd-graphite);color:#fff;}
+.btn-secondary:hover{background:#1A1A1F;}
+.btn-ghost{background:var(--gd-bg-elev);color:var(--gd-text-mute);border-color:var(--gd-border);}
+.btn-ghost:hover{border-color:var(--gd-red);color:var(--gd-red);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-lg{padding:13px 24px;font-size:14.5px;}
+
+.info-box{
+  background:var(--gd-info-light);border-left:3px solid var(--gd-info);
+  padding:11px 14px;border-radius:6px;font-size:12.5px;line-height:1.5;
+  color:var(--gd-text);
+}
+.success-box{
+  background:var(--gd-success-light);border-left:3px solid var(--gd-success);
+  padding:11px 14px;border-radius:6px;font-size:12.5px;color:var(--gd-text);
+}
+.warn-box{
+  background:var(--gd-warning-light);border-left:3px solid var(--gd-warning);
+  padding:11px 14px;border-radius:6px;font-size:12.5px;color:var(--gd-text);
+}
+
+/* ── Chips de categorías ──────────────────────────────────────────────────── */
+.cat-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.cat-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 15px;border-radius:20px;cursor:pointer;
+  border:1.5px solid var(--gd-border-strong);background:var(--gd-bg-elev);
+  font-size:12.5px;font-weight:600;color:var(--gd-text-mute);
+  transition:all .15s;user-select:none;
+}
+.cat-chip:hover{border-color:var(--gd-red);color:var(--gd-red);}
+.cat-chip.selected{
+  background:var(--gd-red);border-color:var(--gd-red);color:#fff;
+  box-shadow:0 2px 6px rgba(200,16,46,.25);
+}
+.cat-chip .chk{font-size:13px;}
+
+/* ── Fotos ────────────────────────────────────────────────────────────────── */
+.foto-drop{
+  border:2px dashed var(--gd-border-strong);border-radius:10px;
+  padding:26px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s;display:block;
+}
+.foto-drop:hover{border-color:var(--gd-red);background:var(--gd-red-tint);}
+.foto-drop input{display:none;}
+.foto-drop.disabled{opacity:.5;pointer-events:none;}
+
+.foto-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:14px;margin-top:14px;
+}
+.foto-card{
+  border:1px solid var(--gd-border);border-radius:10px;overflow:hidden;
+  background:var(--gd-bg-elev);
+}
+.foto-thumb{
+  width:100%;height:150px;object-fit:cover;display:block;
+  background:var(--gd-bg-alt);
+}
+.foto-body{padding:10px;}
+.foto-body textarea{
+  font-size:12px;padding:7px 9px;min-height:56px;
+}
+.foto-actions{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:8px;gap:6px;
+}
+.foto-num{
+  font-size:10.5px;font-weight:700;color:var(--gd-text-soft);
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.foto-del{
+  background:none;border:none;cursor:pointer;color:var(--gd-text-soft);
+  padding:4px 8px;border-radius:5px;font-size:13px;transition:all .15s;
+}
+.foto-del:hover{background:var(--gd-error-light);color:var(--gd-error);}
+
+/* Dropdown de clientes */
+.cli-dd{
+  display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:200;
+  background:var(--gd-bg-elev);border:1.5px solid var(--gd-border-strong);
+  border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.15);
+  max-height:240px;overflow-y:auto;
+}
+.cli-opt{padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--gd-border);}
+.cli-opt:hover{background:var(--gd-bg-alt);}
+
+.folio-box{
+  background:var(--gd-bg-alt);border:1px dashed var(--gd-border-strong);
+  border-radius:8px;padding:11px 14px;font-family:'Consolas',monospace;
+  font-size:13.5px;font-weight:700;color:var(--gd-red);letter-spacing:.03em;
+}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────────── -->
+<header class="mod-header">
+  <span class="mod-icon">📋</span>
+  <div>
+    <div class="mod-title">Reportes de Entrega</div>
+    <div class="mod-sub">Cartas de término y reporte fotográfico de proyectos</div>
+  </div>
+</header>
+
+<div class="mod-wrap">
+
+  <!-- 1. DATOS DEL PROYECTO ──────────────────────────────────────────────── -->
+  <div class="sec-title">1. Datos del Proyecto</div>
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <label>Empresa / Cliente</label>
+        <div style="position:relative;">
+          <div style="display:flex;">
+            <input type="text" id="empresa"
+                   placeholder="Escribe o selecciona un cliente…"
+                   oninput="handleEmpresaInput(this.value,false); updateFolio()"
+                   onkeydown="handleEmpresaKey(event)"
+                   autocomplete="off"
+                   style="border-radius:8px 0 0 8px;border-right:none;flex:1;">
+            <button type="button" id="empresa-btn" onclick="toggleClienteDD()"
+                    title="Ver todos los clientes"
+                    style="border:1px solid var(--gd-border-strong);border-left:none;border-radius:0 8px 8px 0;background:var(--gd-bg-alt);padding:0 12px;cursor:pointer;font-size:14px;color:var(--gd-text-mute);">▾</button>
+          </div>
+          <div id="cliente-dd" class="cli-dd"></div>
+        </div>
+      </div>
+      <div>
+        <label>Atención a <span style="font-weight:400;color:var(--gd-text-soft);">(se llena solo al seleccionar de la lista)</span></label>
+        <input type="text" id="atencion" placeholder="Ej: Ing. Diego García">
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:12px;">
+      <div>
+        <label>Fecha de entrega</label>
+        <input type="date" id="fecha" oninput="updateFolio()">
+      </div>
+      <div>
+        <label>Planta / Área</label>
+        <input type="text" id="planta" placeholder="Ej: Planta 2 · Nave de maquinado">
+      </div>
+      <div>
+        <label>Iniciales del ingeniero</label>
+        <input type="text" id="initials" maxlength="5" value="MAM" placeholder="MAM" oninput="updateFolio()">
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Nombre / descripción del proyecto</label>
+      <input type="text" id="desc_proy" placeholder="Ej: Instalación de bajada neumática de 3/4&quot; en línea de bandas abrasivas">
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Folio del reporte</label>
+      <div class="folio-box" id="folio-preview">RPT-XXXX-010125-MAM</div>
+    </div>
+  </div>
+
+  <!-- 2. CATEGORÍAS ──────────────────────────────────────────────────────── -->
+  <div class="sec-title">2. Alcance Ejecutado</div>
+  <div class="card">
+    <div class="info-box" style="margin-bottom:14px;">
+      Selecciona las categorías de trabajo realizadas. Cada una agrega su párrafo técnico al cuerpo del reporte —
+      puedes editar el texto libremente antes de generar el PDF.
+    </div>
+
+    <div class="cat-grid" id="cat-grid"></div>
+
+    <div style="margin-top:16px;">
+      <label>
+        Cuerpo del reporte
+        <span style="font-weight:400;color:var(--gd-text-soft);">— editable, se actualiza al marcar categorías</span>
+      </label>
+      <textarea id="cuerpo" rows="9"
+        placeholder="Selecciona una o más categorías arriba para generar el texto, o escribe directamente aquí."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-ghost btn-sm" onclick="regenerarCuerpo()">🔄 Regenerar desde categorías</button>
+        <span style="font-size:11.5px;color:var(--gd-text-soft);">
+          Ojo: regenerar reemplaza el texto actual con el de las categorías seleccionadas.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. REPORTE FOTOGRÁFICO ─────────────────────────────────────────────── -->
+  <div class="sec-title">3. Reporte Fotográfico</div>
+  <div class="card">
+    <label class="foto-drop" id="foto-drop" for="foto-input">
+      <input type="file" id="foto-input" accept="image/*" multiple onchange="cargarFotos(this)">
+      <div style="font-size:15px;font-weight:700;color:var(--gd-text);">📷 Haz clic o arrastra tus fotos aquí</div>
+      <div style="font-size:12.5px;color:var(--gd-text-mute);margin-top:7px;">
+        Hasta <b>10 fotos</b> · JPG o PNG · Se optimizan automáticamente para el PDF
+      </div>
+      <div style="font-size:11.5px;color:var(--gd-text-soft);margin-top:4px;" id="foto-count">0 de 10 fotos cargadas</div>
+    </label>
+
+    <div id="foto-status" class="hidden" style="margin-top:10px;"></div>
+    <div class="foto-grid" id="foto-grid"></div>
+
+    <div id="foto-tools" class="hidden" style="margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="limpiarFotos()">🗑 Quitar todas las fotos</button>
+    </div>
+  </div>
+
+  <!-- 4. COMENTARIOS ─────────────────────────────────────────────────────── -->
+  <div class="sec-title">4. Comentarios y Observaciones</div>
+  <div class="card">
+    <label>Notas adicionales <span style="font-weight:400;color:var(--gd-text-soft);">(opcional)</span></label>
+    <textarea id="comentarios" rows="5"
+      placeholder="Ej: Se dejó material excedente en almacén del cliente. Pendiente conexión eléctrica final por parte de Truper. Se recomienda revisión de fugas a los 30 días."></textarea>
+  </div>
+
+  <!-- 5. GENERAR ─────────────────────────────────────────────────────────── -->
+  <div class="sec-title">5. Generar Reporte</div>
+  <div class="card">
+    <div id="gen-warning" class="warn-box hidden" style="margin-bottom:12px;">
+      ⚠️ Completa al menos la <b>empresa</b> y el <b>cuerpo del reporte</b> antes de generar.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-primary btn-lg" onclick="generarReportePDF()">🖨 Generar Reporte PDF</button>
+      <span style="font-size:12px;color:var(--gd-text-soft);">
+        Formato Gardner Denver con reporte fotográfico y firma.
+      </span>
+    </div>
+  </div>
+
+</div><!-- end .mod-wrap -->
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   CATÁLOGO DE CATEGORÍAS — cada una aporta su párrafo al cuerpo del reporte
+   ════════════════════════════════════════════════════════════════════════════ */
+const CATEGORIAS = [
+  {
+    id: 'neumatica',
+    icon: '💨',
+    label: 'Instalación neumática',
+    texto: 'Se ejecutó el suministro e instalación de tubería de aluminio para el servicio de aire comprimido, incluyendo trazo de ruta, corte, ensamble de conexiones, fijación y alineación de la línea conforme a las especificaciones del fabricante y a los requerimientos operativos del cliente.'
+  },
+  {
+    id: 'electrica',
+    icon: '⚡',
+    label: 'Instalación eléctrica',
+    texto: 'Se realizó la instalación eléctrica correspondiente, incluyendo canalización, cableado, conexionado de fuerza y control, aterrizado de equipos y pruebas de continuidad, dando cumplimiento a los lineamientos aplicables de la NOM-001-SEDE vigente.'
+  },
+  {
+    id: 'condensado',
+    icon: '💧',
+    label: 'Servicio de condensado',
+    texto: 'Se instaló el sistema de manejo y drenado de condensados, incluyendo trampas, líneas de descarga y pendiente de escurrimiento, garantizando la correcta evacuación de humedad de la red de aire comprimido y evitando arrastre de agua hacia los puntos de uso.'
+  },
+  {
+    id: 'soporteria',
+    icon: '🔩',
+    label: 'Soportería y fijación',
+    texto: 'Se suministró e instaló la soportería requerida para la sujeción de la tubería, utilizando unicanal, abrazaderas, ménsulas y varilla roscada según la trayectoria y las cargas del sistema, respetando los espaciamientos recomendados para evitar deflexiones.'
+  },
+  {
+    id: 'hermeticidad',
+    icon: '🧪',
+    label: 'Prueba de hermeticidad',
+    texto: 'Se llevó a cabo la prueba de hermeticidad de la línea instalada, presurizando el sistema y verificando la ausencia de fugas en uniones, derivaciones y accesorios. La red fue entregada operando sin fugas detectables y a la presión requerida en los puntos de uso.'
+  },
+  {
+    id: 'puesta_marcha',
+    icon: '🚀',
+    label: 'Puesta en marcha',
+    texto: 'Se realizó la puesta en marcha del sistema, verificando presión de operación, caudal disponible en puntos de uso y correcto funcionamiento de válvulas y accesorios, quedando la instalación habilitada y operando de forma estable.'
+  },
+  {
+    id: 'mantenimiento',
+    icon: '🛠️',
+    label: 'Mantenimiento / servicio',
+    texto: 'Se ejecutaron los trabajos de mantenimiento programados, incluyendo inspección de componentes, sustitución de elementos con desgaste, limpieza general y verificación de parámetros de operación del equipo.'
+  },
+  {
+    id: 'alturas',
+    icon: '🏗️',
+    label: 'Trabajo en alturas',
+    texto: 'Los trabajos se ejecutaron a nivel elevado utilizando plataforma de elevación, aplicando los procedimientos de seguridad para trabajo en alturas, con el equipo de protección personal correspondiente y bajo supervisión permanente.'
+  },
+  {
+    id: 'estudio_presion',
+    icon: '📉',
+    label: 'Estudio de caídas de presión',
+    texto: 'Se realizó el levantamiento y análisis de caídas de presión de la red, midiendo condiciones reales de operación y comparándolas contra el diseño calculado, entregando al cliente el diagnóstico y las recomendaciones de mejora correspondientes.'
+  },
+  {
+    id: 'desmontaje',
+    icon: '🧰',
+    label: 'Desmontaje / retiro',
+    texto: 'Se efectuó el desmontaje y retiro de la instalación existente, liberando el área de trabajo y disponiendo del material retirado conforme a las indicaciones del cliente.'
+  },
+];
+
+const state = {
+  cats: new Set(),
+  fotos: [],      // { dataUrl, w, h, desc }
+};
+
+const el = id => document.getElementById(id);
+const MAX_FOTOS = 10;
+
+/* ── CATEGORÍAS ─────────────────────────────────────────────────────────── */
+function renderCategorias() {
+  el('cat-grid').innerHTML = CATEGORIAS.map(c => `
+    <div class="cat-chip${state.cats.has(c.id) ? ' selected' : ''}" onclick="toggleCategoria('${c.id}')">
+      <span class="chk">${state.cats.has(c.id) ? '✓' : c.icon}</span>${c.label}
+    </div>`).join('');
+}
+
+function toggleCategoria(id) {
+  if (state.cats.has(id)) state.cats.delete(id);
+  else state.cats.add(id);
+  renderCategorias();
+  regenerarCuerpo();
+}
+
+// Reconstruye el cuerpo del reporte a partir de las categorías marcadas
+function regenerarCuerpo() {
+  const seleccion = CATEGORIAS.filter(c => state.cats.has(c.id));
+  if (!seleccion.length) { el('cuerpo').value = ''; return; }
+  const empresa = (el('empresa').value || '').trim();
+  const proy = (el('desc_proy').value || '').trim();
+  const planta = (el('planta').value || '').trim();
+
+  let intro = 'Por medio del presente se hace constar la conclusión y entrega de los trabajos ejecutados por ' +
+              'Gardner Denver México, S.A. de C.V.';
+  if (empresa) intro += ' para ' + empresa;
+  if (planta)  intro += ' en ' + planta;
+  if (proy)    intro += ', correspondientes al proyecto: ' + proy;
+  intro += '.';
+
+  const cuerpo = seleccion.map(c => '• ' + c.label.toUpperCase() + '. ' + c.texto).join('\n\n');
+
+  const cierre = 'Los trabajos descritos fueron ejecutados conforme al alcance acordado, quedando la instalación ' +
+                 'operando correctamente y entregada a satisfacción del cliente.';
+
+  el('cuerpo').value = intro + '\n\n' + cuerpo + '\n\n' + cierre;
+}
+
+/* ── FOLIO ──────────────────────────────────────────────────────────────── */
+function genAbbrev(nombre) {
+  const clean = (nombre||'').toUpperCase().replace(/[^A-Z0-9\s]/g,'').trim();
+  if (!clean) return 'XXXX';
+  const words = clean.split(/\s+/).filter(w => w.length > 2);
+  if (!words.length) return clean.substring(0,4);
+  if (words.length === 1) return words[0].substring(0,4);
+  return words.map(w => w[0]).join('').substring(0,4);
+}
+
+function updateFolio() {
+  const empresa = el('empresa').value;
+  const dateStr = el('fecha').value;
+  const initials = (el('initials').value.trim() || 'MAM').toUpperCase();
+  const abbrev = genAbbrev(empresa);
+  let dateFormatted = '010125';
+  if (dateStr) {
+    const [y,m,d] = dateStr.split('-');
+    dateFormatted = `${d}${m}${y.substring(2)}`;
+  }
+  el('folio-preview').textContent = `RPT-${abbrev}-${dateFormatted}-${initials}`;
+}
+function getFolio() { return el('folio-preview').textContent.trim(); }
+
+/* ── FOTOS ──────────────────────────────────────────────────────────────── */
+// Reduce la resolución de la foto para que el PDF no pese decenas de MB.
+// Las fotos de celular vienen en 4000px+; 1400px es más que suficiente para
+// impresión a media página.
+function optimizarFoto(file, maxW = 1400, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxW) { height = Math.round(height * (maxW / width)); width = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);   // fondo blanco por si el PNG es transparente
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', quality), w: width, h: height });
+      };
+      img.onerror = () => reject(new Error('No se pudo leer la imagen: ' + file.name));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Error al leer el archivo: ' + file.name));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function cargarFotos(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const espacio = MAX_FOTOS - state.fotos.length;
+  if (espacio <= 0) {
+    mostrarFotoStatus(`⚠️ Ya tienes el máximo de ${MAX_FOTOS} fotos. Elimina alguna para agregar otra.`, 'warn');
+    input.value = '';
+    return;
+  }
+  const aCargar = files.slice(0, espacio);
+  const descartadas = files.length - aCargar.length;
+  mostrarFotoStatus(`⏳ Procesando ${aCargar.length} foto(s)…`, 'warn');
+  try {
+    for (const f of aCargar) {
+      const opt = await optimizarFoto(f);
+      state.fotos.push({ ...opt, desc: '' });
+    }
+    renderFotos();
+    mostrarFotoStatus(
+      `✅ ${aCargar.length} foto(s) agregada(s).` +
+      (descartadas ? ` ${descartadas} no se cargaron (límite de ${MAX_FOTOS}).` : ''),
+      descartadas ? 'warn' : 'ok'
+    );
+  } catch (e) {
+    mostrarFotoStatus('❌ ' + (e.message || e), 'err');
+  }
+  input.value = '';
+}
+
+function mostrarFotoStatus(msg, tipo) {
+  const s = el('foto-status');
+  s.classList.remove('hidden');
+  s.className = tipo === 'ok' ? 'success-box' : (tipo === 'warn' ? 'warn-box' : 'info-box');
+  s.innerHTML = msg;
+  if (tipo === 'ok') setTimeout(() => s.classList.add('hidden'), 4000);
+}
+
+function renderFotos() {
+  const grid = el('foto-grid');
+  grid.innerHTML = state.fotos.map((f, i) => `
+    <div class="foto-card">
+      <img class="foto-thumb" src="${f.dataUrl}" alt="Foto ${i+1}">
+      <div class="foto-body">
+        <div class="foto-num">Foto ${i+1}</div>
+        <textarea placeholder="Descripción de la foto…"
+                  oninput="state.fotos[${i}].desc = this.value">${_esc(f.desc)}</textarea>
+        <div class="foto-actions">
+          <span style="font-size:10.5px;color:var(--gd-text-soft);">${f.w}×${f.h}px</span>
+          <button class="foto-del" onclick="eliminarFoto(${i})" title="Quitar foto">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+  el('foto-count').textContent = `${state.fotos.length} de ${MAX_FOTOS} fotos cargadas`;
+  el('foto-tools').classList.toggle('hidden', !state.fotos.length);
+  el('foto-drop').classList.toggle('disabled', state.fotos.length >= MAX_FOTOS);
+}
+
+function eliminarFoto(i) {
+  state.fotos.splice(i, 1);
+  renderFotos();
+}
+
+function limpiarFotos() {
+  if (!state.fotos.length) return;
+  if (!confirm('¿Quitar todas las fotos del reporte?')) return;
+  state.fotos = [];
+  renderFotos();
+}
+
+function _esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── CLIENTES (Supabase) ────────────────────────────────────────────────── */
+let _clientesDB = [];
+
+async function loadClientesDB() {
+  if (!window.SB?.configured) return;
+  try {
+    const rows = await window.SB.getAll('clientes', '?order=nombre.asc');
+    _clientesDB = rows || [];
+  } catch(e) { _clientesDB = []; }
+}
+
+function _escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function handleEmpresaInput(val, showAll) {
+  const dd = el('cliente-dd');
+  if (!dd || !_clientesDB.length) return;
+  const q = (val||'').trim().toLowerCase();
+  const matches = (showAll || !q)
+    ? _clientesDB
+    : _clientesDB.filter(c => c.nombre.toLowerCase().includes(q));
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(c =>
+    `<div class="cli-opt" data-nombre="${_escHtml(c.nombre)}">
+       <div style="font-weight:600;font-size:13px;color:var(--gd-text);">${_escHtml(c.nombre)}</div>
+       ${c.contacto ? `<div style="font-size:11.5px;color:var(--gd-text-soft);margin-top:2px;">👤 ${_escHtml(c.contacto)}${c.ciudad ? ' · 📍 ' + _escHtml(c.ciudad) : ''}</div>` : ''}
+     </div>`
+  ).join('');
+  dd.querySelectorAll('.cli-opt').forEach(opt => {
+    opt.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const c = _clientesDB.find(x => x.nombre === opt.dataset.nombre);
+      if (c) selectCliente(c);
+    });
+  });
+  dd.style.display = 'block';
+}
+
+function toggleClienteDD() {
+  const dd = el('cliente-dd');
+  if (dd && dd.style.display === 'block') dd.style.display = 'none';
+  else { handleEmpresaInput(el('empresa').value, true); el('empresa').focus(); }
+}
+
+function handleEmpresaKey(e) {
+  if (e.key === 'Escape') el('cliente-dd').style.display = 'none';
+}
+
+function selectCliente(c) {
+  el('empresa').value  = c.nombre   || '';
+  el('atencion').value = c.contacto || '';
+  el('cliente-dd').style.display = 'none';
+  updateFolio();
+  regenerarCuerpo();   // el intro del cuerpo menciona la empresa
+}
+
+document.addEventListener('click', e => {
+  const dd  = el('cliente-dd');
+  const inp = el('empresa');
+  const btn = el('empresa-btn');
+  if (dd && !dd.contains(e.target) && e.target !== inp && e.target !== btn)
+    dd.style.display = 'none';
+});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PDF — Sanitizador Latin-1 (jsPDF Helvetica builtin usa WinAnsi)
+   ════════════════════════════════════════════════════════════════════════════ */
+const PDF_CHAR_MAP = {
+  'Δ':'delta','α':'alpha','β':'beta','π':'pi','μ':'u','λ':'lambda',
+  'Ω':'Ohm','ρ':'rho','σ':'sigma','τ':'tau','Φ':'Phi','φ':'phi','θ':'theta','ε':'eps','η':'eta',
+  '←':'<-','→':'->','↑':'^','↓':'v','↔':'<->','⇒':'=>',
+  '—':'-','–':'-','‘':"'",'’':"'",'“':'"','”':'"','…':'...','•':'*','‣':'*',
+  '≠':'!=','≤':'<=','≥':'>=','≈':'~','∞':'inf','√':'sqrt','∑':'Sum','∫':'Int',
+  '²':'2','³':'3','¼':'1/4','½':'1/2','¾':'3/4',
+  '✓':'OK','✅':'OK','✗':'X','❌':'X','⚠':'!','⚡':'!','⭐':'*','★':'*',
+};
+function sanitizePDF(s) {
+  if (s == null) return '';
+  s = String(s);
+  s = s.replace(/[ΔαβπμλΩρστΦφθεη←→↑↓↔⇒—–‘’“”…•‣≠≤≥≈∞√∑∫²³¼½¾✓✅✗❌⚠⚡⭐★]/g,
+    ch => PDF_CHAR_MAP[ch] || '?');
+  return s.replace(/[^\x00-\xFF]/g, '?');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GENERADOR DE PDF — machote Gardner Denver
+   ════════════════════════════════════════════════════════════════════════════ */
+function generarReportePDF() {
+  const empresa = el('empresa').value.trim();
+  const cuerpo  = el('cuerpo').value.trim();
+  if (!empresa || !cuerpo) {
+    el('gen-warning').classList.remove('hidden');
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    return;
+  }
+  el('gen-warning').classList.add('hidden');
+
+  const atencion   = el('atencion').value.trim();
+  const planta     = el('planta').value.trim();
+  const descProy   = el('desc_proy').value.trim();
+  const comentarios = el('comentarios').value.trim();
+  const folio      = getFolio();
+  const fechaRaw   = el('fecha').value;
+  const fechaStr   = fechaRaw ? formatDateES(fechaRaw)
+                              : new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'letter' });
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const ML = 13, HTOP = 24, FBOT = PH - 12;
+  const RED = [200,16,46], DARK = [30,30,38], GRAY = [150,150,160], LGRAY = [220,220,225];
+
+  // Monkey-patch: sanitiza TODA salida de texto automáticamente
+  const _origText = doc.text.bind(doc);
+  doc.text = function(text, x, y, options) {
+    if (Array.isArray(text)) text = text.map(sanitizePDF);
+    else if (text != null) text = sanitizePDF(text);
+    return _origText(text, x, y, options);
+  };
+  const _origSplit = doc.splitTextToSize.bind(doc);
+  doc.splitTextToSize = function(text, maxLen, options) {
+    return _origSplit(sanitizePDF(text), maxLen, options);
+  };
+
+  const pagesReady = new Set();
+
+  function drawHeader() {
+    const logo = window.LOGO_GD || null;
+    const LOGO_W = 32, LOGO_H = 13;
+    if (logo) { try { doc.addImage(logo, 'PNG', ML, 4, LOGO_W, LOGO_H); } catch(e) {} }
+    else {
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+      doc.text('GARDNER DENVER', ML, 12);
+    }
+    const tx = ML + LOGO_W + 8;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text('Reporte de Entrega de Proyecto', tx, 10);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text('Gardner Denver Mexico  ·  Departamento de Ingenieria', tx, 14.5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(folio, PW - ML, 9, { align:'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(fechaStr, PW - ML, 14, { align:'right' });
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+    doc.line(ML, 20, PW - ML, 20);
+  }
+
+  function drawFooter() {
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2);
+    doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+    doc.text('GARDNER DENVER Mexico, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
+    doc.text(folio, PW - ML, FBOT, { align:'right' });
+  }
+
+  function setupPage() {
+    const pg = doc.internal.getCurrentPageInfo().pageNumber;
+    if (pagesReady.has(pg)) return;
+    pagesReady.add(pg);
+    drawHeader(); drawFooter();
+  }
+  function addPage() { doc.addPage(); setupPage(); return HTOP + 2; }
+  function checkY(yy, need) { return (yy + (need||16) > FBOT - 6) ? addPage() : yy; }
+
+  function secTitle(txt, yy) {
+    yy = checkY(yy, 14);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...RED);
+    doc.text(txt.toUpperCase(), ML, yy);
+    doc.setDrawColor(...RED); doc.setLineWidth(0.4);
+    doc.line(ML, yy + 1.5, PW - ML, yy + 1.5);
+    doc.setTextColor(...DARK);
+    return yy + 6.5;
+  }
+
+  function para(txt, yy, sz, color, style) {
+    sz = sz || 9; style = style || 'normal';
+    doc.setFont('helvetica', style); doc.setFontSize(sz);
+    doc.setTextColor(...(color || DARK));
+    const lines = doc.splitTextToSize(txt, PW - ML*2);
+    const lh = sz * 0.36 + 1.7;
+    // Partir el párrafo entre páginas si es necesario
+    let i = 0;
+    while (i < lines.length) {
+      yy = checkY(yy, lh);
+      const espacio = Math.max(1, Math.floor((FBOT - 6 - yy) / lh));
+      const chunk = lines.slice(i, i + espacio);
+      doc.text(chunk, ML, yy);
+      yy += chunk.length * lh;
+      i += chunk.length;
+    }
+    return yy;
+  }
+
+  // ── PÁGINA 1 ──────────────────────────────────────────────────────────────
+  setupPage();
+  let y = HTOP + 2;
+
+  // Cuadro "Asunto" a la derecha
+  const boxW = 74, boxH = 15, boxY = HTOP + 1;
+  doc.setDrawColor(...RED); doc.setLineWidth(0.5);
+  doc.setFillColor(255, 252, 252);
+  doc.roundedRect(PW - ML - boxW, boxY, boxW, boxH, 1, 1, 'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
+  doc.text('Asunto:', PW - ML - boxW + 4, boxY + 5);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(70,70,70);
+  doc.text('Carta de Termino y Entrega de Proyecto', PW - ML - boxW + 4, boxY + 9.5);
+  doc.setFontSize(7); doc.setTextColor(110,110,110);
+  doc.text(fechaStr, PW - ML - boxW + 4, boxY + 13);
+
+  // Bloque cliente (izquierda)
+  const leftW = PW - ML*2 - boxW - 4;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...DARK);
+  const empLines = doc.splitTextToSize(empresa, leftW);
+  doc.text(empLines, ML, y);
+  y += empLines.length * 5.5 + 1;
+  if (atencion) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+    const atLines = doc.splitTextToSize('Atencion: ' + atencion, leftW);
+    doc.text(atLines, ML, y);
+    y += atLines.length * 4.5 + 1;
+  }
+  if (planta) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(80,80,90);
+    const plLines = doc.splitTextToSize('Planta / Area: ' + planta, leftW);
+    doc.text(plLines, ML, y);
+    y += plLines.length * 4.2 + 1;
+  }
+  if (descProy) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(80,80,90);
+    const dpLines = doc.splitTextToSize('Proyecto: ' + descProy, leftW);
+    doc.text(dpLines, ML, y);
+    y += dpLines.length * 4.2 + 1;
+  }
+  const boxBottom = boxY + boxH + 5;
+  if (y < boxBottom) y = boxBottom;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2);
+  doc.line(ML, y, PW - ML, y);
+  y += 6;
+
+  // ── ALCANCE / CUERPO ──────────────────────────────────────────────────────
+  y = secTitle('Alcance Ejecutado y Entrega', y);
+  // Respetar los saltos de línea que el usuario dejó en el textarea
+  const bloques = cuerpo.split(/\n{2,}/);
+  bloques.forEach((b, i) => {
+    const txt = b.replace(/\n/g, ' ').trim();
+    if (!txt) return;
+    y = para(txt, y, 9, DARK, 'normal');
+    if (i < bloques.length - 1) y += 3;
+  });
+  y += 4;
+
+  // ── COMENTARIOS ───────────────────────────────────────────────────────────
+  if (comentarios) {
+    y = secTitle('Comentarios y Observaciones', y);
+    const cLines = comentarios.split(/\n+/).filter(l => l.trim());
+    cLines.forEach(line => {
+      y = para('- ' + line.trim(), y, 8.5, [70,70,80], 'normal');
+      y += 1;
+    });
+    y += 4;
+  }
+
+  // ── REPORTE FOTOGRÁFICO (2 por fila) ──────────────────────────────────────
+  if (state.fotos.length) {
+    y = secTitle('Reporte Fotografico', y);
+    y = para('Evidencia fotografica de los trabajos ejecutados.', y, 8, [120,120,130], 'italic');
+    y += 3;
+
+    const GAP   = 6;
+    const CELLW = (PW - ML*2 - GAP) / 2;   // ancho de cada celda
+    const IMGH  = 48;                       // alto fijo de la imagen (mm)
+
+    for (let i = 0; i < state.fotos.length; i += 2) {
+      const fila = state.fotos.slice(i, i + 2);
+
+      // Alto necesario: imagen + pie de foto (calculado sobre la más larga)
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+      const capsLines = fila.map(f =>
+        doc.splitTextToSize(`Foto ${state.fotos.indexOf(f)+1}. ${f.desc || 'Sin descripcion'}`, CELLW - 3)
+      );
+      const maxCapLines = Math.max(...capsLines.map(l => l.length));
+      const filaH = IMGH + 3 + maxCapLines * 3.4 + 6;
+
+      y = checkY(y, filaH);
+
+      fila.forEach((f, j) => {
+        const x = ML + j * (CELLW + GAP);
+        // Encuadrar la imagen dentro de la celda respetando su proporción
+        const ratio = f.w / f.h;
+        let dw = CELLW, dh = dw / ratio;
+        if (dh > IMGH) { dh = IMGH; dw = dh * ratio; }
+        const ox = x + (CELLW - dw) / 2;   // centrar horizontalmente
+        const oy = y + (IMGH - dh) / 2;    // centrar verticalmente
+
+        // Marco de la celda
+        doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+        doc.rect(x, y, CELLW, IMGH);
+        try { doc.addImage(f.dataUrl, 'JPEG', ox, oy, dw, dh); } catch(e) {}
+
+        // Pie de foto
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(90,90,100);
+        doc.text(capsLines[j], x + 1.5, y + IMGH + 4);
+      });
+
+      y += filaH;
+    }
+    y += 2;
+  }
+
+  // ── FIRMAS ────────────────────────────────────────────────────────────────
+  y = checkY(y, 40);
+  y += 6;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+
+  const colW = (PW - ML*2 - 20) / 2;
+  const y1 = y + 14;
+  doc.line(ML, y1, ML + colW, y1);
+  doc.line(PW - ML - colW, y1, PW - ML, y1);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+  doc.text('Ing. Marco Antonio Millan Ramirez', ML, y1 + 4.5);
+  doc.text('Nombre y firma de conformidad', PW - ML - colW, y1 + 4.5);
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+  doc.text('Gerente de Ingenieria', ML, y1 + 8.5);
+  doc.text('GARDNER DENVER Mexico, S.A. de C.V.', ML, y1 + 12);
+  doc.text('Representante del cliente', PW - ML - colW, y1 + 8.5);
+  doc.text(empresa, PW - ML - colW, y1 + 12);
+
+  // Guardar
+  const safeName = empresa.replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save(`Reporte_Entrega_${safeName}_${folio}.pdf`);
+}
+
+/* ── UTILIDADES ─────────────────────────────────────────────────────────── */
+const MESES = ['enero','febrero','marzo','abril','mayo','junio',
+               'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function formatDateES(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return `${d} de ${MESES[m-1]} de ${y}`;
+}
+
+/* ── INIT ───────────────────────────────────────────────────────────────── */
+function init() {
+  const today = new Date();
+  const y = today.getFullYear(),
+        m = String(today.getMonth()+1).padStart(2,'0'),
+        d = String(today.getDate()).padStart(2,'0');
+  el('fecha').value = `${y}-${m}-${d}`;
+  renderCategorias();
+  renderFotos();
+  updateFolio();
+  // El intro del cuerpo menciona empresa/planta/proyecto: regenerar al editarlos
+  ['empresa','planta','desc_proy'].forEach(id => {
+    el(id).addEventListener('blur', () => { if (state.cats.size) regenerarCuerpo(); });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => { init(); loadClientesDB(); });
+</script>
+</body>
+</html>

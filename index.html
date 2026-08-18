@@ -124,6 +124,9 @@ iframe.active { opacity: 1; pointer-events: auto; }
     <button class="gd-tab" data-tab="electrico" onclick="showTab('electrico')">
       <span class="gd-tab-icon">⚡</span> Selección Eléctrica
     </button>
+    <button class="gd-tab" data-tab="reportes" onclick="showTab('reportes')">
+      <span class="gd-tab-icon">📄</span> Reportes de Entrega
+    </button>
   </nav>
 
   <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()"
@@ -142,6 +145,7 @@ iframe.active { opacity: 1; pointer-events: auto; }
   <iframe id="frame-requisiciones" data-src="requisiciones.html?v=20260619"></iframe>
   <iframe id="frame-presiones"     data-src="presiones.html?v=20260619"></iframe>
   <iframe id="frame-electrico"     data-src="electrico.html?v=20260619"></iframe>
+  <iframe id="frame-reportes"      data-src="reportes.html?v=20260619"></iframe>
 
   <div class="gd-loader" id="loader" style="display:none">
     <div class="gd-spinner"></div>
@@ -156,6 +160,7 @@ const NAMES = {
   requisiciones:'Requisiciones',
   presiones:    'Caídas de Presión',
   electrico:    'Selección Eléctrica',
+  reportes:     'Reportes de Entrega',
 };
 const LOADER_LABELS = {
   cotizador:    'Cargando cotizador…',
@@ -163,6 +168,7 @@ const LOADER_LABELS = {
   requisiciones:'Cargando módulo de requisiciones…',
   presiones:    'Cargando módulo de presiones…',
   electrico:    'Cargando calculadora eléctrica…',
+  reportes:     'Cargando módulo de reportes…',
 };
 
 function showTab(name) {
