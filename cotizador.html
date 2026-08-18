@@ -564,6 +564,15 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <div>
           <label>📅 Días de trabajo <span style="font-weight:normal;color:#888;">(se propaga a viáticos y equipo)</span></label>
           <input type="number" id="dias_trabajo" value="0" min="0" step="0.5" oninput="updateMO()">
+
+          <label class="check-label" style="margin-top:12px;">
+            <input type="checkbox" id="dia_inhabil" onchange="updateMO()">
+            🗓️ Trabajo en día inhábil
+          </label>
+          <div class="check-info" style="margin-left:26px;">
+            Domingo o día festivo. El sueldo se incrementa 25% y se duplica
+            (<b>× 2.5</b>). Aplica a todos los días capturados arriba.
+          </div>
         </div>
         <div class="success-box" id="costo-mo-preview" style="margin-top:24px;">
           <b>Costo M.O. = ($72,882 / 30) × 0 días</b><br>
@@ -1345,6 +1354,10 @@ const SUELDO_TECNICO    = 25723.065720;
 const SUELDO_AYUDANTE   = 15005.121670;
 const SUELDO_INGENIERO  = 32153.832150;
 const SUELDO_SEGURISTA  = 18150.0;
+
+// Trabajo en día inhábil (domingo / festivo): el sueldo se incrementa 25%
+// y ese resultado se duplica → sueldo diario × 1.25 × 2 = × 2.5
+const FACTOR_DIA_INHABIL = 1.25 * 2;   // = 2.5
 const COSTO_ESCALERA_MES    = 1500.0;
 const COSTO_GENNIE_MES      = 65000.0;
 const COSTO_ELEVADOR_MES    = 30000.0;
@@ -1645,6 +1658,7 @@ function restoreCotizacion(data) {
     setVal('n_tec', data.mo.n_tec); setVal('n_aya', data.mo.n_aya);
     setVal('n_ing', data.mo.n_ing); setVal('n_seg', data.mo.n_seg);
     setVal('dias_trabajo', data.mo.dias);
+    setChk('dia_inhabil', data.mo.dia_inhabil);
     setVal('comidas_por_dia', data.mo.comidas_por_dia);
     setVal('costo_comida', data.mo.costo_comida);
     setChk('req_hospedaje', data.mo.req_hospedaje);
@@ -1838,7 +1852,13 @@ function calcularMO(inp) {
   const ing_total = n_ing*SUELDO_INGENIERO, seg_total = n_seg*SUELDO_SEGURISTA;
   const total_mensual = tec_total+aya_total+ing_total+seg_total;
   const dias = +inp.dias||0;
-  const costo_mo_real = (total_mensual/30)*dias;
+  // Día inhábil (domingo/festivo): el sueldo sube 25% y se duplica (× 2.5).
+  // Es un costo REAL de nómina, por eso entra antes de la utilidad de M.O.
+  const dia_inhabil = !!inp.dia_inhabil;
+  const factor_inhabil = dia_inhabil ? FACTOR_DIA_INHABIL : 1;
+  const costo_mo_base = (total_mensual/30)*dias;          // tarifa normal
+  const costo_mo_real = costo_mo_base * factor_inhabil;   // con recargo si aplica
+  const recargo_inhabil = costo_mo_real - costo_mo_base;  // lo que suma el día inhábil
   const utilidad_mo = costo_mo_real * (UTIL_MO_FACTOR - 1);
   const costo_mo = costo_mo_real * UTIL_MO_FACTOR;
   const comidas_por_dia = +inp.comidas_por_dia||3, costo_comida = +inp.costo_comida||80;
@@ -1882,6 +1902,7 @@ function calcularMO(inp) {
   return {
     n_tec,n_aya,n_ing,n_seg,tec_total,aya_total,ing_total,seg_total,
     total_personas,total_mensual,dias,costo_mo,costo_mo_real,utilidad_mo,
+    dia_inhabil,factor_inhabil,costo_mo_base,recargo_inhabil,
     comidas_por_dia,costo_comida,comidas_total,
     req_hospe,costo_hospe,noches_hospedaje,hospedaje_total,
     km_sencillo,n_viajes,km_total,rendimiento,costo_gas,litros,
@@ -1900,6 +1921,7 @@ function getMOInputs() {
     n_tec: +el('n_tec').value, n_aya: +el('n_aya').value,
     n_ing: +el('n_ing').value, n_seg: +el('n_seg').value,
     dias: +el('dias_trabajo').value,
+    dia_inhabil: el('dia_inhabil') ? el('dia_inhabil').checked : false,
     comidas_por_dia: +el('comidas_por_dia').value, costo_comida: +el('costo_comida').value,
     req_hospedaje: el('req_hospedaje').checked,
     noches_hospedaje: +el('noches_hospedaje').value, costo_hospedaje: +el('costo_hospedaje').value,
@@ -1922,7 +1944,8 @@ function updateMO() {
   el('total-mens-box').innerHTML = `Total mensual sueldos: <b>${fmt(r.total_mensual)}</b>`;
   // MO preview
   el('costo-mo-preview').innerHTML = `
-    <div style="font-size:.82rem;color:#555;">M.O. real = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días = <b>${fmt(r.costo_mo_real)}</b></div>
+    <div style="font-size:.82rem;color:#555;">M.O. base = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días = <b>${fmt(r.costo_mo_base)}</b></div>
+    ${r.dia_inhabil ? `<div style="font-size:.82rem;color:#7B1FA2;">🗓️ Día inhábil ×${FACTOR_DIA_INHABIL} (sueldo +25%, luego ×2) = <b>+${fmt(r.recargo_inhabil)}</b> → M.O. real <b>${fmt(r.costo_mo_real)}</b></div>` : ''}
     <div style="font-size:.82rem;color:#e65100;">+ Utilidad ×${UTIL_MO_FACTOR} (cliente paga ${UTIL_MO_FACTOR}× el costo real) = <b>${fmt(r.utilidad_mo)}</b></div>
     <div style="font-size:.9rem;font-weight:700;margin-top:4px;border-top:1px solid #c8e6c9;padding-top:4px;">M.O. cobrado al cliente:</div>
     <span style="font-size:1.3rem;font-weight:700;color:#2e7d32;">${fmt(r.costo_mo)}</span>`;
@@ -2755,30 +2778,29 @@ function generatePDF() {
   // ── TIEMPO DE INSTALACIÓN (solo IP) ──────────────────────────────────────────
   if (is_ip && d.mo_res && d.mo_res.dias > 0) {
     const dias = d.mo_res.dias;
-    const semanasAprox = Math.ceil(dias / 5);
     const diasFmt = fmtNum(dias, dias % 1 === 0 ? 0 : 1);
+    const esInhabil = !!d.mo_res.dia_inhabil;
     y = secTitle('TIEMPO DE INSTALACIÓN', y);
 
-    // Caja principal
-    y = checkY(y, 28);
+    // Caja principal (solo días; la equivalencia en semanas se retiró porque
+    // daba una referencia engañosa del plazo real)
+    y = checkY(y, 24);
     doc.setFillColor(245, 248, 252); doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
-    doc.roundedRect(ML, y, PW - ML * 2, 20, 1.5, 1.5, 'FD');
+    doc.roundedRect(ML, y, PW - ML * 2, 16, 1.5, 1.5, 'FD');
 
     // Días destacados
     doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(...RED);
-    doc.text(`${diasFmt}`, ML + 6, y + 14);
+    doc.text(`${diasFmt}`, ML + 6, y + 11.5);
     const diasNumW = doc.getTextWidth(`${diasFmt}`);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...DARK);
-    doc.text(' días hábiles', ML + 6 + diasNumW, y + 14);
+    doc.text(esInhabil ? ' días' : ' días hábiles', ML + 6 + diasNumW, y + 11.5);
 
-    // Equivalencia en semanas
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    doc.text(`aproximadamente ${semanasAprox} semana${semanasAprox === 1 ? '' : 's'} de trabajo`, ML + 6, y + 18.5);
+    y += 20;
 
-    y += 24;
-
-    // Nota días hábiles
-    const notaTiempo = 'El tiempo de instalación indicado corresponde a días hábiles (lunes a viernes). Los trabajos en fines de semana o días festivos no están contemplados en esta cotización; en caso de requerirse, el costo se recotizará de acuerdo con el programa de trabajo acordado con el cliente.';
+    // Nota de tiempo — cambia según si la cotización contempla días inhábiles
+    const notaTiempo = esInhabil
+      ? 'El tiempo de instalación indicado contempla trabajo en días inhábiles (domingos o días festivos), por lo que la mano de obra se cotiza con el recargo correspondiente conforme a la Ley Federal del Trabajo. El programa de trabajo se acordará previamente con el cliente.'
+      : 'El tiempo de instalación indicado corresponde a días hábiles (lunes a viernes). Los trabajos en fines de semana o días festivos no están contemplados en esta cotización; en caso de requerirse, el costo se recotizará de acuerdo con el programa de trabajo acordado con el cliente.';
     y = para(notaTiempo, y, 7.5, [100, 100, 100], 'italic');
     y += 4;
   }
@@ -3145,8 +3167,17 @@ function buildMOSheet(wb, mo) {
   merge(r,0,r,1);
   val(r,2,mo.total_mensual,MXN,true,ltF);
   val(r,3,mo.dias,'#,##0.0',true,greenF);
-  val(r,4,mo.costo_mo_real,MXN,true,ltF);
+  val(r,4,mo.dia_inhabil ? mo.costo_mo_base : mo.costo_mo_real,MXN,true,ltF);
   r++;
+  // Recargo por día inhábil (solo si aplica)
+  if (mo.dia_inhabil) {
+    setCell(r,0,xlCell(`+ Día inhábil ×${FACTOR_DIA_INHABIL} (sueldo +25%, luego ×2)`,false,'F3E5F5','6A1B9A',null,'right'));
+    merge(r,0,r,3);
+    val(r,4,mo.recargo_inhabil,MXN,false,'F3E5F5'); r++;
+    setCell(r,0,xlCell('M.O. real (con recargo por día inhábil)',true,ltF,'000000',null,'right'));
+    merge(r,0,r,3);
+    val(r,4,mo.costo_mo_real,MXN,true,ltF); r++;
+  }
   setCell(r,0,xlCell(`+ Utilidad M.O. ×${UTIL_MO_FACTOR} (cliente paga ${UTIL_MO_FACTOR}× el costo real)`,false,'FFF8E1','E65100',null,'right'));
   merge(r,0,r,3);
   val(r,4,mo.utilidad_mo,MXN,false,'FFF8E1'); r++;
@@ -3345,20 +3376,23 @@ function buildWordHTML(d) {
   // ── Bloque TIEMPO DE INSTALACIÓN (solo IP) ─────────────────────────────────
   const tiempoInstalacionHTML = (is_ip && mo_res && mo_res.dias > 0) ? (() => {
     const dias = mo_res.dias;
-    const semanasAprox = Math.ceil(dias / 5);
     const diasFmt = fmtNum(dias, dias % 1 === 0 ? 0 : 1);
+    const esInhabil = !!mo_res.dia_inhabil;
+    // Solo se muestran los días; la equivalencia en semanas se retiró porque
+    // daba una referencia engañosa del plazo real.
+    const notaTiempo = esInhabil
+      ? 'El tiempo de instalacion indicado contempla trabajo en dias inhabiles (domingos o dias festivos), por lo que la mano de obra se cotiza con el recargo correspondiente conforme a la Ley Federal del Trabajo. El programa de trabajo se acordara previamente con el cliente.'
+      : 'El tiempo de instalacion indicado corresponde a dias habiles (lunes a viernes). Los trabajos en fines de semana o dias festivos no estan contemplados en esta cotizacion; en caso de requerirse, el costo se recotizara de acuerdo con el programa de trabajo acordado con el cliente.';
     return `${sectionHdr('TIEMPO DE INSTALACIÓN')}
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#F5F8FC;border:0.5pt solid #C5D5E8;margin:0 0 6pt 0;">
   <tr>
     <td style="border:none;padding:10pt 16pt;">
       <span style="font-size:22pt;font-weight:bold;color:#C8102E;">${diasFmt}</span>
-      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;"> dias habiles</span>
-      <br>
-      <span style="font-size:7.5pt;color:#888888;">aproximadamente ${semanasAprox} semana${semanasAprox === 1 ? '' : 's'} de trabajo</span>
+      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;"> ${esInhabil ? 'dias' : 'dias habiles'}</span>
     </td>
   </tr>
 </table>
-<p style="font-size:7.5pt;font-style:italic;color:#666666;margin:0 0 8pt 0;">El tiempo de instalacion indicado corresponde a dias habiles (lunes a viernes). Los trabajos en fines de semana o dias festivos no estan contemplados en esta cotizacion; en caso de requerirse, el costo se recotizara de acuerdo con el programa de trabajo acordado con el cliente.</p>`;
+<p style="font-size:7.5pt;font-style:italic;color:#666666;margin:0 0 8pt 0;">${notaTiempo}</p>`;
   })() : '';
 
   // ── Conditions ─────────────────────────────────────────────────────────────
