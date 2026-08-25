@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Fugas · Gardner Denver México</title>
+<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
+<script src="gd-theme-sync.js?v=20260619"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="logo_b64.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{
+  font-family:'Inter','Segoe UI',Arial,sans-serif;
+  background:var(--gd-bg);color:var(--gd-text);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Barra del módulo ─────────────────────────────────────────────────────── */
+.mod-header{
+  background:var(--gd-bg-elev);border-bottom:1px solid var(--gd-border);
+  padding:10px 22px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  background:var(--gd-red-light);color:#C8102E;font-size:18px;
+  border:1px solid var(--gd-red-light);
+}
+.mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;font-weight:500;}
+.mod-wrap{padding:18px;max-width:1050px;margin:0 auto;}
+
+/* ── Secciones ────────────────────────────────────────────────────────────── */
+.sec-title{
+  display:flex;align-items:center;gap:10px;
+  font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--gd-text-mute);margin:22px 0 12px;padding-bottom:8px;
+  border-bottom:2px solid var(--gd-red);
+}
+.sec-title::before{
+  content:'';display:inline-block;width:4px;height:16px;
+  background:var(--gd-red);border-radius:2px;
+}
+.card{
+  background:var(--gd-bg-elev);border:1px solid var(--gd-border);
+  border-radius:12px;padding:18px;margin-bottom:12px;
+}
+label{display:block;font-size:12px;font-weight:600;color:var(--gd-text-mute);margin-bottom:6px;}
+input[type=text],input[type=date],input[type=number],textarea,select{
+  width:100%;padding:9px 12px;border:1px solid var(--gd-border-strong);
+  border-radius:8px;font-family:inherit;font-size:13.5px;
+  color:var(--gd-text);background:var(--gd-bg-elev);
+  transition:border-color .15s,box-shadow .15s;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none;border-color:var(--gd-red);box-shadow:0 0 0 3px rgba(200,16,46,.12);
+}
+textarea{resize:vertical;line-height:1.55;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:720px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 18px;border-radius:8px;border:1px solid transparent;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.btn-primary{background:var(--gd-red);color:#fff;}
+.btn-primary:hover{background:#A10D24;}
+.btn-ghost{background:var(--gd-bg-elev);color:var(--gd-text-mute);border-color:var(--gd-border);}
+.btn-ghost:hover{border-color:var(--gd-red);color:var(--gd-red);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-lg{padding:13px 24px;font-size:14.5px;}
+
+.info-box{
+  background:var(--gd-info-light);border-left:3px solid var(--gd-info);
+  padding:11px 14px;border-radius:6px;font-size:12.5px;line-height:1.5;color:var(--gd-text);
+}
+.success-box{
+  background:var(--gd-success-light);border-left:3px solid var(--gd-success);
+  padding:11px 14px;border-radius:6px;font-size:12.5px;color:var(--gd-text);
+}
+.warn-box{
+  background:var(--gd-warning-light);border-left:3px solid var(--gd-warning);
+  padding:11px 14px;border-radius:6px;font-size:12.5px;color:var(--gd-text);
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.kpi{
+  background:var(--gd-bg-elev);border:1px solid var(--gd-border);
+  border-radius:10px;padding:14px 16px;
+}
+.kpi.accent{border-top:3px solid var(--gd-red);}
+.kpi-label{
+  font-size:10.5px;font-weight:600;color:var(--gd-text-soft);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
+}
+.kpi-value{font-size:22px;font-weight:800;color:var(--gd-text);font-variant-numeric:tabular-nums;line-height:1.1;}
+.kpi.accent .kpi-value{color:var(--gd-red);}
+.kpi-sub{font-size:11px;color:var(--gd-text-soft);margin-top:3px;}
+
+/* ── Fotos ────────────────────────────────────────────────────────────────── */
+.foto-drop{
+  border:2px dashed var(--gd-border-strong);border-radius:10px;
+  padding:26px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s;display:block;
+}
+.foto-drop:hover{border-color:var(--gd-red);background:var(--gd-red-tint);}
+.foto-drop input{display:none;}
+.foto-drop.disabled{opacity:.5;pointer-events:none;}
+
+.foto-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:14px;margin-top:14px;
+}
+.foto-card{
+  border:1px solid var(--gd-border);border-radius:10px;overflow:hidden;
+  background:var(--gd-bg-elev);
+}
+.foto-thumb{width:100%;height:145px;object-fit:cover;display:block;background:var(--gd-bg-alt);}
+.foto-body{padding:10px;}
+.foto-body textarea{font-size:12px;padding:7px 9px;min-height:48px;}
+.foto-params{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.foto-params label{font-size:10px;margin-bottom:3px;}
+.foto-params input{padding:6px 8px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums;}
+.foto-actions{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:6px;}
+.foto-num{font-size:10.5px;font-weight:700;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.05em;}
+.foto-del{
+  background:none;border:none;cursor:pointer;color:var(--gd-text-soft);
+  padding:4px 8px;border-radius:5px;font-size:13px;transition:all .15s;
+}
+.foto-del:hover{background:var(--gd-error-light);color:var(--gd-error);}
+
+/* Dropdown de clientes */
+.cli-dd{
+  display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:200;
+  background:var(--gd-bg-elev);border:1.5px solid var(--gd-border-strong);
+  border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.15);
+  max-height:240px;overflow-y:auto;
+}
+.cli-opt{padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--gd-border);}
+.cli-opt:hover{background:var(--gd-bg-alt);}
+
+.folio-box{
+  background:var(--gd-bg-alt);border:1px dashed var(--gd-border-strong);
+  border-radius:8px;padding:11px 14px;font-family:'Consolas',monospace;
+  font-size:13.5px;font-weight:700;color:var(--gd-red);letter-spacing:.03em;
+}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────────── -->
+<header class="mod-header">
+  <span class="mod-icon">🔍</span>
+  <div>
+    <div class="mod-title">Reporte de Fugas</div>
+    <div class="mod-sub">Estudio ultrasónico de pérdidas de aire comprimido</div>
+  </div>
+</header>
+
+<div class="mod-wrap">
+
+  <!-- 1. DATOS DEL ESTUDIO ───────────────────────────────────────────────── -->
+  <div class="sec-title">1. Datos del Estudio</div>
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <label>Empresa / Cliente</label>
+        <div style="position:relative;">
+          <div style="display:flex;">
+            <input type="text" id="empresa"
+                   placeholder="Escribe o selecciona un cliente…"
+                   oninput="handleEmpresaInput(this.value,false); updateFolio()"
+                   onkeydown="handleEmpresaKey(event)"
+                   autocomplete="off"
+                   style="border-radius:8px 0 0 8px;border-right:none;flex:1;">
+            <button type="button" id="empresa-btn" onclick="toggleClienteDD()"
+                    title="Ver todos los clientes"
+                    style="border:1px solid var(--gd-border-strong);border-left:none;border-radius:0 8px 8px 0;background:var(--gd-bg-alt);padding:0 12px;cursor:pointer;font-size:14px;color:var(--gd-text-mute);">▾</button>
+          </div>
+          <div id="cliente-dd" class="cli-dd"></div>
+        </div>
+      </div>
+      <div>
+        <label>Atención a <span style="font-weight:400;color:var(--gd-text-soft);">(se llena solo al seleccionar de la lista)</span></label>
+        <input type="text" id="atencion" placeholder="Ej: Ing. Diego García">
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:12px;">
+      <div>
+        <label>Fecha del estudio</label>
+        <input type="date" id="fecha" oninput="updateFolio()">
+      </div>
+      <div>
+        <label>Planta / Área inspeccionada</label>
+        <input type="text" id="planta" placeholder="Ej: Planta 2 · Nave de maquinado">
+      </div>
+      <div>
+        <label>Ingeniero responsable</label>
+        <input type="text" id="ingeniero" value="Ing. Marco Antonio Millán Ramírez">
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <label>Iniciales del ingeniero</label>
+        <input type="text" id="initials" maxlength="5" value="MAM" oninput="updateFolio()">
+      </div>
+      <div>
+        <label>Folio del reporte</label>
+        <div class="folio-box" id="folio-preview">RFG-XXXX-010125-MAM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. EQUIPO DE MEDICIÓN ──────────────────────────────────────────────── -->
+  <div class="sec-title">2. Equipo de Medición</div>
+  <div class="card">
+    <div class="info-box" style="margin-bottom:14px;">
+      Datos del detector ultrasónico usado en el estudio. Vienen precargados y se imprimen en el reporte;
+      edítalos solo si usas otro equipo.
+    </div>
+    <div class="grid-3">
+      <div>
+        <label>Marca</label>
+        <input type="text" id="eq-marca" value="EDC Instruments">
+      </div>
+      <div>
+        <label>Modelo</label>
+        <input type="text" id="eq-modelo" value="DF510">
+      </div>
+      <div>
+        <label>Número de serie</label>
+        <input type="text" id="eq-serie" value="26208453">
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <label>Método / observaciones del equipo <span style="font-weight:400;color:var(--gd-text-soft);">(opcional)</span></label>
+      <input type="text" id="eq-metodo"
+             value="Detección ultrasónica de fugas de aire comprimido con pistola isofónica.">
+    </div>
+  </div>
+
+  <!-- 3. PUNTOS DE FUGA ──────────────────────────────────────────────────── -->
+  <div class="sec-title">3. Puntos de Fuga Detectados</div>
+  <div class="card">
+    <div class="kpi-grid" style="margin-bottom:16px;">
+      <div class="kpi">
+        <div class="kpi-label">Fugas detectadas</div>
+        <div class="kpi-value" id="kpi-count">0</div>
+        <div class="kpi-sub">de 30 máximo</div>
+      </div>
+      <div class="kpi accent">
+        <div class="kpi-label">Pérdida total</div>
+        <div class="kpi-value" id="kpi-cfm">0.00</div>
+        <div class="kpi-sub">CFM</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Nivel promedio</div>
+        <div class="kpi-value" id="kpi-db">0.0</div>
+        <div class="kpi-sub">dB</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Fuga mayor</div>
+        <div class="kpi-value" id="kpi-max">0.00</div>
+        <div class="kpi-sub">CFM · <span id="kpi-max-pt">—</span></div>
+      </div>
+    </div>
+
+    <label class="foto-drop" id="foto-drop" for="foto-input">
+      <input type="file" id="foto-input" accept="image/*" multiple onchange="cargarFotos(this)">
+      <div style="font-size:15px;font-weight:700;color:var(--gd-text);">📷 Haz clic o arrastra las fotos de la pistola isofónica</div>
+      <div style="font-size:12.5px;color:var(--gd-text-mute);margin-top:7px;">
+        Hasta <b>30 fotos</b> · JPG o PNG · Se optimizan automáticamente para el PDF
+      </div>
+      <div style="font-size:11.5px;color:var(--gd-text-soft);margin-top:4px;" id="foto-count">0 de 30 fotos cargadas</div>
+    </label>
+
+    <div id="foto-status" class="hidden" style="margin-top:10px;"></div>
+    <div class="foto-grid" id="foto-grid"></div>
+
+    <div id="foto-tools" class="hidden" style="margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="limpiarFotos()">🗑 Quitar todas las fotos</button>
+    </div>
+  </div>
+
+  <!-- 4. COMENTARIOS ─────────────────────────────────────────────────────── -->
+  <div class="sec-title">4. Comentarios y Recomendaciones</div>
+  <div class="card">
+    <label>Notas del estudio <span style="font-weight:400;color:var(--gd-text-soft);">(opcional)</span></label>
+    <textarea id="comentarios" rows="6"
+      placeholder="Ej: Las fugas de mayor magnitud se concentran en la línea de la zona de maquinado.&#10;Se recomienda programar la reparación de los puntos superiores a 5 CFM en el próximo paro.&#10;Varias fugas provienen de conexiones rápidas desgastadas; se sugiere su reemplazo."></textarea>
+  </div>
+
+  <!-- 5. GENERAR ─────────────────────────────────────────────────────────── -->
+  <div class="sec-title">5. Generar Reporte</div>
+  <div class="card">
+    <div id="gen-warning" class="warn-box hidden" style="margin-bottom:12px;">
+      ⚠️ Completa la <b>empresa</b> y carga al menos <b>una foto</b> antes de generar el reporte.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-primary btn-lg" onclick="generarReporteFugas()">🖨 Generar Reporte PDF</button>
+      <span style="font-size:12px;color:var(--gd-text-soft);">
+        Plantilla Gardner Denver con tabla de fugas y anexo fotográfico.
+      </span>
+    </div>
+  </div>
+
+</div><!-- end .mod-wrap -->
+
+<script>
+const state = {
+  fotos: [],   // { dataUrl, w, h, desc, db, cfm }
+};
+
+const el = id => document.getElementById(id);
+const MAX_FOTOS = 30;
+
+/* ── FOLIO ──────────────────────────────────────────────────────────────── */
+function genAbbrev(nombre) {
+  const clean = (nombre||'').toUpperCase().replace(/[^A-Z0-9\s]/g,'').trim();
+  if (!clean) return 'XXXX';
+  const words = clean.split(/\s+/).filter(w => w.length > 2);
+  if (!words.length) return clean.substring(0,4);
+  if (words.length === 1) return words[0].substring(0,4);
+  return words.map(w => w[0]).join('').substring(0,4);
+}
+
+function updateFolio() {
+  const abbrev = genAbbrev(el('empresa').value);
+  const dateStr = el('fecha').value;
+  const initials = (el('initials').value.trim() || 'MAM').toUpperCase();
+  let dateFormatted = '010125';
+  if (dateStr) {
+    const [y,m,d] = dateStr.split('-');
+    dateFormatted = `${d}${m}${y.substring(2)}`;
+  }
+  el('folio-preview').textContent = `RFG-${abbrev}-${dateFormatted}-${initials}`;
+}
+function getFolio() { return el('folio-preview').textContent.trim(); }
+
+/* ── FOTOS ──────────────────────────────────────────────────────────────── */
+// Con hasta 30 fotos hay que ser más agresivo que en otros módulos para que el
+// PDF no se vuelva inmanejable: 1200px y calidad 0.78.
+function optimizarFoto(file, maxW = 1200, quality = 0.78) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxW) { height = Math.round(height * (maxW / width)); width = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', quality), w: width, h: height });
+      };
+      img.onerror = () => reject(new Error('No se pudo leer la imagen: ' + file.name));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Error al leer el archivo: ' + file.name));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function cargarFotos(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const espacio = MAX_FOTOS - state.fotos.length;
+  if (espacio <= 0) {
+    mostrarFotoStatus(`⚠️ Ya tienes el máximo de ${MAX_FOTOS} fotos. Elimina alguna para agregar otra.`, 'warn');
+    input.value = '';
+    return;
+  }
+  const aCargar = files.slice(0, espacio);
+  const descartadas = files.length - aCargar.length;
+  mostrarFotoStatus(`⏳ Procesando ${aCargar.length} foto(s)…`, 'warn');
+  try {
+    for (const f of aCargar) {
+      const opt = await optimizarFoto(f);
+      state.fotos.push({ ...opt, desc: '', db: '', cfm: '' });
+    }
+    renderFotos();
+    mostrarFotoStatus(
+      `✅ ${aCargar.length} foto(s) agregada(s).` +
+      (descartadas ? ` ${descartadas} no se cargaron (límite de ${MAX_FOTOS}).` : ''),
+      descartadas ? 'warn' : 'ok'
+    );
+  } catch (e) {
+    mostrarFotoStatus('❌ ' + (e.message || e), 'err');
+  }
+  input.value = '';
+}
+
+function mostrarFotoStatus(msg, tipo) {
+  const s = el('foto-status');
+  s.classList.remove('hidden');
+  s.className = tipo === 'ok' ? 'success-box' : (tipo === 'warn' ? 'warn-box' : 'info-box');
+  s.innerHTML = msg;
+  if (tipo === 'ok') setTimeout(() => s.classList.add('hidden'), 4000);
+}
+
+function renderFotos() {
+  el('foto-grid').innerHTML = state.fotos.map((f, i) => `
+    <div class="foto-card">
+      <img class="foto-thumb" src="${f.dataUrl}" alt="Fuga ${i+1}">
+      <div class="foto-body">
+        <div class="foto-num">Fuga ${i+1}</div>
+        <textarea placeholder="Ubicación / descripción de la fuga…"
+                  oninput="state.fotos[${i}].desc = this.value">${_esc(f.desc)}</textarea>
+        <div class="foto-params">
+          <div>
+            <label>Nivel (dB)</label>
+            <input type="number" step="0.1" min="0" placeholder="0.0" value="${_esc(f.db)}"
+                   oninput="state.fotos[${i}].db = this.value; actualizarKPIs()">
+          </div>
+          <div>
+            <label>LOSS (CFM)</label>
+            <input type="number" step="0.01" min="0" placeholder="0.00" value="${_esc(f.cfm)}"
+                   oninput="state.fotos[${i}].cfm = this.value; actualizarKPIs()">
+          </div>
+        </div>
+        <div class="foto-actions">
+          <span style="font-size:10.5px;color:var(--gd-text-soft);">${f.w}×${f.h}px</span>
+          <button class="foto-del" onclick="eliminarFoto(${i})" title="Quitar foto">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+  el('foto-count').textContent = `${state.fotos.length} de ${MAX_FOTOS} fotos cargadas`;
+  el('foto-tools').classList.toggle('hidden', !state.fotos.length);
+  el('foto-drop').classList.toggle('disabled', state.fotos.length >= MAX_FOTOS);
+  actualizarKPIs();
+}
+
+function eliminarFoto(i) { state.fotos.splice(i, 1); renderFotos(); }
+
+function limpiarFotos() {
+  if (!state.fotos.length) return;
+  if (!confirm('¿Quitar todas las fotos del reporte?')) return;
+  state.fotos = [];
+  renderFotos();
+}
+
+// Totales del estudio: conteo, pérdida acumulada, nivel promedio y fuga mayor
+function actualizarKPIs() {
+  const n = state.fotos.length;
+  const cfms = state.fotos.map(f => parseFloat(f.cfm) || 0);
+  const dbs  = state.fotos.map(f => parseFloat(f.db)).filter(v => !isNaN(v) && v > 0);
+  const totalCFM = cfms.reduce((a,b) => a+b, 0);
+  const avgDB = dbs.length ? dbs.reduce((a,b) => a+b, 0) / dbs.length : 0;
+  const maxCFM = cfms.length ? Math.max(...cfms) : 0;
+  const maxIdx = cfms.indexOf(maxCFM);
+
+  el('kpi-count').textContent = n;
+  el('kpi-cfm').textContent   = totalCFM.toFixed(2);
+  el('kpi-db').textContent    = avgDB.toFixed(1);
+  el('kpi-max').textContent   = maxCFM.toFixed(2);
+  el('kpi-max-pt').textContent = (maxCFM > 0 && maxIdx >= 0) ? `Fuga ${maxIdx+1}` : '—';
+}
+
+function _esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── CLIENTES (Supabase) ────────────────────────────────────────────────── */
+let _clientesDB = [];
+
+async function loadClientesDB() {
+  if (!window.SB?.configured) return;
+  try {
+    const rows = await window.SB.getAll('clientes', '?order=nombre.asc');
+    _clientesDB = rows || [];
+  } catch(e) { _clientesDB = []; }
+}
+
+function handleEmpresaInput(val, showAll) {
+  const dd = el('cliente-dd');
+  if (!dd || !_clientesDB.length) return;
+  const q = (val||'').trim().toLowerCase();
+  const matches = (showAll || !q) ? _clientesDB
+                                  : _clientesDB.filter(c => c.nombre.toLowerCase().includes(q));
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(c =>
+    `<div class="cli-opt" data-nombre="${_esc(c.nombre)}">
+       <div style="font-weight:600;font-size:13px;color:var(--gd-text);">${_esc(c.nombre)}</div>
+       ${c.contacto ? `<div style="font-size:11.5px;color:var(--gd-text-soft);margin-top:2px;">👤 ${_esc(c.contacto)}${c.ciudad ? ' · 📍 ' + _esc(c.ciudad) : ''}</div>` : ''}
+     </div>`
+  ).join('');
+  dd.querySelectorAll('.cli-opt').forEach(opt => {
+    opt.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const c = _clientesDB.find(x => x.nombre === opt.dataset.nombre);
+      if (c) selectCliente(c);
+    });
+  });
+  dd.style.display = 'block';
+}
+
+function toggleClienteDD() {
+  const dd = el('cliente-dd');
+  if (dd && dd.style.display === 'block') dd.style.display = 'none';
+  else { handleEmpresaInput(el('empresa').value, true); el('empresa').focus(); }
+}
+function handleEmpresaKey(e) {
+  if (e.key === 'Escape') el('cliente-dd').style.display = 'none';
+}
+function selectCliente(c) {
+  el('empresa').value  = c.nombre   || '';
+  el('atencion').value = c.contacto || '';
+  el('cliente-dd').style.display = 'none';
+  updateFolio();
+}
+document.addEventListener('click', e => {
+  const dd = el('cliente-dd'), inp = el('empresa'), btn = el('empresa-btn');
+  if (dd && !dd.contains(e.target) && e.target !== inp && e.target !== btn)
+    dd.style.display = 'none';
+});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PDF — Sanitizador Latin-1 (jsPDF Helvetica builtin usa WinAnsi)
+   ════════════════════════════════════════════════════════════════════════════ */
+const PDF_CHAR_MAP = {
+  'Δ':'delta','α':'alpha','β':'beta','π':'pi','μ':'u','λ':'lambda',
+  'Ω':'Ohm','ρ':'rho','σ':'sigma','τ':'tau','Φ':'Phi','φ':'phi','θ':'theta','ε':'eps','η':'eta',
+  '←':'<-','→':'->','↑':'^','↓':'v','↔':'<->','⇒':'=>',
+  '—':'-','–':'-','‘':"'",'’':"'",'“':'"','”':'"','…':'...','•':'*','‣':'*',
+  '≠':'!=','≤':'<=','≥':'>=','≈':'~','∞':'inf','√':'sqrt','∑':'Sum','∫':'Int',
+  '²':'2','³':'3','¼':'1/4','½':'1/2','¾':'3/4',
+  '✓':'OK','✅':'OK','✗':'X','❌':'X','⚠':'!','⚡':'!','⭐':'*','★':'*',
+};
+function sanitizePDF(s) {
+  if (s == null) return '';
+  s = String(s);
+  s = s.replace(/[ΔαβπμλΩρστΦφθεη←→↑↓↔⇒—–‘’“”…•‣≠≤≥≈∞√∑∫²³¼½¾✓✅✗❌⚠⚡⭐★]/g,
+    ch => PDF_CHAR_MAP[ch] || '?');
+  return s.replace(/[^\x00-\xFF]/g, '?');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GENERADOR DE PDF — plantilla Gardner Denver
+   ════════════════════════════════════════════════════════════════════════════ */
+function generarReporteFugas() {
+  const empresa = el('empresa').value.trim();
+  if (!empresa || !state.fotos.length) {
+    el('gen-warning').classList.remove('hidden');
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    return;
+  }
+  el('gen-warning').classList.add('hidden');
+
+  const atencion    = el('atencion').value.trim();
+  const planta      = el('planta').value.trim();
+  const ingeniero   = el('ingeniero').value.trim() || 'Ing. Marco Antonio Millán Ramírez';
+  const comentarios = el('comentarios').value.trim();
+  const eqMarca  = el('eq-marca').value.trim();
+  const eqModelo = el('eq-modelo').value.trim();
+  const eqSerie  = el('eq-serie').value.trim();
+  const eqMetodo = el('eq-metodo').value.trim();
+  const folio    = getFolio();
+  const fechaRaw = el('fecha').value;
+  const fechaStr = fechaRaw ? formatDateES(fechaRaw)
+                            : new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'long', year:'numeric'});
+
+  // Totales
+  const cfms = state.fotos.map(f => parseFloat(f.cfm) || 0);
+  const dbs  = state.fotos.map(f => parseFloat(f.db)).filter(v => !isNaN(v) && v > 0);
+  const totalCFM = cfms.reduce((a,b) => a+b, 0);
+  const avgDB = dbs.length ? dbs.reduce((a,b) => a+b, 0) / dbs.length : 0;
+  const maxCFM = cfms.length ? Math.max(...cfms) : 0;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'letter' });
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const ML = 13, HTOP = 24, FBOT = PH - 12;
+  const RED = [200,16,46], DARK = [30,30,38], GRAY = [150,150,160], LGRAY = [220,220,225];
+
+  // Monkey-patch: sanitiza TODA salida de texto automáticamente
+  const _origText = doc.text.bind(doc);
+  doc.text = function(text, x, y, options) {
+    if (Array.isArray(text)) text = text.map(sanitizePDF);
+    else if (text != null) text = sanitizePDF(text);
+    return _origText(text, x, y, options);
+  };
+  const _origSplit = doc.splitTextToSize.bind(doc);
+  doc.splitTextToSize = function(text, maxLen, options) {
+    return _origSplit(sanitizePDF(text), maxLen, options);
+  };
+
+  const pagesReady = new Set();
+
+  function drawHeader() {
+    const logo = window.LOGO_GD || null;
+    const LOGO_W = 32, LOGO_H = 13;
+    if (logo) { try { doc.addImage(logo, 'PNG', ML, 4, LOGO_W, LOGO_H); } catch(e) {} }
+    else {
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+      doc.text('GARDNER DENVER', ML, 12);
+    }
+    const tx = ML + LOGO_W + 8;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text('Reporte de Fugas de Aire Comprimido', tx, 10);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text('Gardner Denver Mexico  ·  Departamento de Ingenieria', tx, 14.5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(folio, PW - ML, 9, { align:'right' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(fechaStr, PW - ML, 14, { align:'right' });
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+    doc.line(ML, 20, PW - ML, 20);
+  }
+
+  function drawFooter() {
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2);
+    doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+    doc.text('GARDNER DENVER Mexico, S.A. DE C.V.  ·  Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX', ML, FBOT);
+    doc.text(folio, PW - ML, FBOT, { align:'right' });
+  }
+
+  function setupPage() {
+    const pg = doc.internal.getCurrentPageInfo().pageNumber;
+    if (pagesReady.has(pg)) return;
+    pagesReady.add(pg);
+    drawHeader(); drawFooter();
+  }
+  function addPage() { doc.addPage(); setupPage(); return HTOP + 2; }
+  function checkY(yy, need) { return (yy + (need||16) > FBOT - 6) ? addPage() : yy; }
+
+  function secTitle(txt, yy) {
+    yy = checkY(yy, 14);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...RED);
+    doc.text(txt.toUpperCase(), ML, yy);
+    doc.setDrawColor(...RED); doc.setLineWidth(0.4);
+    doc.line(ML, yy + 1.5, PW - ML, yy + 1.5);
+    doc.setTextColor(...DARK);
+    return yy + 6.5;
+  }
+
+  function para(txt, yy, sz, color, style) {
+    sz = sz || 9; style = style || 'normal';
+    doc.setFont('helvetica', style); doc.setFontSize(sz);
+    doc.setTextColor(...(color || DARK));
+    const lines = doc.splitTextToSize(txt, PW - ML*2);
+    const lh = sz * 0.36 + 1.7;
+    let i = 0;
+    while (i < lines.length) {
+      yy = checkY(yy, lh);
+      const espacio = Math.max(1, Math.floor((FBOT - 6 - yy) / lh));
+      const chunk = lines.slice(i, i + espacio);
+      doc.text(chunk, ML, yy);
+      yy += chunk.length * lh;
+      i += chunk.length;
+    }
+    return yy;
+  }
+
+  // ── PÁGINA 1 ──────────────────────────────────────────────────────────────
+  setupPage();
+  let y = HTOP + 2;
+
+  // Cuadro "Asunto"
+  const boxW = 74, boxH = 15, boxY = HTOP + 1;
+  doc.setDrawColor(...RED); doc.setLineWidth(0.5);
+  doc.setFillColor(255, 252, 252);
+  doc.roundedRect(PW - ML - boxW, boxY, boxW, boxH, 1, 1, 'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
+  doc.text('Asunto:', PW - ML - boxW + 4, boxY + 5);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(70,70,70);
+  doc.text('Estudio Ultrasonico de Fugas de Aire', PW - ML - boxW + 4, boxY + 9.5);
+  doc.setFontSize(7); doc.setTextColor(110,110,110);
+  doc.text(fechaStr, PW - ML - boxW + 4, boxY + 13);
+
+  // Bloque cliente
+  const leftW = PW - ML*2 - boxW - 4;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...DARK);
+  const empLines = doc.splitTextToSize(empresa, leftW);
+  doc.text(empLines, ML, y);
+  y += empLines.length * 5.5 + 1;
+  if (atencion) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+    const l = doc.splitTextToSize('Atencion: ' + atencion, leftW);
+    doc.text(l, ML, y); y += l.length * 4.5 + 1;
+  }
+  if (planta) {
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(80,80,90);
+    const l = doc.splitTextToSize('Planta / Area: ' + planta, leftW);
+    doc.text(l, ML, y); y += l.length * 4.2 + 1;
+  }
+  const boxBottom = boxY + boxH + 5;
+  if (y < boxBottom) y = boxBottom;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2);
+  doc.line(ML, y, PW - ML, y);
+  y += 6;
+
+  // ── EQUIPO DE MEDICIÓN ────────────────────────────────────────────────────
+  y = secTitle('Equipo de Medicion', y);
+  doc.setFillColor(248, 249, 251); doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+  y = checkY(y, 20);
+  doc.roundedRect(ML, y, PW - ML*2, 15, 1.5, 1.5, 'FD');
+  const colX = [ML + 5, ML + 68, ML + 122];
+  const eqCols = [
+    ['Marca',  eqMarca  || '-'],
+    ['Modelo', eqModelo || '-'],
+    ['No. de serie', eqSerie || '-'],
+  ];
+  eqCols.forEach(([lbl, val], i) => {
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+    doc.text(lbl.toUpperCase(), colX[i], y + 5.5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...DARK);
+    doc.text(val, colX[i], y + 11);
+  });
+  y += 19;
+  if (eqMetodo) { y = para(eqMetodo, y, 8, [100,100,110], 'italic'); y += 3; }
+
+  // ── RESUMEN DEL ESTUDIO ───────────────────────────────────────────────────
+  y = secTitle('Resumen del Estudio', y);
+  y = checkY(y, 24);
+  const kpiW = (PW - ML*2 - 9) / 4;
+  const kpis = [
+    ['FUGAS DETECTADAS', String(state.fotos.length), ''],
+    ['PERDIDA TOTAL',    totalCFM.toFixed(2), 'CFM'],
+    ['NIVEL PROMEDIO',   avgDB.toFixed(1), 'dB'],
+    ['FUGA MAYOR',       maxCFM.toFixed(2), 'CFM'],
+  ];
+  kpis.forEach(([lbl, val, unit], i) => {
+    const x = ML + i * (kpiW + 3);
+    const destacado = i === 1;   // pérdida total = dato principal
+    doc.setFillColor(...(destacado ? [255, 245, 247] : [248, 249, 251]));
+    doc.setDrawColor(...(destacado ? RED : LGRAY));
+    doc.setLineWidth(destacado ? 0.5 : 0.3);
+    doc.roundedRect(x, y, kpiW, 18, 1.5, 1.5, 'FD');
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.2); doc.setTextColor(...GRAY);
+    doc.text(lbl, x + 3, y + 5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.setTextColor(...(destacado ? RED : DARK));
+    doc.text(val, x + 3, y + 12.5);
+    if (unit) {
+      const vw = doc.getTextWidth(val);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+      doc.text(' ' + unit, x + 3 + vw, y + 12.5);
+    }
+  });
+  y += 23;
+
+  // ── TABLA DE FUGAS ────────────────────────────────────────────────────────
+  y = secTitle('Puntos de Fuga Detectados', y);
+  const tabla = state.fotos.map((f, i) => [
+    String(i + 1),
+    (f.desc || '').trim() || 'Sin descripcion',
+    (parseFloat(f.db)  || 0).toFixed(1),
+    (parseFloat(f.cfm) || 0).toFixed(2),
+  ]);
+  doc.autoTable({
+    startY: y,
+    head: [['#', 'Ubicacion / Descripcion', 'Nivel (dB)', 'LOSS (CFM)']],
+    body: tabla,
+    foot: [['', 'PERDIDA TOTAL', avgDB.toFixed(1), totalCFM.toFixed(2)]],
+    margin: { left: ML, right: ML, top: HTOP + 2, bottom: 16 },
+    styles: { font:'helvetica', fontSize: 8, cellPadding: 2.2, textColor: [40,40,40] },
+    headStyles: { fillColor: RED, textColor: [255,255,255], fontSize: 7.5, fontStyle:'bold' },
+    footStyles: { fillColor: [250,235,238], textColor: RED, fontStyle:'bold', fontSize: 8.5 },
+    alternateRowStyles: { fillColor: [252, 250, 250] },
+    columnStyles: {
+      0: { halign:'center', cellWidth: 10 },
+      1: { cellWidth: 'auto' },
+      2: { halign:'right',  cellWidth: 24 },
+      3: { halign:'right',  cellWidth: 26, fontStyle:'bold' },
+    },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 7;
+
+  // ── COMENTARIOS ───────────────────────────────────────────────────────────
+  if (comentarios) {
+    y = secTitle('Comentarios y Recomendaciones', y);
+    comentarios.split(/\n+/).filter(l => l.trim()).forEach(line => {
+      y = para('- ' + line.trim(), y, 8.5, [70,70,80], 'normal');
+      y += 1;
+    });
+    y += 4;
+  }
+
+  // ── ANEXO FOTOGRÁFICO (2 por fila, con dB y CFM) ─────────────────────────
+  y = secTitle('Anexo Fotografico', y);
+  y = para('Evidencia capturada con el detector ultrasonico. Cada imagen indica el nivel medido y la perdida estimada.',
+           y, 8, [120,120,130], 'italic');
+  y += 3;
+
+  const GAP = 6;
+  const CELLW = (PW - ML*2 - GAP) / 2;
+  const IMGH = 46;
+
+  for (let i = 0; i < state.fotos.length; i += 2) {
+    const fila = state.fotos.slice(i, i + 2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.2);
+    const caps = fila.map((f, j) =>
+      doc.splitTextToSize(`Fuga ${i+j+1}. ${(f.desc||'').trim() || 'Sin descripcion'}`, CELLW - 3)
+    );
+    const maxCap = Math.max(...caps.map(c => c.length));
+    const filaH = IMGH + 3 + maxCap * 3.2 + 5 + 5;   // img + pie + linea de parametros
+
+    y = checkY(y, filaH);
+
+    fila.forEach((f, j) => {
+      const x = ML + j * (CELLW + GAP);
+      const ratio = f.w / f.h;
+      let dw = CELLW, dh = dw / ratio;
+      if (dh > IMGH) { dh = IMGH; dw = dh * ratio; }
+      const ox = x + (CELLW - dw) / 2;
+      const oy = y + (IMGH - dh) / 2;
+
+      doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+      doc.rect(x, y, CELLW, IMGH);
+      try { doc.addImage(f.dataUrl, 'JPEG', ox, oy, dw, dh); } catch(e) {}
+
+      // Pie de foto
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.2); doc.setTextColor(90,90,100);
+      doc.text(caps[j], x + 1.5, y + IMGH + 4);
+
+      // Parámetros medidos, destacados debajo del pie
+      const py = y + IMGH + 4 + caps[j].length * 3.2 + 1.5;
+      const dbTxt  = `Nivel: ${(parseFloat(f.db)  || 0).toFixed(1)} dB`;
+      const cfmTxt = `LOSS: ${(parseFloat(f.cfm) || 0).toFixed(2)} CFM`;
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.2);
+      doc.setTextColor(...DARK);
+      doc.text(dbTxt, x + 1.5, py);
+      doc.setTextColor(...RED);
+      doc.text(cfmTxt, x + 1.5 + doc.getTextWidth(dbTxt) + 5, py);
+    });
+
+    y += filaH;
+  }
+  y += 2;
+
+  // ── FIRMAS ────────────────────────────────────────────────────────────────
+  y = checkY(y, 40);
+  y += 6;
+  doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3);
+  const colW = (PW - ML*2 - 20) / 2;
+  const y1 = y + 14;
+  doc.line(ML, y1, ML + colW, y1);
+  doc.line(PW - ML - colW, y1, PW - ML, y1);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+  doc.text(ingeniero, ML, y1 + 4.5);
+  doc.text('Nombre y firma de recibido', PW - ML - colW, y1 + 4.5);
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+  doc.text('Departamento de Ingenieria', ML, y1 + 8.5);
+  doc.text('GARDNER DENVER Mexico, S.A. de C.V.', ML, y1 + 12);
+  doc.text('Representante del cliente', PW - ML - colW, y1 + 8.5);
+  doc.text(empresa, PW - ML - colW, y1 + 12);
+
+  const safeName = empresa.replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save(`Reporte_Fugas_${safeName}_${folio}.pdf`);
+}
+
+/* ── UTILIDADES ─────────────────────────────────────────────────────────── */
+const MESES = ['enero','febrero','marzo','abril','mayo','junio',
+               'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function formatDateES(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return `${d} de ${MESES[m-1]} de ${y}`;
+}
+
+/* ── INIT ───────────────────────────────────────────────────────────────── */
+function init() {
+  const t = new Date();
+  el('fecha').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  renderFotos();
+  updateFolio();
+}
+document.addEventListener('DOMContentLoaded', () => { init(); loadClientesDB(); });
+</script>
+</body>
+</html>
