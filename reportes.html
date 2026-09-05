@@ -4,8 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reportes de Entrega · Gardner Denver México</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
-<script src="gd-theme-sync.js?v=20260619"></script>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
+<script src="gd-theme-sync.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260905"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="supabase-client.js"></script>
@@ -177,7 +180,7 @@ textarea{resize:vertical;line-height:1.55;}
 .hidden{display:none !important;}
 </style>
 </head>
-<body>
+<body data-gd-autosize>
 
 <!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────────── -->
 <header class="mod-header">
@@ -244,12 +247,11 @@ textarea{resize:vertical;line-height:1.55;}
   </div>
 
   <!-- 2. CATEGORÍAS ──────────────────────────────────────────────────────── -->
-  <div class="sec-title">2. Alcance Ejecutado</div>
+  <div class="sec-title" style="display:flex;align-items:center;">2. Alcance Ejecutado
+    <button class="gd-i" data-info-title="Categorías de trabajo"
+            data-info="Marca las categorías ejecutadas. Cada una inserta su párrafo técnico en el cuerpo del reporte, y el texto queda <b>editable</b>: ajústalo a lo que realmente se hizo antes de generar el PDF."></button>
+  </div>
   <div class="card">
-    <div class="info-box" style="margin-bottom:14px;">
-      Selecciona las categorías de trabajo realizadas. Cada una agrega su párrafo técnico al cuerpo del reporte —
-      puedes editar el texto libremente antes de generar el PDF.
-    </div>
 
     <div class="cat-grid" id="cat-grid"></div>
 
@@ -270,7 +272,11 @@ textarea{resize:vertical;line-height:1.55;}
   </div>
 
   <!-- 3. REPORTE FOTOGRÁFICO ─────────────────────────────────────────────── -->
-  <div class="sec-title">3. Reporte Fotográfico</div>
+  <div class="sec-title" style="display:flex;align-items:center;">3. Reporte Fotográfico
+    <button class="gd-i" data-info-title="Fotografías"
+            data-info="Las imágenes se reducen a un máximo de 1400 px y se recomprimen antes de incrustarlas, de modo que el PDF siga pesando poco aunque las fotos vengan del teléfono."
+            data-fuente="El anexo se arma a dos fotos por fila, con su descripción debajo."></button>
+  </div>
   <div class="card">
     <label class="foto-drop" id="foto-drop" for="foto-input">
       <input type="file" id="foto-input" accept="image/*" multiple onchange="cargarFotos(this)">

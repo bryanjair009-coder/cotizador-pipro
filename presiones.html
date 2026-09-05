@@ -4,8 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Caídas de Presión · PIPRO</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
-<script src="gd-theme-sync.js?v=20260619"></script>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
+<script src="gd-theme-sync.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260905"></script>
 <script src="logo_b64.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -116,8 +119,9 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 .pipro-badge{font-size:10px;background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3);padding:2px 8px;border-radius:10px;font-weight:700}
 
 /* Tooltip/Modal System */
-.tooltip-trigger{cursor:pointer;color:#60a5fa;font-size:12px;font-weight:700;margin-left:4px;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid rgba(96,165,250,.3);background:rgba(96,165,250,.1);transition:all .15s}
-.tooltip-trigger:hover{background:rgba(96,165,250,.25);border-color:#60a5fa}
+/* Icono de información — mismo lenguaje visual que el resto del portal */
+.tooltip-trigger{cursor:help;color:var(--gd-text-soft);font-size:10.5px;font-weight:600;font-style:italic;margin-left:5px;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--gd-border-strong);background:transparent;transition:all .13s;vertical-align:middle;-webkit-user-select:none;user-select:none}
+.tooltip-trigger:hover{background:var(--gd-red);border-color:var(--gd-red);color:#fff}
 #tooltip-modal{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:9999;align-items:center;justify-content:center}
 #tooltip-modal.show{display:flex}
 .modal-overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);animation:fadeIn .2s}
@@ -160,7 +164,7 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 @media(max-width:550px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}
 </style>
 </head>
-<body>
+<body data-gd-autosize>
 
 <!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────── -->
 <header class="mod-header">
@@ -224,6 +228,11 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
       <button class="mat-btn" id="mat-pipro" onclick="setMaterial('pipro')">PIPRO Aluminio</button>
     </div>
     <span id="mat-info" class="note" style="margin:0"></span>
+    <button class="gd-i" data-info-title="Rugosidad del material"
+            data-info="La rugosidad interna determina el factor de fricción y, con él, la caída de presión."
+            data-formula="Aluminio PIPRO:  ε = 0.0015 mm
+(interior tratado con alumilita)"
+            data-fuente="El acero al carbono comercial ronda ε = 0.045 mm — treinta veces más."></button>
   </div>
 
   <!-- Tabla catálogo PIPRO — visible solo cuando se selecciona PIPRO -->
@@ -246,7 +255,6 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
         <tbody id="pipro-tbl-body"></tbody>
       </table>
     </div>
-    <p class="note" style="margin-top:6px">Rugosidad superficial aluminio PIPRO: ε = 0.0015 mm (interior tratado con alumilita)</p>
   </div>
 </div>
 
@@ -255,7 +263,9 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
   <div class="card-header">
     <span class="step-label"><span class="step-badge">1</span><span class="card-title">Planta de Compresores</span></span>
     <span class="card-badge" id="comp-count-badge">0 compresores</span>
-    <span class="note" style="margin:0">SCFM total = Σ (Caudal × Factor de carga simultánea)</span>
+    <button class="gd-i" data-info-title="Caudal total de la planta"
+            data-formula="SCFM total = Σ (Caudal × Factor de carga simultánea)"
+            data-fuente="El factor de carga refleja que rara vez todos los compresores trabajan al 100% a la vez."></button>
   </div>
   <div class="edu-note">💡 <strong>Qué llenar:</strong> Agrega cada compresor con su potencia (HP), caudal nominal (SCFM del catálogo) y presión de descarga. El sistema suma los caudales y calcula el ACFM real que circula por la red.</div>
 
@@ -264,10 +274,10 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
     <table class="btbl" id="comp-tbl">
       <thead><tr>
         <th>Compresor / ID</th>
-        <th>HP <span class="tooltip-trigger" onclick="openTooltip('comp-hp')" title="Información">?</span></th>
-        <th>SCFM nominal <span class="tooltip-trigger" onclick="openTooltip('comp-scfm')" title="Información">?</span></th>
-        <th>F. carga <span class="tooltip-trigger" onclick="openTooltip('comp-fc')" title="Información">?</span></th>
-        <th>P. descarga (psi man.) <span class="tooltip-trigger" onclick="openTooltip('comp-psi')" title="Información">?</span></th>
+        <th>HP <span class="tooltip-trigger" onclick="openTooltip('comp-hp')" title="Más información">i</span></th>
+        <th>SCFM nominal <span class="tooltip-trigger" onclick="openTooltip('comp-scfm')" title="Más información">i</span></th>
+        <th>F. carga <span class="tooltip-trigger" onclick="openTooltip('comp-fc')" title="Más información">i</span></th>
+        <th>P. descarga (psi man.) <span class="tooltip-trigger" onclick="openTooltip('comp-psi')" title="Más información">i</span></th>
         <th>Diám. descarga</th>
         <th>SCFM efectivo</th>
         <th>ACFM en descarga</th>
@@ -292,16 +302,16 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 
   <div class="grid g4" style="margin-top:8px">
     <div class="field">
-      <label>Presión de red — diseño (psi man.) <span class="tooltip-trigger" onclick="openTooltip('presion-red')" title="Información">?</span></label>
+      <label>Presión de red — diseño (psi man.) <span class="tooltip-trigger" onclick="openTooltip('presion-red')" title="Más información">i</span></label>
       <input type="number" id="psi" value="100" min="1" oninput="recalcAll()"/></div>
     <div class="field">
-      <label>Temperatura descarga tras enfriador (°F) <span class="tooltip-trigger" onclick="openTooltip('temperatura')" title="Información">?</span></label>
+      <label>Temperatura descarga tras enfriador (°F) <span class="tooltip-trigger" onclick="openTooltip('temperatura')" title="Más información">i</span></label>
       <input type="number" id="tempF" value="95" oninput="recalcAll()"/></div>
     <div class="field">
-      <label>Altitud planta (m s.n.m.) <span class="tooltip-trigger" onclick="openTooltip('altitud')" title="Información">?</span></label>
+      <label>Altitud planta (m s.n.m.) <span class="tooltip-trigger" onclick="openTooltip('altitud')" title="Más información">i</span></label>
       <input type="number" id="altitud" value="2240" min="0" oninput="recalcAll()"/></div>
     <div class="field">
-      <label>Rugosidad de la red <span class="tooltip-trigger" onclick="openTooltip('rugosidad')" title="Información">?</span></label>
+      <label>Rugosidad de la red <span class="tooltip-trigger" onclick="openTooltip('rugosidad')" title="Más información">i</span></label>
       <select id="rugosidad" onchange="recalcAll()">
         <option value="0.046">Acero negro / galvanizado nuevo (0.046 mm)</option>
         <option value="0.15">Acero galvanizado usado (0.15 mm)</option>
@@ -332,11 +342,11 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
   <div class="edu-note" style="margin-bottom:10px">💡 <strong>Qué hacer:</strong> Selecciona el diámetro del cabezal y escribe la longitud total de la tubería principal. Revisa la velocidad resultante — debe estar entre <strong>4 y 6 m/s</strong>. Si es mayor de 6 m/s, aumenta el diámetro.</div>
   <div class="grid g4">
     <div class="field">
-      <label>Diámetro cabezal <span class="tooltip-trigger" onclick="openTooltip('cab-diam')" title="Información">?</span></label>
+      <label>Diámetro cabezal <span class="tooltip-trigger" onclick="openTooltip('cab-diam')" title="Más información">i</span></label>
       <select id="cab_diam" onchange="recalcCabezal()"></select>
       <div class="rec" id="cab_rec"></div></div>
     <div class="field">
-      <label>Longitud total (m) <span class="tooltip-trigger" onclick="openTooltip('longitud-tramo')" title="Información">?</span></label>
+      <label>Longitud total (m) <span class="tooltip-trigger" onclick="openTooltip('longitud-tramo')" title="Más información">i</span></label>
       <input type="number" id="cab_long" value="30" min="0.1" step="0.5" oninput="recalcCabezal()"/></div>
   </div>
   <div style="margin-top:10px">
@@ -358,12 +368,10 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
   <!-- Análisis de todos los diámetros para el flujo combinado -->
   <div style="margin-top:10px">
     <button class="tacc-btn" onclick="togglePanel('diam-analysis')">▸ Análisis de diámetros — flujo combinado de la planta</button>
+    <button class="gd-i" data-info-title="Análisis de diámetros"
+            data-info="Compara todos los diámetros disponibles contra el caudal total actual de la planta, con la longitud y los accesorios del cabezal vigentes. El diámetro seleccionado aparece resaltado."></button>
     <div id="diam-analysis" style="display:none;margin-top:8px">
       <div class="acc-panel">
-        <p class="note" style="margin-bottom:8px">
-          Comparativa de todos los diámetros disponibles con el caudal total actual de la planta · longitud y accesorios del cabezal vigentes.
-          El diámetro seleccionado aparece resaltado.
-        </p>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse;font-size:11px">
             <thead>
@@ -452,7 +460,7 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
       <span class="rs">psi</span>
     </div>
     <div class="ri" style="min-width:100px">
-      <span class="rl">ΔP Total Red <span class="tooltip-trigger" onclick="openTooltip('delta-p-total')" title="Información">?</span></span>
+      <span class="rl">ΔP Total Red <span class="tooltip-trigger" onclick="openTooltip('delta-p-total')" title="Más información">i</span></span>
       <span class="rv" id="rsm-dp-total" style="font-size:22px;font-weight:900">—</span>
       <span class="rs">psi</span>
     </div>
@@ -490,10 +498,13 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 <div class="card">
   <div class="card-header">
     <span class="card-title">Comparativo Campo vs. Calculado</span>
+    <button class="gd-i" data-info-title="Campo vs. calculado"
+            data-info="Registra las presiones medidas con manómetro en campo. El sistema calcula la ΔP real y la compara con el modelo teórico para diagnosticar fugas, incrustaciones o subdimensionamiento."
+            data-formula="Desviación &lt; 10%          → el modelo coincide
+Campo &gt; calculado (&gt;10%) → posibles fugas o incrustaciones
+Campo &lt; calculado        → caudal real menor al asumido,
+                           o instrumento descalibrado"></button>
   </div>
-  <p class="note" style="margin-bottom:12px">
-    Registra las presiones medidas con manómetro en campo. El sistema calcula la ΔP real y la compara con el modelo teórico para diagnosticar fugas, incrustaciones o subdimensionamiento.
-  </p>
   <div style="overflow-x:auto">
     <table class="ctbl">
       <thead><tr>
@@ -512,9 +523,6 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
   <div style="margin-top:8px">
     <button class="btn btn-ghost btn-sm" onclick="addCampoRow('Punto de medición','')">+ Agregar punto</button>
   </div>
-  <p class="note" style="margin-top:10px">
-    Desviación &lt;10%: modelo coincide · &gt;10% campo &gt; calculado: posibles fugas / incrustaciones · campo &lt; calculado: caudal real menor al asumido o instrumento descalibrado
-  </p>
 </div>
 
 <script>
@@ -1170,7 +1178,7 @@ function addCampoRow(label, calc) {
   const tr = document.createElement('tr');
   tr.dataset.calc = calc;
   tr.innerHTML = `
-    <td><input type="text" value="${label}" oninput="recalcCampoRow(this.closest('tr'))"/></td>
+    <td><input type="text" value="${GD.esc(label)}" oninput="recalcCampoRow(this.closest('tr'))"/></td>
     <td><input type="number" placeholder="—" oninput="recalcCampoRow(this.closest('tr'))"/></td>
     <td><input type="number" placeholder="—" oninput="recalcCampoRow(this.closest('tr'))"/></td>
     <td class="dc">—</td><td class="cc">—</td><td class="dd">—</td><td class="dg">—</td>

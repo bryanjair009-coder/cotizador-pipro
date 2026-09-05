@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Cotizador PIPRO · Gardner Denver México</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
-<script src="gd-theme-sync.js?v=20260619"></script>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
+<script src="gd-theme-sync.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260905"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
@@ -480,18 +483,19 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
     <hr>
     <div style="font-weight:700;font-size:.9rem;margin-bottom:8px;">Folio:</div>
-    <div class="grid-3">
-      <div>
-        <label>Abreviatura empresa (máx. 4)</label>
-        <input type="text" id="abbrev" maxlength="4" placeholder="EATO" oninput="updateFolio()">
+    <div class="gd-fields">
+      <div class="gd-field">
+        <label>Abreviatura empresa
+          <button class="gd-i" data-info-title="Abreviatura"
+                  data-info="Hasta 4 letras que identifican a la empresa dentro del folio. Ejemplo: <b>EATO</b> para Eaton."></button>
+        </label>
+        <input type="text" id="abbrev" maxlength="4" placeholder="EATO" oninput="updateFolio()"
+               style="text-transform:uppercase;">
       </div>
-      <div>
+      <div class="gd-field">
         <label>Iniciales del ingeniero</label>
-        <input type="text" id="initials" maxlength="5" value="JLD" placeholder="JLD" oninput="updateFolio()">
-      </div>
-      <div>
-        <label>No. referencia (opcional)</label>
-        <input type="text" id="refnum" placeholder="COT39124" oninput="updateFolio()">
+        <input type="text" id="initials" maxlength="5" value="JLD" placeholder="JLD" oninput="updateFolio()"
+               style="text-transform:uppercase;">
       </div>
     </div>
     <div class="folio-box" id="folio-preview">📄 XXXX-010125-IP-JLD</div>
@@ -505,8 +509,12 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       <div id="usd-fields" style="display:none;margin-top:10px;">
         <div class="grid-2">
           <div>
-            <label>Tipo de cambio del día (MXN por 1 USD)</label>
-            <input type="number" id="tipo_cambio" step="0.0001" min="0" value="17.50"
+            <label>Tipo de cambio del día (MXN por 1 USD)
+              <button class="gd-i" data-info-title="Tipo de cambio"
+                      data-info="El catálogo guarda los precios <b>siempre en pesos</b>. Este tipo de cambio sólo se aplica al mostrar en pantalla y al generar el PDF, Word y Excel: no altera la base de datos."
+                      data-formula="Precio USD = Precio MXN ÷ Tipo de cambio"></button>
+            </label>
+            <input type="number" id="tipo_cambio" step="0.0001" min="0" max="999" value="17.50"
                    placeholder="ej. 17.50" oninput="updateMonedaPreview();updateTotales();renderCart();updateMO();">
           </div>
           <div style="display:flex;align-items:flex-end;">
@@ -514,9 +522,6 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
               Los precios se convertirán automáticamente: <b>MXN → USD</b>
             </div>
           </div>
-        </div>
-        <div style="font-size:.76rem;color:#666;margin-top:6px;">
-          Los precios de catálogo siguen guardados en pesos; solo se aplica el tipo de cambio al mostrar y al generar PDF / Word / Excel.
         </div>
       </div>
     </div>
@@ -530,25 +535,39 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <details open>
       <summary>👷 Personal</summary>
       <div class="details-body">
-        <div style="font-size:.83rem;color:#666;margin-bottom:10px;">
-          Cantidad de personas por puesto. El total se propaga automáticamente a comidas y hospedaje.
-        </div>
-        <div class="grid-4">
-          <div>
-            <label>Técnico<br><small style="font-weight:normal;color:#888;">$25,723/mes</small></label>
-            <input type="number" id="n_tec" value="1" min="0" step="1" oninput="updateMO()">
+        <div class="gd-fields">
+          <div class="gd-field">
+            <label>Técnico
+              <button class="gd-i" data-info-title="Técnico"
+                      data-info="Sueldo mensual integrado considerado en el cálculo."
+                      data-formula="$25,723.07 / mes"
+                      data-fuente="El número de personas se propaga automáticamente a comidas y hospedaje."></button>
+            </label>
+            <input type="number" id="n_tec" value="1" min="0" max="99" step="1" oninput="updateMO()">
           </div>
-          <div>
-            <label>Ayudante<br><small style="font-weight:normal;color:#888;">$15,005/mes</small></label>
-            <input type="number" id="n_aya" value="1" min="0" step="1" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Ayudante
+              <button class="gd-i" data-info-title="Ayudante"
+                      data-info="Sueldo mensual integrado considerado en el cálculo."
+                      data-formula="$15,005.12 / mes"></button>
+            </label>
+            <input type="number" id="n_aya" value="1" min="0" max="99" step="1" oninput="updateMO()">
           </div>
-          <div>
-            <label>Ingeniero<br><small style="font-weight:normal;color:#888;">$32,154/mes</small></label>
-            <input type="number" id="n_ing" value="1" min="0" step="1" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Ingeniero
+              <button class="gd-i" data-info-title="Ingeniero"
+                      data-info="Sueldo mensual integrado considerado en el cálculo."
+                      data-formula="$32,153.83 / mes"></button>
+            </label>
+            <input type="number" id="n_ing" value="1" min="0" max="99" step="1" oninput="updateMO()">
           </div>
-          <div>
-            <label>Segurista<br><small style="font-weight:normal;color:#888;">$18,150/mes</small></label>
-            <input type="number" id="n_seg" value="0" min="0" step="1" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Segurista
+              <button class="gd-i" data-info-title="Segurista"
+                      data-info="Sueldo mensual integrado considerado en el cálculo. Requerido en plantas con permiso de trabajo en altura."
+                      data-formula="$18,150.00 / mes"></button>
+            </label>
+            <input type="number" id="n_seg" value="0" min="0" max="99" step="1" oninput="updateMO()">
           </div>
         </div>
         <div class="grid-2" style="margin-top:10px;">
@@ -562,17 +581,22 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <div class="card dias-box" style="margin-bottom:10px;">
       <div class="grid-2" style="align-items:start;">
         <div>
-          <label>📅 Días de trabajo <span style="font-weight:normal;color:#888;">(se propaga a viáticos y equipo)</span></label>
-          <input type="number" id="dias_trabajo" value="0" min="0" step="0.5" oninput="updateMO()">
+          <div class="gd-field">
+            <label>📅 Días de trabajo
+              <button class="gd-i" data-info-title="Días de trabajo"
+                      data-info="Se propaga automáticamente a comidas, hospedaje y renta de equipo de maniobras. Admite medios días (0.5)."
+                      data-formula="Costo M.O. = (Total mensual sueldos / 30) × días"></button>
+            </label>
+            <input type="number" id="dias_trabajo" value="0" min="0" max="999" step="0.5" oninput="updateMO()">
+          </div>
 
-          <label class="check-label" style="margin-top:12px;">
+          <label class="check-label" style="margin-top:14px;">
             <input type="checkbox" id="dia_inhabil" onchange="updateMO()">
             🗓️ Trabajo en día inhábil
+            <button class="gd-i" data-info-title="Día inhábil"
+                    data-info="Domingo o día festivo. El sueldo se incrementa 25% y además se duplica, conforme a la Ley Federal del Trabajo. Aplica a <b>todos</b> los días capturados arriba, no sólo a uno."
+                    data-formula="Costo M.O. = base × 1.25 × 2 = base × 2.5"></button>
           </label>
-          <div class="check-info" style="margin-left:26px;">
-            Domingo o día festivo. El sueldo se incrementa 25% y se duplica
-            (<b>× 2.5</b>). Aplica a todos los días capturados arriba.
-          </div>
         </div>
         <div class="success-box" id="costo-mo-preview" style="margin-top:24px;">
           <b>Costo M.O. = ($72,882 / 30) × 0 días</b><br>
@@ -585,15 +609,21 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <details>
       <summary id="sum-comidas">🍽️ Comidas · (3 pers × 0 días) = $0.00</summary>
       <div class="details-body">
-        <div style="font-size:.8rem;color:#666;margin-bottom:8px;">Total = personas × costo × comidas/día × días</div>
-        <div class="grid-2">
-          <div>
-            <label># Comidas por persona/día</label>
-            <input type="number" id="comidas_por_dia" value="3" min="1" step="1" oninput="updateMO()">
+        <div class="gd-fields">
+          <div class="gd-field">
+            <label>Comidas por persona/día
+              <button class="gd-i" data-info-title="Comidas"
+                      data-formula="Total = personas × costo × comidas/día × días"
+                      data-fuente="Las comidas forman parte de los viáticos junto con el hospedaje."></button>
+            </label>
+            <input type="number" id="comidas_por_dia" value="3" min="1" max="9" step="1" oninput="updateMO()">
           </div>
-          <div>
-            <label>Costo por comida/persona ($)</label>
-            <input type="number" id="costo_comida" value="80" min="0" step="10" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Costo por comida/persona</label>
+            <span class="gd-input-unit">
+              <input type="number" id="costo_comida" value="80" min="0" max="9999" step="10" oninput="updateMO()" data-chars="5">
+              <span>MXN</span>
+            </span>
           </div>
         </div>
         <div class="success-box" id="comidas-result">Total Comidas: $0.00</div>
@@ -609,14 +639,21 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
           ¿Requiere hospedaje? (obra foránea)
         </label>
         <div id="hospedaje-fields">
-          <div class="grid-2">
-            <div>
-              <label>Noches de hospedaje <span style="font-weight:normal;color:#888;">(default = días)</span></label>
-              <input type="number" id="noches_hospedaje" value="0" min="0" step="1" oninput="updateMO()">
+          <div class="gd-fields">
+            <div class="gd-field">
+              <label>Noches de hospedaje
+                <button class="gd-i" data-info-title="Noches"
+                        data-info="Por omisión toma el mismo número que los días de trabajo. Ajústalo si el equipo llega la víspera o se retira el mismo día."
+                        data-formula="Total = personas × costo por noche × noches"></button>
+              </label>
+              <input type="number" id="noches_hospedaje" value="0" min="0" max="999" step="1" oninput="updateMO()">
             </div>
-            <div>
-              <label>Costo hospedaje/persona/noche ($)</label>
-              <input type="number" id="costo_hospedaje" value="450" min="0" step="50" oninput="updateMO()">
+            <div class="gd-field">
+              <label>Costo por persona/noche</label>
+              <span class="gd-input-unit">
+                <input type="number" id="costo_hospedaje" value="450" min="0" max="99999" step="50" oninput="updateMO()" data-chars="6">
+                <span>MXN</span>
+              </span>
             </div>
           </div>
           <div class="success-box" id="hospedaje-result">Total Hospedaje: $0.00</div>
@@ -656,44 +693,64 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
           </div>
           <div id="gm-map" style="height:300px;border-radius:8px;border:1px solid #c5d5f5;margin-bottom:8px;"></div>
           <div id="gm-info" style="display:none;"></div>
-          <div style="font-size:.76rem;color:#888;margin-top:6px;">
-            La distancia se carga automáticamente. Las casetas ingrésalas manualmente (sin costo de API).
-          </div>
         </div>
         <!-- ─────────────────────────────────────────────────────────────── -->
 
-        <div class="info-box" style="margin-bottom:10px;font-size:.82rem;">
-          <b>Modelo:</b> km totales = km ida × 2 × # viajes &nbsp;|&nbsp;
-          <b>Local:</b> # viajes = días de trabajo &nbsp;|&nbsp;
-          <b>Foráneo:</b> # viajes = 2 (inicio + fin)
-        </div>
-        <div class="grid-2" style="margin-bottom:10px;">
-          <div>
-            <label>Distancia al sitio (km, ida sencilla)</label>
-            <input type="number" id="km_sencillo" value="120" min="0" step="10" oninput="updateMO()">
+        <div class="gd-fields">
+          <div class="gd-field">
+            <label>Distancia al sitio
+              <button class="gd-i" data-info-title="Modelo de recorrido"
+                      data-info="Distancia de <b>ida sencilla</b>. Se carga automáticamente al calcular la ruta en el mapa; las casetas se capturan a mano."
+                      data-formula="km totales = km ida × 2 × # viajes
+
+Obra local:   # viajes = días de trabajo
+Obra foránea: # viajes = 2 (llegada y salida)"></button>
+            </label>
+            <span class="gd-input-unit">
+              <input type="number" id="km_sencillo" value="120" min="0" max="9999" step="10" oninput="updateMO()" data-chars="5">
+              <span>km</span>
+            </span>
           </div>
-          <div>
-            <label># Viajes redondos</label>
-            <input type="number" id="n_viajes" value="2" min="0" step="1" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Viajes redondos</label>
+            <input type="number" id="n_viajes" value="2" min="0" max="999" step="1" oninput="updateMO()">
           </div>
-        </div>
-        <div class="grid-3" style="margin-bottom:10px;">
-          <div>
-            <label>Rendimiento (km/L)</label>
-            <input type="number" id="rendimiento" value="6" min="0.1" step="0.5" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Rendimiento
+              <button class="gd-i" data-info-title="Rendimiento"
+                      data-formula="Litros = km totales / rendimiento
+Combustible = litros × precio por litro"></button>
+            </label>
+            <span class="gd-input-unit">
+              <input type="number" id="rendimiento" value="6" min="0.1" max="99" step="0.5" oninput="updateMO()" data-chars="4">
+              <span>km/L</span>
+            </span>
           </div>
-          <div>
-            <label>Precio gasolina ($/L)</label>
-            <input type="number" id="costo_gas" value="25" min="0" step="1" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Precio gasolina</label>
+            <span class="gd-input-unit">
+              <input type="number" id="costo_gas" value="25" min="0" max="999" step="1" oninput="updateMO()" data-chars="5">
+              <span>$/L</span>
+            </span>
           </div>
-          <div>
-            <label>Casetas ida sencilla ($)</label>
-            <input type="number" id="casetas_ida" value="0" min="0" step="50" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Casetas ida sencilla</label>
+            <span class="gd-input-unit">
+              <input type="number" id="casetas_ida" value="0" min="0" max="99999" step="50" oninput="updateMO()" data-chars="6">
+              <span>MXN</span>
+            </span>
           </div>
-        </div>
-        <div>
-          <label>Desgaste vehículo ($/km) — opcional</label>
-          <input type="number" id="costo_desgaste" value="0" min="0" step="0.5" oninput="updateMO()">
+          <div class="gd-field">
+            <label>Desgaste vehículo
+              <button class="gd-i" data-info-title="Desgaste (opcional)"
+                      data-info="Costo de mantenimiento y depreciación por kilómetro. Déjalo en cero si no se repercute al cliente."
+                      data-formula="Desgaste = km totales × $/km"></button>
+            </label>
+            <span class="gd-input-unit">
+              <input type="number" id="costo_desgaste" value="0" min="0" max="999" step="0.5" oninput="updateMO()" data-chars="5">
+              <span>$/km</span>
+            </span>
+          </div>
         </div>
         <div class="metric-grid" id="auto-metrics" style="margin-top:10px;">
           <div class="metric-card"><div class="metric-label">Combustible</div><div class="metric-value" id="m-combustible">$0.00</div><div class="metric-delta" id="m-combustible-d">0 km / 6 = 0 L</div></div>
@@ -708,18 +765,22 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <details id="vuelo-details">
       <summary>✈️ Vuelo</summary>
       <div class="details-body">
-        <div class="info-box" style="margin-bottom:10px;font-size:.82rem;">
-          Usa esta opción cuando el equipo viaja en avión en lugar de automóvil.
-          Ingresa el precio del vuelo redondo por persona y el número de personas que vuelan.
-        </div>
-        <div class="grid-2" style="margin-bottom:10px;">
-          <div>
-            <label>Precio vuelo redondo ($ por persona)</label>
-            <input type="number" id="precio_vuelo" value="0" min="0" step="100" oninput="updateMO()">
+        <div class="gd-fields">
+          <div class="gd-field">
+            <label>Precio vuelo redondo por persona
+              <button class="gd-i" data-info-title="Vuelo"
+                      data-info="Se usa cuando el equipo viaja en avión en lugar de automóvil. Ambos conceptos pueden convivir si sólo una parte del personal vuela."
+                      data-formula="Total vuelo = precio por persona × personas"
+                      data-fuente="El vuelo forma parte de movilidad, no de viáticos."></button>
+            </label>
+            <span class="gd-input-unit">
+              <input type="number" id="precio_vuelo" value="0" min="0" max="999999" step="100" oninput="updateMO()" data-chars="7">
+              <span>MXN</span>
+            </span>
           </div>
-          <div>
+          <div class="gd-field">
             <label>Personas en avión</label>
-            <input type="number" id="personas_vuelo" value="1" min="0" step="1" oninput="updateMO()">
+            <input type="number" id="personas_vuelo" value="1" min="0" max="99" step="1" oninput="updateMO()">
           </div>
         </div>
         <div class="success-box" id="vuelo-result">Total Vuelo: $0.00</div>
@@ -756,8 +817,12 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <details>
       <summary id="sum-equipo">🏗️ Equipo de Maniobras · (0 días) = $0.00</summary>
       <div class="details-body">
-        <div style="font-size:.82rem;color:#666;margin-bottom:10px;">
-          Costo diario = mensual / 30. Total = costo diario × días de trabajo. Selecciona el equipo del proyecto.
+        <div style="margin-bottom:10px;font-size:.85rem;color:var(--gd-text-mute);display:flex;align-items:center;">
+          Selecciona el equipo que se usará en el proyecto
+          <button class="gd-i" data-info-title="Renta de equipo"
+                  data-formula="Costo diario = renta mensual / 30
+Total = costo diario × días de trabajo"
+                  data-fuente="Los días provienen del campo «Días de trabajo»."></button>
         </div>
         <div class="grid-2">
           <div>
@@ -789,9 +854,17 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
             <div class="check-info" id="info-plat">$56,000/mes → $1,866.67/día → $0.00 total</div>
           </div>
         </div>
-        <div style="margin-top:12px;">
-          <label>Embarque — monto fijo ($)</label>
-          <input type="number" id="embarque" value="0" min="0" step="500" oninput="updateMO()">
+        <div class="gd-fields" style="margin-top:14px;">
+          <div class="gd-field">
+            <label>Embarque — monto fijo
+              <button class="gd-i" data-info-title="Embarque"
+                      data-info="Flete del equipo de maniobras al sitio. Es un monto fijo: no se multiplica por días."></button>
+            </label>
+            <span class="gd-input-unit">
+              <input type="number" id="embarque" value="0" min="0" max="999999" step="500" oninput="updateMO()" data-chars="7">
+              <span>MXN</span>
+            </span>
+          </div>
         </div>
         <div class="info-box" id="equipo-result" style="margin-top:10px;">Total Equipos: $0.00</div>
       </div>
@@ -799,23 +872,23 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 
     <!-- Soportería -->
     <div class="card" id="sop-section" style="margin-top:12px;">
-      <div class="sec-title" style="margin-top:0;">🔩 Soportería</div>
-      <p style="font-size:13px;color:#666;margin-bottom:16px;">
-        Ingresa el número de abrazaderas por tipo. Las cantidades se calculan automáticamente
-        y pueden ajustarse manualmente. Esta requisición se imprime por separado de la cotización.
-      </p>
-      <div class="grid-3" style="margin-bottom:18px;">
-        <div>
-          <label>🔩 Abrazaderas Aéreas</label>
-          <input type="number" id="sop-aerea" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">🔩 Soportería
+        <button class="gd-i" data-info-title="Soportería"
+                data-info="Captura el número de abrazaderas por tipo. Las cantidades de tornillería y consumibles se calculan automáticamente y puedes ajustarlas a mano."
+                data-fuente="Esta requisición se imprime por separado de la cotización del cliente."></button>
+      </div>
+      <div class="gd-fields" style="margin-bottom:18px;">
+        <div class="gd-field">
+          <label>🔩 Abrazaderas aéreas</label>
+          <input type="number" id="sop-aerea" min="0" max="99999" value="0" oninput="calcSoporteria()" data-chars="5">
         </div>
-        <div>
+        <div class="gd-field">
           <label>⬜ Abrazaderas PTR</label>
-          <input type="number" id="sop-ptr" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+          <input type="number" id="sop-ptr" min="0" max="99999" value="0" oninput="calcSoporteria()" data-chars="5">
         </div>
-        <div>
+        <div class="gd-field">
           <label>📐 Ménsulas</label>
-          <input type="number" id="sop-mens" min="0" value="0" oninput="calcSoporteria()" style="width:100%;">
+          <input type="number" id="sop-mens" min="0" max="99999" value="0" oninput="calcSoporteria()" data-chars="5">
         </div>
       </div>
 
@@ -929,14 +1002,20 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <!-- Descuento Global sobre el Total del Pedido -->
     <div class="card" id="descuento-ip-card" style="margin-top:14px;border-left:4px solid #C8102E;">
       <div class="sec-title" style="margin-top:0;">🏷️ Descuento Global</div>
-      <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;">
-        <div style="max-width:180px;">
-          <label>Descuento sobre el total (%)</label>
-          <input type="number" id="descuento_pct_ip" value="0" min="0" max="100" step="5" oninput="updateTotales()">
+      <div class="gd-fields" style="align-items:flex-end;">
+        <div class="gd-field">
+          <label>Descuento sobre el total
+            <button class="gd-i" data-info-title="Descuento global"
+                    data-info="Se aplica al <b>total del pedido</b>, no sólo a los materiales."
+                    data-formula="Base = materiales + M.O. + viáticos + movilidad + equipo
+Descuento = Base × %"></button>
+          </label>
+          <span class="gd-input-unit">
+            <input type="number" id="descuento_pct_ip" value="0" min="0" max="100" step="5" oninput="updateTotales()" data-chars="4">
+            <span>%</span>
+          </span>
         </div>
-        <div style="font-size:.85rem;color:#666;flex:1;min-width:240px;" id="descuento-ip-preview">
-          Se aplica sobre el total del pedido: materiales + M.O. + viáticos + movilidad + equipo.
-        </div>
+        <div style="font-size:.85rem;color:var(--gd-text-mute);flex:1;min-width:220px;padding-bottom:9px;" id="descuento-ip-preview"></div>
       </div>
     </div>
   </div><!-- end #mo-section -->
@@ -944,35 +1023,19 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
   <!-- 4. MATERIALES ───────────────────────────────────────────────────────────── -->
   <div class="sec-title" id="sec-materiales">4. Selección de Materiales</div>
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-      <div style="font-size:.85rem;color:#666;" id="mat-count-label">
-        Base de datos: <b>234</b> materiales · Escribe en el buscador para filtrar.
+    <button class="gdm-trigger" onclick="abrirBuscador()" id="mat-trigger">
+      <span>🔍</span>
+      <span>Buscar material en el catálogo…</span>
+      <span class="gdm-kbd">Ctrl + K</span>
+    </button>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <div style="font-size:.82rem;color:var(--gd-text-soft);" id="mat-count-label">
+        Catálogo: <b>—</b> materiales
       </div>
       <button class="mod-btn" onclick="openQuickMatModal()" title="Agregar un material temporal al carrito — no se guarda en el catálogo">
         <span>⚡</span> Material rápido
       </button>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
-      <label style="font-size:.85rem;font-weight:600;white-space:nowrap;color:#444;">Diámetro:</label>
-      <select id="diam-filter" onchange="onSearchInput()" style="flex:1;min-width:180px;max-width:300px;padding:8px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:.88rem;background:#fff;">
-        <option value="">Todos los diámetros</option>
-      </select>
-    </div>
-    <div class="search-wrap">
-      <input type="text" id="mat-search" placeholder="🔍 Escribe número de parte o descripción..." autocomplete="off" oninput="onSearchInput()">
-      <div class="dropdown hidden" id="mat-dropdown"></div>
-    </div>
-    <div class="mat-preview" id="mat-preview">
-      <div class="mat-name" id="prev-desc"></div>
-      <div class="mat-meta">
-        <span class="part" id="prev-part" style="color:var(--gd-red);font-weight:700;"></span>
-        &nbsp;&nbsp;
-        <span class="mat-price" id="prev-price"></span>
-      </div>
-      <div class="add-row">
-        <input type="number" id="add-qty" value="1" min="1" max="9999" style="width:80px;">
-        <button class="btn btn-primary" onclick="addSelectedToCart()">➕ Agregar al carrito</button>
-      </div>
     </div>
   </div>
 
@@ -1006,14 +1069,14 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       <div class="cart-totals" id="cart-totals"></div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-danger btn-sm" onclick="clearCart()">🗑 Limpiar carrito</button>
-        <button class="btn btn-secondary btn-sm" onclick="openNewProdModal()" title="Agregar un producto nuevo al catálogo">
+        <button class="btn btn-secondary btn-sm" data-solo-admin onclick="openNewProdModal()" title="Agregar un producto nuevo al catálogo">
           ➕ Nuevo producto al catálogo
         </button>
       </div>
     </div>
     <!-- Botón también visible cuando carrito está vacío -->
     <div id="cart-add-prod-empty" style="text-align:center;margin-top:10px;">
-      <button class="btn btn-secondary btn-sm" onclick="openNewProdModal()" title="Agregar un producto nuevo al catálogo">
+      <button class="btn btn-secondary btn-sm" data-solo-admin onclick="openNewProdModal()" title="Agregar un producto nuevo al catálogo">
         ➕ Nuevo producto al catálogo
       </button>
     </div>
@@ -1046,22 +1109,15 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     </div>
     <div class="gd-modal-body">
 
-      <!-- Gate de contraseña -->
+      <!-- Sin rol de administrador -->
       <div id="add-prod-gate">
-        <div class="info-box" style="margin-bottom:14px;">
-          🔒 Para modificar el catálogo necesitas el <b>acceso de administrador</b>.
+        <div class="error-box" style="margin:0;">
+          <b>🔒 Se requiere rol de administrador.</b><br>
+          Modificar el catálogo altera los precios de todas las cotizaciones, por lo
+          que está reservado a cuentas con ese permiso. Si sólo necesitas una pieza
+          para esta cotización, usa <b>⚡ Material rápido</b>: se agrega al carrito
+          sin tocar la base de datos.
         </div>
-        <div class="grid-2">
-          <div>
-            <label>Contraseña de administrador</label>
-            <input type="password" id="add-prod-pwd" placeholder="Contraseña"
-                   onkeydown="if(event.key==='Enter')unlockAddProduct()">
-          </div>
-          <div style="display:flex;align-items:flex-end;">
-            <button class="btn btn-primary" onclick="unlockAddProduct()">🔓 Desbloquear</button>
-          </div>
-        </div>
-        <div class="error-box hidden" id="add-prod-err" style="margin-top:10px;">Contraseña incorrecta.</div>
       </div>
 
       <!-- Formulario (visible después de desbloquear) -->
@@ -1232,19 +1288,18 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 <div class="page" id="page-admin">
   <div class="sec-title">🔐 Panel de Administrador</div>
 
-  <!-- Login gate -->
+  <!-- Sin rol de administrador -->
   <div id="admin-gate" class="card">
-    <div style="max-width:360px;">
-      <label>Contraseña</label>
-      <input type="password" id="admin-pwd" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')adminLogin()">
-      <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="adminLogin()">Ingresar</button>
-      <div class="error-box hidden" id="admin-err" style="margin-top:8px;">Contraseña incorrecta.</div>
+    <div class="error-box" style="margin:0;">
+      <b>🔒 Acceso restringido.</b><br>
+      Esta sección está reservada al rol de <b>administrador</b>. Tu cuenta
+      (<span id="admin-quien">—</span>) no tiene ese permiso.
+      Solicita la elevación de tu rol a quien administre el portal.
     </div>
   </div>
 
-  <!-- Admin panel (hidden until logged in) -->
+  <!-- Panel visible sólo con rol admin -->
   <div id="admin-panel" style="display:none;">
-    <div class="success-box" style="margin-bottom:12px;">✅ Sesión activa. <button class="btn btn-secondary btn-sm" style="float:right;" onclick="adminLogout()">Cerrar sesión</button></div>
 
     <!-- Utilidades configurables -->
     <div class="card">
@@ -1330,6 +1385,80 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         </table>
       </div>
     </div>
+
+    <!-- Usuarios -->
+    <div class="card" id="usuarios-card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">👥 Usuarios del portal
+        <button class="gd-i" data-info-title="Cuentas"
+                data-info="Cada persona entra con su propia cuenta, de modo que la bitácora identifique quién hizo cada cambio. Las contraseñas se guardan cifradas (scrypt con sal) y <b>nunca</b> pueden recuperarse: si alguien la olvida, se restablece con 🔑."
+                data-fuente="Un usuario nuevo debe cambiar su contraseña la primera vez que entra."></button>
+      </div>
+
+      <div class="gd-fields" style="margin-bottom:14px;align-items:flex-end;">
+        <div class="gd-field">
+          <label>Usuario</label>
+          <input type="text" id="nu-usuario" maxlength="32" placeholder="jperez" autocomplete="off">
+        </div>
+        <div class="gd-field gd-field-grow">
+          <label>Nombre completo</label>
+          <input type="text" id="nu-nombre" maxlength="60" placeholder="Juan Pérez" autocomplete="off">
+        </div>
+        <div class="gd-field">
+          <label>Rol
+            <button class="gd-i" data-info-title="Roles"
+                    data-info="<b>Usuario</b>: cotiza, genera reportes y captura requisiciones.<br><b>Administrador</b>: además edita el catálogo, los porcentajes de utilidad y las cuentas."></button>
+          </label>
+          <select id="nu-rol">
+            <option value="usuario">Usuario</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div class="gd-field">
+          <label>Contraseña inicial</label>
+          <input type="text" id="nu-pwd" maxlength="64" placeholder="mínimo 10 caracteres" autocomplete="off" data-chars="22">
+        </div>
+        <div class="gd-field">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="usuarioCrear()">➕ Crear cuenta</button>
+        </div>
+      </div>
+
+      <div class="admin-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th style="width:130px;">Usuario</th>
+            <th>Nombre</th>
+            <th style="width:90px;">Rol</th>
+            <th style="width:140px;">Último acceso</th>
+            <th style="width:120px;">Estado</th>
+            <th style="width:130px;text-align:center;">Acciones</th>
+          </tr></thead>
+          <tbody id="usuarios-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bitácora -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">📜 Bitácora de auditoría
+        <button class="gd-i" data-info-title="Bitácora"
+                data-info="Registro inmutable de accesos y modificaciones: quién, qué, cuándo y desde qué dirección IP. La base de datos impide editarla o borrarla, de modo que sirva como evidencia."
+                data-fuente="Se conservan 24 meses y después se purga automáticamente."></button>
+        <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="renderBitacora()">↻ Actualizar</button>
+      </div>
+      <div class="admin-wrap" style="max-height:420px;">
+        <table class="admin-table">
+          <thead><tr>
+            <th style="width:150px;">Fecha y hora</th>
+            <th style="width:120px;">Usuario</th>
+            <th style="width:150px;">Acción</th>
+            <th style="width:110px;">Tabla</th>
+            <th>Detalle</th>
+          </tr></thead>
+          <tbody id="bitacora-tbody"><tr><td colspan="5" style="padding:14px;color:#888;">Pulsa «Actualizar» para consultar.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div><!-- end page-admin -->
 
@@ -1339,7 +1468,9 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 ══════════════════════════════════════════════════════════════════════════════ -->
 <script>
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
-const ADMIN_PASSWORD = 'pipro2026';
+// (La contraseña de administrador que vivía aquí se retiró en la auditoría de
+//  seguridad: era legible con «ver código fuente». Ahora el permiso lo otorga
+//  el servidor mediante el rol de la sesión.)
 // Utilidades configurables desde el panel admin (se cargan desde Supabase al iniciar)
 let GANANCIA_VIATICOS_PCT = 0.30;  // 30% sobre comidas + hospedaje
 let UTIL_MOVILIDAD_PCT    = 0.40;  // 40% sobre movilidad total (automóvil + vuelo)
@@ -1545,7 +1676,6 @@ function updateFolio() {
   let abbrev = el('abbrev').value.trim();
   if (!abbrev && empresa) { abbrev = genAbbrev(empresa); el('abbrev').value = abbrev; }
   const initials = el('initials').value.trim()||'XXX';
-  const ref = el('refnum').value.trim();
   const tipoCode = state.tipo==='ip'?'IP':'IT';
 
   let dateFormatted = '010125';
@@ -1554,7 +1684,6 @@ function updateFolio() {
     dateFormatted = `${d}${m}${y.substring(2)}`;
   }
   let folio = `${(abbrev||'XXXX').toUpperCase()}-${dateFormatted}-${tipoCode}-${initials.toUpperCase()}`;
-  if (ref) folio += ` (${ref})`;
   // Sufijo de edición: si venimos de un archivo cargado, marcamos -EDITADO + revisión
   if (state.editandoFolio) {
     const sufijo = state.editandoVersion > 1 ? `-EDITADO-v${state.editandoVersion}` : '-EDITADO';
@@ -1614,7 +1743,6 @@ function serializeCotizacion() {
       fecha:      el('fecha').value || '',
       abbrev:     el('abbrev').value || '',
       initials:   el('initials').value || '',
-      refnum:     el('refnum').value || '',
       desc_proy:  el('desc_proy') ? el('desc_proy').value : '',
     },
     descuento_pct: el('descuento_pct') ? (+el('descuento_pct').value || 0) : 0,
@@ -1634,7 +1762,6 @@ function restoreCotizacion(data) {
     if (el('fecha'))     el('fecha').value     = data.cliente.fecha     || '';
     if (el('abbrev'))    el('abbrev').value    = data.cliente.abbrev    || '';
     if (el('initials'))  el('initials').value  = data.cliente.initials  || '';
-    if (el('refnum'))    el('refnum').value    = data.cliente.refnum    || '';
     if (el('desc_proy')) el('desc_proy').value = data.cliente.desc_proy || '';
   }
   // Tipo y categoría
@@ -1808,7 +1935,10 @@ function showPage(pageId, btn) {
   document.querySelectorAll('.mod-tab').forEach(b=>b.classList.remove('active'));
   el('page-'+pageId).classList.add('active');
   if (btn && btn.classList) btn.classList.add('active');
-  if (pageId==='admin') renderAdminTable();
+  if (pageId==='admin') {
+    aplicarPermisos();
+    if (GD.sesion.esAdmin) renderUsuarios();
+  }
 }
 
 // ── TIPO SELECTION ────────────────────────────────────────────────────────────
@@ -2023,99 +2153,64 @@ function extractDiam(desc) {
   const m = desc.match(/^(\d+)\s*mm/i);
   return m ? m[1] + 'mm' : 'otros';
 }
-function populateDiamFilter() {
-  const diams = new Map(); // 'XXXmm' -> 'XXXmm (X" ID)'
+/** Categorías (diámetros) presentes en el catálogo, para los filtros rápidos. */
+function categoriasMateriales() {
+  const diams = new Map();
   state.materiales.forEach(m => {
-    const dKey = extractDiam(m.descripcion);
-    if (!diams.has(dKey)) {
-      if (dKey !== 'otros') {
-        const label = m.descripcion.match(/^(\d+\s*mm\s*\([^)]+\))/i);
-        diams.set(dKey, label ? label[1].trim() : dKey);
-      } else {
-        diams.set('otros', 'Otros (Herramientas / Accesorios)');
-      }
+    const k = extractDiam(m.descripcion);
+    if (diams.has(k)) return;
+    if (k === 'otros') diams.set('otros', 'Herramientas y accesorios');
+    else {
+      const etq = m.descripcion.match(/^(\d+\s*mm)/i);
+      diams.set(k, etq ? etq[1].trim() : k);
     }
   });
-  // Sort numerically: 200mm, 150mm, ... then otros
-  const numericDiams = [...diams.entries()].filter(([k])=>k!=='otros').sort((a,b)=>parseInt(b[0])-parseInt(a[0]));
-  const sel = el('diam-filter');
-  sel.innerHTML = '<option value="">Todos los diámetros</option>';
-  numericDiams.forEach(([k,v]) => { sel.innerHTML += `<option value="${k}">${v}</option>`; });
-  if (diams.has('otros')) sel.innerHTML += `<option value="otros">Otros (Herramientas / Accesorios)</option>`;
+  const num = [...diams.entries()]
+    .filter(([k]) => k !== 'otros')
+    .sort((a, b) => parseInt(b[0]) - parseInt(a[0]))
+    .map(([valor, etiqueta]) => ({ valor, etiqueta }));
+  if (diams.has('otros')) num.push({ valor: 'otros', etiqueta: 'Herramientas y accesorios' });
+  return num;
 }
 
-// ── MATERIALS SEARCH ──────────────────────────────────────────────────────────
-let searchTimer;
-function onSearchInput() {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    const q = el('mat-search').value.trim().toLowerCase();
-    const diam = el('diam-filter').value;
-    if (!q && !diam) { el('mat-dropdown').classList.add('hidden'); return; }
-    let results = state.materiales;
-    // Filter by diameter
-    if (diam === 'otros') {
-      results = results.filter(m => extractDiam(m.descripcion) === 'otros');
-    } else if (diam) {
-      results = results.filter(m => extractDiam(m.descripcion) === diam);
-    }
-    // Filter by text
-    if (q) {
-      results = results.filter(m =>
-        m.descripcion.toLowerCase().includes(q) || m.numero_parte.toLowerCase().includes(q)
-      );
-    }
-    renderDropdown(results.slice(0, 80), q);
-  }, 150);
+/** Etiqueta del contador de catálogo. */
+function actualizarContadorMateriales() {
+  const e = el('mat-count-label');
+  if (e) e.innerHTML = `Catálogo: <b>${state.materiales.length}</b> materiales`;
 }
 
-function renderDropdown(items, q) {
-  const dd = el('mat-dropdown');
-  if (!items.length) {
-    dd.innerHTML = '<div class="dd-item" style="color:#999;">Sin resultados.</div>';
-    dd.classList.remove('hidden');
-    return;
-  }
-  let html = `<div class="dd-count">${items.length} resultado(s)</div>`;
-  items.forEach((m,i) => {
-    const descShort = shortDesc(m.descripcion, 72);
-    html += `<div class="dd-item" data-idx="${i}" onclick="selectMaterial(${state.materiales.indexOf(m)})">
-      <span class="price">${fmt(m.precio)}</span>
-      <span class="part">${m.numero_parte}</span><br>
-      <span class="desc">${descShort}</span>
-    </div>`;
-  });
-  dd.innerHTML = html;
-  dd.classList.remove('hidden');
-}
+// Alias conservado: varios puntos del código llamaban a populateDiamFilter()
+function populateDiamFilter() { actualizarContadorMateriales(); }
 
-function selectMaterial(idx) {
-  const m = state.materiales[idx];
-  if (!m) return;
-  state.selectedMat = m;
-  el('mat-dropdown').classList.add('hidden');
-  el('mat-search').value = '';  // Limpiar buscador al seleccionar
-  el('prev-desc').textContent = m.descripcion;
-  el('prev-part').textContent = m.numero_parte;
-  el('prev-price').textContent = fmt(m.precio) + ' c/u';
-  el('add-qty').value = 1;
-  el('mat-preview').style.display = 'block';
-  el('mat-search').focus();
-}
+// ── BUSCADOR DE MATERIALES ────────────────────────────────────────────────────
+//  Sustituye al desplegable anterior: una sola ventana con búsqueda por
+//  relevancia, filtros por diámetro, navegación con teclado y alta múltiple
+//  sin cerrar. Ctrl+K la abre desde cualquier punto del módulo.
 
-// Hide dropdown on outside click
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-wrap')) {
-    el('mat-dropdown').classList.add('hidden');
-  }
+GD.picker.configurar({
+  materiales:  () => state.materiales,
+  carrito:     () => state.carrito,
+  claveDe:     m => cartKey(m),
+  precio:      m => fmt(m.precio),
+  categorias:  () => categoriasMateriales(),
+  categoriaDe: m => extractDiam(m.descripcion),
+  onAgregar:   (m, qty) => {
+    addToCart(m, qty);
+    toast(`✅ ${qty}× ${shortDesc(m.descripcion, 34)} agregado al carrito`);
+  },
 });
 
-function addSelectedToCart() {
-  if (!state.selectedMat) return;
-  const qty = Math.max(1, parseInt(el('add-qty').value)||1);
-  addToCart(state.selectedMat, qty);
-  toast(`✅ ${qty}× ${shortDesc(state.selectedMat.descripcion,30)} agregado al carrito`);
+function abrirBuscador(texto) {
+  if (!state.materiales.length) { toast('⏳ El catálogo aún se está cargando…'); return; }
+  GD.picker.abrir(texto);
 }
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    GD.picker.abierto ? GD.picker.cerrar() : abrirBuscador();
+  }
+});
 
 // ── CART MANAGEMENT ───────────────────────────────────────────────────────────
 function cartKey(m) { return m.numero_parte + '||' + m.descripcion.substring(0,20); }
@@ -2218,7 +2313,7 @@ function initQuickMatExcel(inp) {
       window._qmRows = rows;
       renderQmMapper(rows, sName);
     } catch(err) {
-      el('qm-preview').innerHTML = `<div class="error-box">Error al leer el archivo: ${err.message}</div>`;
+      el('qm-preview').innerHTML = `<div class="error-box">Error al leer el archivo: ${GD.esc(err.message)}</div>`;
     }
   };
   reader.readAsArrayBuffer(file);
@@ -2261,7 +2356,7 @@ function renderQmMapper(rows, sheetName) {
   const previewHtml = `<div style="overflow-x:auto;margin:8px 0 12px;">
     <table style="border-collapse:collapse;font-size:.78rem;width:100%;">
       <thead><tr>${letters.map(l=>`<th style="border:1px solid #ddd;padding:3px 8px;background:#e9ecef;white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
-      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(r[i]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
+      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${GD.esc(String(r[i]||''))}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>`;
 
   const totalRows = rows.length - dataStart;
@@ -2270,7 +2365,7 @@ function renderQmMapper(rows, sheetName) {
   el('qm-preview').innerHTML = `
     <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:14px;">
       <div style="font-size:.82rem;color:#555;margin-bottom:10px;">
-        Hoja: <b>${sheetName}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
+        Hoja: <b>${GD.esc(sheetName)}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:8px;">
         <div><span style="${LS}">📝 Descripción</span><select id="qm-col-desc"  style="${SS}">${colOpts(colMap.desc)}</select></div>
@@ -2351,8 +2446,8 @@ function renderCart() {
     const rowClass = insuf ? 'row-insuf' : '';
     html += `<tr class="${rowClass}">
       <td class="col-num">${i+1}</td>
-      <td>${shortDesc(item.descripcion,45)}</td>
-      <td class="col-part">${item.numero_parte}</td>
+      <td>${GD.esc(shortDesc(item.descripcion,45))}</td>
+      <td class="col-part">${GD.esc(item.numero_parte)}</td>
       <td class="col-qty"><input type="number" value="${item.cantidad}" min="1" max="9999"
         data-key="${safeKey}"
         oninput="updateQtyFromInput(this)"
@@ -2361,7 +2456,7 @@ function renderCart() {
         data-key="${safeKey}"
         oninput="updateDispFromInput(this)"
         title="Cantidad disponible en almacén"></td>
-      <td class="col-fecha"><input type="text" value="${(item.fechaEntrega || '').replace(/"/g,'&quot;')}"
+      <td class="col-fecha"><input type="text" value="${GD.esc(item.fechaEntrega || '')}"
         data-key="${safeKey}"
         placeholder="ej. 3 a 7 días"
         oninput="updateFechaFromInput(this)"
@@ -2463,7 +2558,7 @@ function updateTotales() {
   if (prevEl) {
     prevEl.innerHTML = descuento > 0
       ? `Total del pedido: <b>${fmt(total_bruto)}</b> · Descuento ${(descuento*100).toFixed(0)}%: <b style="color:#C8102E;">-${fmt(desc_monto)}</b> · Queda en <b>${fmt(total_neto)}</b> antes de IVA.`
-      : `Se aplica sobre el total del pedido: materiales + M.O. + viáticos + movilidad + equipo.`;
+      : `Total del pedido: <b>${fmt(total_bruto)}</b> — sin descuento aplicado.`;
   }
 }
 
@@ -3582,23 +3677,145 @@ function generateBoth() {
   setTimeout(generateExcel, 500);
 }
 
-// ── ADMIN ─────────────────────────────────────────────────────────────────────
-function adminLogin() {
-  if (el('admin-pwd').value === ADMIN_PASSWORD) {
-    state.adminOk = true;
+// ── ADMINISTRACIÓN ────────────────────────────────────────────────────────────
+//  El acceso ya no depende de una contraseña escrita en este archivo (que
+//  cualquiera podía leer con «ver código fuente»), sino del rol que el servidor
+//  asignó a la sesión al iniciar sesión en el portal.
+
+function aplicarPermisos() {
+  const admin = GD.sesion.esAdmin;
+  state.adminOk = admin;
+  if (admin) {
     hide('admin-gate');
     show('admin-panel');
     renderAdminTable();
     renderUtilForm();
   } else {
-    showCls('admin-err');
+    show('admin-gate');
+    hide('admin-panel');
+    const quien = el('admin-quien');
+    if (quien && GD.sesion.actual) quien.textContent = GD.sesion.actual.usuario;
+  }
+  // El alta al catálogo sólo tiene sentido para administradores.
+  // Se usa display en lugar del atributo hidden porque las clases .btn
+  // declaran display:inline-flex y ganarían la prioridad.
+  document.querySelectorAll('[data-solo-admin]').forEach(b => {
+    b.style.display = admin ? '' : 'none';
+  });
+}
+
+/** Llamado por el portal desde el menú de cuenta (postMessage). */
+window.gdAbrirAdmin = function () {
+  const t = document.querySelector('.mod-tab[data-tab="admin"], [onclick*="\'admin\'"]');
+  if (typeof setTab === 'function') setTab('admin');
+  else if (t) t.click();
+  setTimeout(() => {
+    const p = el('usuarios-card');
+    if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 250);
+};
+
+// ── USUARIOS Y BITÁCORA ───────────────────────────────────────────────────────
+
+async function apiUsuarios(payload) {
+  const r = await fetch('/api/usuarios', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || `Error ${r.status}`);
+  return d;
+}
+
+async function renderUsuarios() {
+  const cont = el('usuarios-tbody');
+  if (!cont) return;
+  cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:#888;">Cargando…</td></tr>';
+  try {
+    const filas = await apiUsuarios({ accion: 'listar' });
+    if (!filas.length) { cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:#888;">Sin usuarios.</td></tr>'; return; }
+    cont.innerHTML = filas.map(u => {
+      const acceso = u.ultimo_acceso
+        ? new Date(u.ultimo_acceso).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+        : '—';
+      return `<tr${u.activo ? '' : ' style="opacity:.5;"'}>
+        <td><b>${GD.esc(u.usuario)}</b></td>
+        <td>${GD.esc(u.nombre || '')}</td>
+        <td><span class="gd-user-rol${u.rol === 'admin' ? ' admin' : ''}">${u.rol === 'admin' ? 'Admin' : 'Usuario'}</span></td>
+        <td style="font-size:.82rem;color:#777;">${GD.esc(acceso)}</td>
+        <td>${u.activo ? '🟢 Activo' : '⚪ Inactivo'}${u.debe_cambiar_password ? ' · 🔑' : ''}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" onclick="usuarioReset(this)" title="Asignar una contraseña nueva">🔑</button>
+          <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" data-activo="${u.activo}" onclick="usuarioActivar(this)" title="Activar o desactivar">${u.activo ? '🚫' : '✅'}</button>
+          <button class="btn btn-danger btn-sm" data-u="${GD.esc(u.usuario)}" onclick="usuarioEliminar(this)" title="Eliminar la cuenta">🗑</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    cont.innerHTML = `<tr><td colspan="6" style="padding:14px;color:#dc2626;">${GD.esc(e.message)}</td></tr>`;
   }
 }
-function adminLogout() {
-  state.adminOk = false;
-  show('admin-gate');
-  hide('admin-panel');
-  el('admin-pwd').value = '';
+
+async function usuarioCrear() {
+  const usuario  = (el('nu-usuario').value || '').trim().toLowerCase();
+  const nombre   = (el('nu-nombre').value || '').trim();
+  const rol      = el('nu-rol').value;
+  const password = el('nu-pwd').value;
+  try {
+    await apiUsuarios({ accion: 'crear', usuario, nombre, rol, password });
+    toast(`✅ Usuario "${usuario}" creado.`);
+    el('nu-usuario').value = ''; el('nu-nombre').value = ''; el('nu-pwd').value = '';
+    renderUsuarios();
+  } catch (e) { alert('❌ ' + e.message); }
+}
+
+async function usuarioReset(btn) {
+  const u = btn.dataset.u;
+  const password = prompt(`Nueva contraseña para "${u}" (mínimo 10 caracteres, con letras y números):`);
+  if (!password) return;
+  try {
+    await apiUsuarios({ accion: 'actualizar', usuario: u, password });
+    toast(`✅ Contraseña de "${u}" restablecida. Deberá cambiarla al entrar.`);
+    renderUsuarios();
+  } catch (e) { alert('❌ ' + e.message); }
+}
+
+async function usuarioActivar(btn) {
+  const u = btn.dataset.u;
+  const activo = btn.dataset.activo !== 'true';
+  try {
+    await apiUsuarios({ accion: 'actualizar', usuario: u, activo });
+    renderUsuarios();
+  } catch (e) { alert('❌ ' + e.message); }
+}
+
+async function usuarioEliminar(btn) {
+  const u = btn.dataset.u;
+  if (!confirm(`¿Eliminar definitivamente la cuenta "${u}"?\n\nSus movimientos permanecen en la bitácora.`)) return;
+  try {
+    await apiUsuarios({ accion: 'eliminar', usuario: u });
+    renderUsuarios();
+  } catch (e) { alert('❌ ' + e.message); }
+}
+
+async function renderBitacora() {
+  const cont = el('bitacora-tbody');
+  if (!cont) return;
+  cont.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#888;">Cargando…</td></tr>';
+  try {
+    const filas = await apiUsuarios({ accion: 'bitacora', limite: 300 });
+    if (!filas.length) { cont.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#888;">Sin movimientos registrados.</td></tr>'; return; }
+    cont.innerHTML = filas.map(b => `<tr>
+      <td style="white-space:nowrap;font-size:.8rem;color:#777;">${GD.esc(new Date(b.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'medium' }))}</td>
+      <td><b>${GD.esc(b.usuario || '—')}</b></td>
+      <td>${GD.esc(b.accion)}</td>
+      <td>${GD.esc(b.tabla || '—')}</td>
+      <td style="font-size:.82rem;color:#555;">${GD.esc(b.detalle || '')}</td>
+    </tr>`).join('');
+  } catch (e) {
+    cont.innerHTML = `<tr><td colspan="5" style="padding:14px;color:#dc2626;">${GD.esc(e.message)}</td></tr>`;
+  }
 }
 
 // ── UTILIDADES CONFIGURABLES ──────────────────────────────────────────────────
@@ -3749,17 +3966,15 @@ function openNewProdModal() {
   const m = el('newprod-modal');
   if (!m) return;
   m.style.display = 'flex';
-  // Si el admin ya está desbloqueado, mostrar form directamente
-  if (state.addProdOk) {
+  // El permiso lo determina el rol de la sesión, no una contraseña local
+  if (GD.sesion.esAdmin) {
     hide('add-prod-gate');
     show('add-prod-form');
+    setTimeout(() => { const d = el('new-desc'); if (d) d.focus(); }, 100);
   } else {
     show('add-prod-gate');
     hide('add-prod-form');
-    const pwd = el('add-prod-pwd');
-    if (pwd) { pwd.value = ''; setTimeout(()=>pwd.focus(), 100); }
   }
-  hideCls('add-prod-err');
   const ok = el('add-prod-ok');
   if (ok) ok.classList.add('hidden');
   // Reiniciar selector de moneda a MXN cada vez que se abre
@@ -3771,21 +3986,9 @@ function closeNewProdModal() {
   if (m) m.style.display = 'none';
 }
 
-function unlockAddProduct() {
-  if (el('add-prod-pwd').value === ADMIN_PASSWORD) {
-    state.addProdOk = true;
-    hide('add-prod-gate');
-    show('add-prod-form');
-    hideCls('add-prod-err');
-  } else {
-    showCls('add-prod-err');
-  }
-}
 function lockAddProduct() {
-  state.addProdOk = false;
   show('add-prod-gate');
   hide('add-prod-form');
-  el('add-prod-pwd').value = '';
 }
 // Muestra/oculta el campo de tipo de cambio según la moneda elegida
 // y actualiza la etiqueta del precio. El catálogo SIEMPRE guarda en MXN;
@@ -3864,7 +4067,7 @@ async function addProduct() {
       el('add-prod-ok').textContent += ' ⚠️ Sin conexión, guardado localmente.';
     }
   }
-  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  actualizarContadorMateriales();
   showCls('add-prod-ok');
   el('new-desc').value=''; el('new-part').value=''; el('new-price').value='';
   el('new-moneda').value='MXN'; el('new-tc').value=''; toggleNewProdMoneda();
@@ -3902,7 +4105,7 @@ function uploadMateriales(inp) {
       state.materiales = newMats;
       // Guardar en caché local siempre
       try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
-      el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+      actualizarContadorMateriales();
       populateDiamFilter();
       renderAdminTable();
       // Sincronizar con Supabase (reemplaza catálogo completo)
@@ -3910,15 +4113,15 @@ function uploadMateriales(inp) {
         el('upload-status').innerHTML = `<div class="info-box">⏳ Sincronizando ${newMats.length} materiales con el servidor…</div>`;
         try {
           await replaceMateriales();
-          el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${file.name}" y sincronizados con el servidor ☁️.</div>`;
+          el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${GD.esc(file.name)}" y sincronizados con el servidor ☁️.</div>`;
         } catch(sbErr) {
-          el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${file.name}". ⚠️ No se pudo sincronizar con servidor: ${sbErr.message}</div>`;
+          el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${GD.esc(file.name)}". ⚠️ No se pudo sincronizar con servidor: ${sbErr.message}</div>`;
         }
       } else {
-        el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${file.name}".</div>`;
+        el('upload-status').innerHTML = `<div class="success-box">✅ ${newMats.length} materiales cargados desde "${GD.esc(file.name)}".</div>`;
       }
     } catch(err) {
-      el('upload-status').innerHTML = `<div class="error-box">Error al procesar el archivo: ${err.message}</div>`;
+      el('upload-status').innerHTML = `<div class="error-box">Error al procesar el archivo: ${GD.esc(err.message)}</div>`;
     }
   };
   reader.readAsArrayBuffer(file);
@@ -3968,13 +4171,21 @@ function nominatimSearch(inp, ddId, role) {
       const items = await res.json();
       if (!items.length) { dd.style.display = 'none'; return; }
 
-      dd.innerHTML = items.map(item => {
-        const name = item.display_name;
-        const lat  = item.lat, lon = item.lon;
-        return `<div onclick="selectPlace('${ddId}','${role}',${lat},${lon},\`${name.replace(/`/g,"'")}\`)"
+      // El nombre viene de un servicio externo: se escapa y se pasa por
+      // dataset, nunca interpolado dentro de un atributo onclick.
+      dd.innerHTML = items.map(item => `
+        <div class="osm-opt"
+          data-lat="${GD.esc(item.lat)}" data-lon="${GD.esc(item.lon)}"
+          data-nombre="${GD.esc(item.display_name)}"
           style="padding:8px 12px;cursor:pointer;font-size:.83rem;border-bottom:1px solid #f0f0f0;line-height:1.35;"
-          onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background=''">${name}</div>`;
-      }).join('');
+        >${GD.esc(item.display_name)}</div>`).join('');
+
+      dd.querySelectorAll('.osm-opt').forEach(op => {
+        op.addEventListener('mouseover', () => op.style.background = '#f0f4ff');
+        op.addEventListener('mouseout',  () => op.style.background = '');
+        op.addEventListener('click', () =>
+          selectPlace(ddId, role, op.dataset.lat, op.dataset.lon, op.dataset.nombre));
+      });
       dd.style.display = 'block';
     } catch(e) { dd.style.display = 'none'; }
   }, 420);
@@ -4012,7 +4223,7 @@ async function calcularRuta() {
     el('gm-info').style.display = 'block';
     _osm.origin = await _geocodeFallback(q);
     if (!_osm.origin) {
-      el('gm-info').innerHTML = `<div class="error-box">No se encontró "<b>${q}</b>". Selecciónalo de la lista desplegable.</div>`;
+      el('gm-info').innerHTML = `<div class="error-box">No se encontró "<b>${GD.esc(q)}</b>". Selecciónalo de la lista desplegable.</div>`;
       return;
     }
   }
@@ -4023,7 +4234,7 @@ async function calcularRuta() {
     el('gm-info').style.display = 'block';
     _osm.dest = await _geocodeFallback(q);
     if (!_osm.dest) {
-      el('gm-info').innerHTML = `<div class="error-box">No se encontró "<b>${q}</b>". Selecciónalo de la lista desplegable.</div>`;
+      el('gm-info').innerHTML = `<div class="error-box">No se encontró "<b>${GD.esc(q)}</b>". Selecciónalo de la lista desplegable.</div>`;
       return;
     }
   }
@@ -4079,7 +4290,7 @@ async function calcularRuta() {
 
     updateMO();
   } catch(e) {
-    el('gm-info').innerHTML = `<div class="error-box">Error al calcular la ruta: ${e.message}</div>`;
+    el('gm-info').innerHTML = `<div class="error-box">Error al calcular la ruta: ${GD.esc(e.message)}</div>`;
   }
 }
 
@@ -4101,7 +4312,7 @@ function initQuickExcel(inp) {
       window._qxRows = rows;
       renderQxMapper(rows, sName);
     } catch(err) {
-      el('qx-preview').innerHTML = `<div class="error-box">Error al leer el archivo: ${err.message}</div>`;
+      el('qx-preview').innerHTML = `<div class="error-box">Error al leer el archivo: ${GD.esc(err.message)}</div>`;
     }
   };
   reader.readAsArrayBuffer(file);
@@ -4173,7 +4384,7 @@ function renderQxMapper(rows, sheetName) {
   const previewHtml = `<div style="overflow-x:auto;margin:8px 0 12px;">
     <table style="border-collapse:collapse;font-size:.78rem;width:100%;">
       <thead><tr>${letters.map(l=>`<th style="border:1px solid #ddd;padding:3px 8px;background:#e9ecef;white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
-      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(r[i]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
+      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${GD.esc(String(r[i]||''))}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>`;
 
   const totalRows = rows.length - dataStart;
@@ -4182,7 +4393,7 @@ function renderQxMapper(rows, sheetName) {
   el('qx-preview').innerHTML = `
     <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:14px;">
       <div style="font-size:.82rem;color:#555;margin-bottom:10px;">
-        Hoja: <b>${sheetName}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
+        Hoja: <b>${GD.esc(sheetName)}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px;">
         <div><span style="${LS}">📝 Descripción</span><select id="qx-col-desc"  style="${SS}"><option value="-1">– No usar –</option>${colOpts(colMap.desc)}</select></div>
@@ -4244,7 +4455,7 @@ async function importQuickExcel(dataStart) {
 
   // Guardar caché local
   try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
-  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  actualizarContadorMateriales();
   if (state.adminOk) renderAdminTable();
 
   // Sincronizar con Supabase
@@ -4385,7 +4596,7 @@ async function updateMatField(input) {
     _showSaveStatus(newPart, 'ok', 'Guardado localmente (sin Supabase)');
   }
 
-  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  actualizarContadorMateriales();
 }
 
 async function deleteMat(btn) {
@@ -4407,7 +4618,7 @@ async function deleteMat(btn) {
     }
   }
 
-  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
+  actualizarContadorMateriales();
   renderAdminTable();
   toast(`🗑 "${m.descripcion.substring(0, 40)}..." eliminado`);
 }
@@ -4554,6 +4765,10 @@ async function replaceMateriales() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
+  // Quién es y qué puede hacer: lo decide el servidor, no el navegador
+  await GD.sesion.cargar();
+  aplicarPermisos();
+
   // Set today's date
   const today = new Date();
   const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), dd = String(today.getDate()).padStart(2,'0');
@@ -4569,8 +4784,10 @@ async function init() {
 
   // Cargar materiales — Supabase es la fuente de verdad
   await loadMateriales();
-  el('mat-count-label').innerHTML = `Base de datos: <b>${state.materiales.length}</b> materiales · Escribe en el buscador para filtrar.`;
-  populateDiamFilter();
+  actualizarContadorMateriales();
+
+  // Dimensionar campos y preparar los iconos de información ya renderizados
+  GD.refrescar();
 }
 
 // ── CLIENTES – COMBO-BOX (AUTOCOMPLETE + LISTA DESPLEGABLE) ─────────────────

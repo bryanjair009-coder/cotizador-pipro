@@ -4,8 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reporte de Fugas · Gardner Denver México</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
-<script src="gd-theme-sync.js?v=20260619"></script>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
+<script src="gd-theme-sync.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260905"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="supabase-client.js"></script>
@@ -156,7 +159,7 @@ textarea{resize:vertical;line-height:1.55;}
 .hidden{display:none !important;}
 </style>
 </head>
-<body>
+<body data-gd-autosize>
 
 <!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────────── -->
 <header class="mod-header">
@@ -226,9 +229,11 @@ textarea{resize:vertical;line-height:1.55;}
   <!-- 2. EQUIPO DE MEDICIÓN ──────────────────────────────────────────────── -->
   <div class="sec-title">2. Equipo de Medición</div>
   <div class="card">
-    <div class="info-box" style="margin-bottom:14px;">
-      Datos del detector ultrasónico usado en el estudio. Vienen precargados y se imprimen en el reporte;
-      edítalos solo si usas otro equipo.
+    <div style="margin-bottom:12px;font-size:.85rem;color:var(--gd-text-mute);display:flex;align-items:center;">
+      Detector ultrasónico usado en el estudio
+      <button class="gd-i" data-info-title="Equipo de medición"
+              data-info="Vienen precargados los datos del equipo de la empresa y se imprimen en el reporte como respaldo de la medición. Edítalos sólo si usas otro instrumento."
+              data-fuente="La trazabilidad del instrumento es lo que da validez técnica al reporte ante el cliente."></button>
     </div>
     <div class="grid-3">
       <div>
@@ -252,7 +257,13 @@ textarea{resize:vertical;line-height:1.55;}
   </div>
 
   <!-- 3. PUNTOS DE FUGA ──────────────────────────────────────────────────── -->
-  <div class="sec-title">3. Puntos de Fuga Detectados</div>
+  <div class="sec-title" style="display:flex;align-items:center;">3. Puntos de Fuga Detectados
+    <button class="gd-i" data-info-title="Captura de cada fuga"
+            data-info="Sube la foto de la pantalla de la pistola isofónica y anota sus dos lecturas.<br><br><b>Nivel (dB)</b>: intensidad ultrasónica que detecta el equipo — indica qué tan audible es la fuga.<br><b>LOSS (CFM)</b>: caudal de aire perdido — es lo que se suma para dimensionar el problema."
+            data-formula="Pérdida total = Σ LOSS de todos los puntos
+Nivel promedio = Σ dB / número de fugas"
+            data-fuente="Los indicadores de arriba se recalculan solos conforme capturas."></button>
+  </div>
   <div class="card">
     <div class="kpi-grid" style="margin-bottom:16px;">
       <div class="kpi">

@@ -4,8 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Selección Eléctrica · NOM-001-SEDE-2012</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260619"/>
-<script src="gd-theme-sync.js?v=20260619"></script>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
+<script src="gd-theme-sync.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260905"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -142,7 +145,7 @@ details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
 #resultados{display:none;}
 </style>
 </head>
-<body>
+<body data-gd-autosize>
 
 <!-- ── BARRA DEL MÓDULO ─────────────────────────────────────────────────── -->
 <header class="mod-header">
@@ -160,7 +163,14 @@ details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
 <div class="card">
   <div class="grid-3">
     <div>
-      <label>Tipo de carga</label>
+      <label>Tipo de carga
+        <button class="gd-i" data-info-title="Tipo de carga"
+                data-info="Determina el factor que se aplica a la corriente de diseño."
+                data-formula="Motor:          I × 1.25   (Art. 430-22)
+Carga continua: I × 1.25   (Art. 210-19)
+Uso general:    I × 1.00"
+                data-fuente="NOM-001-SEDE-2012"></button>
+      </label>
       <select id="tipo_carga">
         <option value="motor">Motor (con factor 1.25 art. 430-22)</option>
         <option value="continua">Carga continua (alumbrado / resistencia)</option>
@@ -193,18 +203,29 @@ details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
       </select>
     </div>
     <div>
-      <label>FLA (opcional, sobreescribe cálculo)</label>
-      <input type="number" id="fla_manual" placeholder="dejar vacío para calcular" min="0" step="0.1">
+      <label>FLA de placa
+        <button class="gd-i" data-info-title="FLA (Full Load Amperes)"
+                data-info="Corriente a plena carga que aparece en la <b>placa de datos</b> del motor. Si la capturas, se usa tal cual y se ignora el cálculo a partir de la potencia — es el dato más fiable."
+                data-formula="Trifásico:  FLA = P / (√3 × V × FP × η)
+Monofásico: FLA = P / (V × FP × η)"></button>
+      </label>
+      <input type="number" id="fla_manual" placeholder="opcional" min="0" max="9999" step="0.1" data-chars="6">
     </div>
   </div>
   <div class="grid-2" style="margin-top:10px;">
     <div>
-      <label>Factor de Potencia (FP)</label>
-      <input type="number" id="fp" value="0.85" min="0.5" max="1" step="0.01">
+      <label>Factor de potencia (FP)
+        <button class="gd-i" data-info-title="Factor de potencia"
+                data-info="Relación entre potencia activa y aparente. Viene en la placa del motor; a falta de dato, 0.85 es una hipótesis conservadora para motores de inducción."></button>
+      </label>
+      <input type="number" id="fp" value="0.85" min="0.5" max="1" step="0.01" data-chars="4">
     </div>
     <div>
-      <label>Eficiencia (η)</label>
-      <input type="number" id="ef" value="0.90" min="0.5" max="1" step="0.01">
+      <label>Eficiencia (η)
+        <button class="gd-i" data-info-title="Eficiencia"
+                data-info="Rendimiento del motor. Los motores premium alcanzan 0.93–0.96; 0.90 es un valor típico para motores estándar."></button>
+      </label>
+      <input type="number" id="ef" value="0.90" min="0.5" max="1" step="0.01" data-chars="4">
     </div>
   </div>
 </div>
@@ -214,15 +235,31 @@ details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
 <div class="card">
   <div class="grid-3">
     <div>
-      <label>Longitud trayectoria (m)</label>
-      <input type="number" id="longitud" value="40" min="1" step="1">
+      <label>Longitud de trayectoria (m)
+        <button class="gd-i" data-info-title="Longitud"
+                data-info="Distancia real del conductor desde el tablero hasta el equipo, siguiendo la charola o tubería. Es lo que gobierna la caída de tensión."
+                data-formula="Trifásico: e% = (√3 × I × L × Z × 100) / (V × n)
+Límite recomendado: 3% en el circuito derivado"></button>
+      </label>
+      <input type="number" id="longitud" value="40" min="1" max="9999" step="1" data-chars="5">
     </div>
     <div>
-      <label>Temperatura ambiente (°C)</label>
+      <label>Temperatura ambiente (°C)
+        <button class="gd-i" data-info-title="Temperatura ambiente"
+                data-info="Sobre 30 °C la ampacidad del conductor se castiga con un factor de corrección."
+                data-fuente="NOM-001-SEDE-2012, Tabla 310-15(b)(2)(a)"></button>
+      </label>
       <input type="number" id="temp_amb" value="30" min="0" max="80" step="1">
     </div>
     <div>
-      <label># Conductores portadores en canalización</label>
+      <label>Conductores en la canalización
+        <button class="gd-i" data-info-title="Agrupamiento"
+                data-info="Cuenta sólo los conductores <b>portadores de corriente</b>: no incluyas el de puesta a tierra. A partir de 4 se aplica un factor de reducción por agrupamiento."
+                data-formula="4 a 6 conductores   → 80%
+7 a 9 conductores   → 70%
+10 a 20 conductores → 50%"
+                data-fuente="NOM-001-SEDE-2012, Tabla 310-15(b)(3)(a)"></button>
+      </label>
       <input type="number" id="n_cond" value="3" min="1" max="60" step="1">
     </div>
   </div>

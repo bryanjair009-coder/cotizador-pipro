@@ -1,0 +1,390 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   gd-ui.css — Componentes compartidos del Portal PIPRO
+   Se carga DESPUÉS de gd-theme.css en todos los módulos.
+
+   1. Botón e info-popover "más información"
+   2. Campos dimensionados al dato (píldoras)
+   3. Buscador de materiales (paleta de comandos)
+   4. Pantalla de acceso y menú de usuario
+   5. Refinamientos de dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ── 1. MÁS INFORMACIÓN ─────────────────────────────────────────────────────
+   Sustituye a las notas y fórmulas impresas bajo cada campo. El dato técnico
+   sigue disponible, pero deja de competir visualmente con el formulario.     */
+
+.gd-i {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; flex: 0 0 16px;
+  margin-left: 5px; padding: 0;
+  border: 1px solid var(--gd-border-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gd-text-soft);
+  font: 600 10.5px/1 var(--gd-font-sans);
+  cursor: help;
+  vertical-align: middle;
+  transition: all .13s ease;
+  -webkit-user-select: none; user-select: none;
+}
+.gd-i::before { content: "i"; font-style: italic; }
+.gd-i:hover,
+.gd-i[aria-expanded="true"] {
+  background: var(--gd-red);
+  border-color: var(--gd-red);
+  color: #fff;
+}
+.gd-i:focus-visible { outline: none; box-shadow: var(--gd-shadow-focus); }
+
+/* Variante para encabezados de sección */
+.gd-section-title .gd-i,
+.gd-card-title .gd-i { width: 17px; height: 17px; flex-basis: 17px; margin-left: 8px; }
+
+.gd-pop {
+  position: fixed; z-index: 9999;
+  max-width: 340px; min-width: 200px;
+  padding: 12px 14px;
+  background: var(--gd-bg-elev);
+  border: 1px solid var(--gd-border-strong);
+  border-radius: var(--gd-radius-md);
+  box-shadow: var(--gd-shadow-lg);
+  font: 400 12.5px/1.55 var(--gd-font-sans);
+  color: var(--gd-text);
+  opacity: 0; transform: translateY(-4px);
+  transition: opacity .13s ease, transform .13s ease;
+  pointer-events: none;
+}
+.gd-pop.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.gd-pop-title {
+  margin: 0 0 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--gd-red);
+}
+.gd-pop p { margin: 0 0 7px; }
+.gd-pop p:last-child { margin-bottom: 0; }
+.gd-pop ul { margin: 0 0 7px; padding-left: 17px; }
+.gd-pop li { margin-bottom: 3px; }
+.gd-pop b, .gd-pop strong { font-weight: 650; }
+.gd-pop code, .gd-pop .gd-formula {
+  display: block;
+  margin: 7px 0;
+  padding: 8px 10px;
+  background: var(--gd-bg-alt);
+  border-left: 2.5px solid var(--gd-red);
+  border-radius: 0 var(--gd-radius-sm) var(--gd-radius-sm) 0;
+  font: 500 11.5px/1.5 var(--gd-font-mono);
+  color: var(--gd-text);
+  white-space: pre-wrap; word-break: break-word;
+}
+.gd-pop-src {
+  display: block; margin-top: 8px; padding-top: 7px;
+  border-top: 1px solid var(--gd-border);
+  font-size: 11px; color: var(--gd-text-soft);
+}
+
+
+/* ── 2. CAMPOS DIMENSIONADOS AL DATO ────────────────────────────────────────
+   Un campo de 3 dígitos no debe medir lo mismo que uno de razón social.
+   gd-ui.js calcula el ancho a partir de data-chars / maxlength / max.        */
+
+.gd-fields {
+  display: flex; flex-wrap: wrap;
+  gap: 14px 18px;
+  align-items: flex-start;
+}
+.gd-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.gd-field > label,
+.gd-field > .gd-label {
+  display: flex; align-items: center;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .01em;
+  color: var(--gd-text-mute);
+  white-space: nowrap;
+}
+.gd-field input,
+.gd-field select,
+.gd-field textarea {
+  padding: 8px 11px;
+  border: 1px solid var(--gd-border-strong);
+  border-radius: var(--gd-radius-sm);
+  background: var(--gd-bg-elev);
+  color: var(--gd-text);
+  font: 400 13.5px/1.3 var(--gd-font-sans);
+  transition: border-color .13s ease, box-shadow .13s ease;
+}
+.gd-field input:hover, .gd-field select:hover { border-color: var(--gd-400); }
+.gd-field input:focus, .gd-field select:focus, .gd-field textarea:focus {
+  outline: none;
+  border-color: var(--gd-red);
+  box-shadow: var(--gd-shadow-focus);
+}
+.gd-field input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; }
+.gd-field-grow { flex: 1 1 240px; }
+.gd-field-grow input, .gd-field-grow select { width: 100%; }
+.gd-field-hint { font-size: 11px; color: var(--gd-text-soft); }
+
+/* La unidad va dentro del campo, no en la etiqueta */
+.gd-input-unit { position: relative; display: inline-flex; align-items: center; }
+.gd-input-unit > input { padding-right: 38px !important; width: 100%; }
+.gd-input-unit > span {
+  position: absolute; right: 10px;
+  font-size: 11.5px; font-weight: 600; color: var(--gd-text-soft);
+  pointer-events: none;
+}
+
+
+/* ── 3. BUSCADOR DE MATERIALES ──────────────────────────────────────────────*/
+
+.gdm-trigger {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 12px 16px;
+  border: 1.5px dashed var(--gd-border-strong);
+  border-radius: var(--gd-radius-md);
+  background: var(--gd-bg-elev);
+  color: var(--gd-text-mute);
+  font: 500 13.5px var(--gd-font-sans);
+  cursor: pointer; text-align: left;
+  transition: all .14s ease;
+}
+.gdm-trigger:hover {
+  border-color: var(--gd-red); border-style: solid;
+  background: var(--gd-red-tint); color: var(--gd-red);
+}
+.gdm-trigger .gdm-kbd { margin-left: auto; }
+.gdm-kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--gd-border-strong); border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--gd-bg-alt);
+  font: 600 10.5px var(--gd-font-mono); color: var(--gd-text-soft);
+  white-space: nowrap;
+}
+
+.gdm-backdrop {
+  position: fixed; inset: 0; z-index: 9000;
+  display: none;
+  background: rgba(15,15,30,.42);
+  backdrop-filter: blur(3px);
+  padding: 8vh 16px 16px;
+  overflow-y: auto;
+}
+.gdm-backdrop.open { display: block; animation: gdm-fade .16s ease; }
+@keyframes gdm-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.gdm-panel {
+  max-width: 780px; margin: 0 auto;
+  background: var(--gd-bg-elev);
+  border: 1px solid var(--gd-border);
+  border-radius: var(--gd-radius-lg);
+  box-shadow: var(--gd-shadow-lg);
+  overflow: hidden;
+  animation: gdm-rise .18s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes gdm-rise { from { opacity: 0; transform: translateY(-10px) } to { opacity: 1; transform: none } }
+
+.gdm-searchbar {
+  display: flex; align-items: center; gap: 11px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--gd-border);
+}
+.gdm-searchbar input {
+  flex: 1; min-width: 0;
+  border: none; outline: none; background: transparent;
+  font: 400 16px var(--gd-font-sans); color: var(--gd-text);
+}
+.gdm-searchbar input::placeholder { color: var(--gd-text-soft); }
+.gdm-searchbar .gdm-ico { font-size: 16px; color: var(--gd-text-soft); }
+
+.gdm-chips {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--gd-border);
+  background: var(--gd-bg-alt);
+}
+.gdm-chip {
+  padding: 4px 11px;
+  border: 1px solid var(--gd-border-strong); border-radius: var(--gd-radius-full);
+  background: var(--gd-bg-elev);
+  font: 600 11.5px var(--gd-font-sans); color: var(--gd-text-mute);
+  cursor: pointer; white-space: nowrap;
+  transition: all .12s ease;
+}
+.gdm-chip:hover { border-color: var(--gd-red); color: var(--gd-red); }
+.gdm-chip.on { background: var(--gd-red); border-color: var(--gd-red); color: #fff; }
+
+.gdm-list { max-height: min(52vh, 460px); overflow-y: auto; }
+.gdm-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--gd-border);
+  cursor: pointer;
+  transition: background .1s ease;
+}
+.gdm-row:last-child { border-bottom: none; }
+.gdm-row:hover { background: var(--gd-bg-alt); }
+.gdm-row.sel { background: var(--gd-red-tint); box-shadow: inset 3px 0 0 var(--gd-red); }
+[data-theme="dark"] .gdm-row.sel { background: var(--gd-red-light); }
+
+.gdm-desc {
+  font-size: 13px; line-height: 1.4; color: var(--gd-text);
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.gdm-part {
+  margin-top: 2px;
+  font: 600 11px var(--gd-font-mono);
+  color: var(--gd-red); letter-spacing: .02em;
+}
+.gdm-price {
+  font: 700 13.5px var(--gd-font-sans);
+  color: var(--gd-text); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.gdm-incart {
+  padding: 2px 8px; border-radius: var(--gd-radius-full);
+  background: var(--gd-success-light); color: var(--gd-success);
+  font: 700 10.5px var(--gd-font-sans); white-space: nowrap;
+}
+.gdm-hit { background: rgba(200,16,46,.16); border-radius: 2px; font-weight: 700; }
+
+.gdm-foot {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 11px 18px;
+  border-top: 1px solid var(--gd-border);
+  background: var(--gd-bg-alt);
+  font-size: 11.5px; color: var(--gd-text-soft);
+}
+.gdm-foot .gdm-qty { display: flex; align-items: center; gap: 7px; margin-left: auto; }
+.gdm-foot .gdm-qty label { font-weight: 600; color: var(--gd-text-mute); }
+.gdm-foot .gdm-qty input {
+  width: 62px; padding: 5px 8px; text-align: right;
+  border: 1px solid var(--gd-border-strong); border-radius: var(--gd-radius-sm);
+  background: var(--gd-bg-elev); color: var(--gd-text);
+  font: 600 13px var(--gd-font-sans); font-variant-numeric: tabular-nums;
+}
+.gdm-empty { padding: 34px 18px; text-align: center; color: var(--gd-text-soft); font-size: 13px; }
+
+
+/* ── 4. ACCESO Y SESIÓN ─────────────────────────────────────────────────────*/
+
+.gd-auth {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: var(--gd-bg);
+}
+.gd-auth-card {
+  width: 100%; max-width: 372px;
+  padding: 34px 32px 28px;
+  background: var(--gd-bg-elev);
+  border: 1px solid var(--gd-border);
+  border-radius: var(--gd-radius-lg);
+  box-shadow: var(--gd-shadow-lg);
+}
+.gd-auth-logo { margin-bottom: 24px; }
+.gd-auth-logo svg { height: 40px; width: auto; display: block; }
+[data-theme="dark"] .gd-auth-logo svg text { fill: #fff; }
+.gd-auth-card h1 { margin: 0 0 4px; font-size: 17px; font-weight: 700; color: var(--gd-text); }
+.gd-auth-card .gd-auth-sub { margin: 0 0 22px; font-size: 12.5px; color: var(--gd-text-mute); }
+.gd-auth-card label {
+  display: block; margin-bottom: 5px;
+  font-size: 11.5px; font-weight: 600; color: var(--gd-text-mute);
+}
+.gd-auth-card input {
+  width: 100%; margin-bottom: 15px; padding: 10px 12px;
+  border: 1px solid var(--gd-border-strong); border-radius: var(--gd-radius-sm);
+  background: var(--gd-bg-elev); color: var(--gd-text);
+  font: 400 14px var(--gd-font-sans);
+}
+.gd-auth-card input:focus { outline: none; border-color: var(--gd-red); box-shadow: var(--gd-shadow-focus); }
+.gd-auth-btn {
+  width: 100%; padding: 11px;
+  border: none; border-radius: var(--gd-radius-sm);
+  background: var(--gd-red); color: #fff;
+  font: 600 14px var(--gd-font-sans); cursor: pointer;
+  transition: background .14s ease;
+}
+.gd-auth-btn:hover:not([disabled]) { background: var(--gd-red-dark); }
+.gd-auth-btn[disabled] { opacity: .6; cursor: progress; }
+.gd-auth-msg {
+  margin: 0 0 14px; padding: 9px 12px;
+  border-radius: var(--gd-radius-sm);
+  background: var(--gd-error-light); color: var(--gd-error);
+  font-size: 12.5px; line-height: 1.45;
+}
+.gd-auth-msg[hidden] { display: none; }
+.gd-auth-foot {
+  margin: 20px 0 0; padding-top: 15px;
+  border-top: 1px solid var(--gd-border);
+  font-size: 11px; line-height: 1.5; color: var(--gd-text-soft);
+}
+
+.gd-user {
+  display: flex; align-items: center; gap: 8px;
+  margin-left: 8px; padding: 5px 8px 5px 5px;
+  border: 1px solid var(--gd-border); border-radius: var(--gd-radius-full);
+  background: var(--gd-bg-alt);
+  cursor: pointer; transition: border-color .13s ease;
+}
+.gd-user:hover { border-color: var(--gd-red); }
+.gd-user-av {
+  display: flex; align-items: center; justify-content: center;
+  width: 25px; height: 25px; border-radius: 50%;
+  background: var(--gd-red); color: #fff;
+  font: 700 10.5px var(--gd-font-sans);
+}
+.gd-user-name { font: 600 12px var(--gd-font-sans); color: var(--gd-text); white-space: nowrap; }
+.gd-user-rol {
+  padding: 1px 6px; border-radius: var(--gd-radius-full);
+  background: var(--gd-bg-elev); border: 1px solid var(--gd-border);
+  font: 700 9.5px var(--gd-font-sans); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--gd-text-soft);
+}
+.gd-user-rol.admin { background: var(--gd-red-light); border-color: var(--gd-red); color: var(--gd-red); }
+
+
+/* ── 5. REFINAMIENTOS DE DASHBOARD ──────────────────────────────────────────*/
+
+.gd-toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 0 13px;
+  border-bottom: 1px solid var(--gd-border);
+  margin-bottom: 16px;
+}
+.gd-toolbar-title {
+  display: flex; align-items: center;
+  font-size: 14px; font-weight: 700; color: var(--gd-text); letter-spacing: -.01em;
+}
+.gd-toolbar-spacer { flex: 1; }
+
+.gd-stat-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.gd-stat {
+  flex: 1 1 128px;
+  padding: 11px 14px;
+  border: 1px solid var(--gd-border); border-radius: var(--gd-radius-md);
+  background: var(--gd-bg-elev);
+}
+.gd-stat-label {
+  display: flex; align-items: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--gd-text-soft); margin-bottom: 4px;
+}
+.gd-stat-value {
+  font-size: 19px; font-weight: 700; color: var(--gd-text);
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.gd-stat-value.acento { color: var(--gd-red); }
+.gd-stat-unit { font-size: 11.5px; font-weight: 600; color: var(--gd-text-soft); margin-left: 3px; }
+
+/* Barra de desplazamiento discreta y consistente */
+.gdm-list::-webkit-scrollbar, .gd-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
+.gdm-list::-webkit-scrollbar-thumb, .gd-scroll::-webkit-scrollbar-thumb {
+  background: var(--gd-300); border-radius: 5px; border: 2px solid var(--gd-bg-elev);
+}
+.gdm-list::-webkit-scrollbar-thumb:hover, .gd-scroll::-webkit-scrollbar-thumb:hover { background: var(--gd-400); }
+.gdm-list::-webkit-scrollbar-track, .gd-scroll::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gd-pop, .gdm-backdrop, .gdm-panel { transition: none !important; animation: none !important; }
+}

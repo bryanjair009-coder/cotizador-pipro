@@ -1,99 +1,76 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-//  supabase-client.js  –  Cliente REST para PIPRO Portal
+//  supabase-client.js  –  Acceso a datos del Portal PIPRO
 //
-//  ⚠️  CONFIGURACIÓN REQUERIDA:
-//  1. Ve a https://supabase.com → tu proyecto → Settings → API
-//  2. Copia "Project URL"  →  pégalo en SUPABASE_URL
-//  3. Copia "anon public"  →  pégalo en SUPABASE_KEY
+//  ⚠️  Desde la auditoría de seguridad, este archivo YA NO contiene ninguna
+//      credencial. El navegador no habla con Supabase: habla con /api/db, que
+//      valida la sesión, aplica permisos por rol y registra en bitácora.
+//
+//      La llave de servicio vive únicamente en las variables de entorno de
+//      Vercel (SUPABASE_SERVICE_ROLE_KEY) y nunca se envía al cliente.
+//
+//  La interfaz pública (window.SB) es idéntica a la anterior, por lo que los
+//  módulos que la consumen no requieren cambios.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SUPABASE_URL = 'https://xtqthjbfcjlrxxyribch.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0cXRoamJmY2pscnh4eXJpYmNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDE3OTMsImV4cCI6MjA5NDg3Nzc5M30.D7udwWwWfdOYosB-q0GTvCexyCXYBlspVWCEo8TbadM';
-
 window.SB = (() => {
-  const configured = !SUPABASE_URL.includes('TU_PROYECTO');
 
-  function headers(extra = {}) {
-    return {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      ...extra
-    };
-  }
+  /** Envía la operación al proxy autenticado. */
+  async function llamar(payload) {
+    const res = await fetch('/api/db', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  async function req(url, opts = {}) {
-    const res = await fetch(url, opts);
-    if (!res.ok) {
-      const txt = await res.text().catch(() => res.statusText);
-      throw new Error(`Supabase ${res.status}: ${txt}`);
+    if (res.status === 401) {
+      // Sesión caducada: avisar al portal para que muestre el acceso de nuevo
+      window.dispatchEvent(new CustomEvent('gd-sesion-expirada'));
+      try { window.top.postMessage({ type: 'gd-sesion-expirada' }, window.location.origin); } catch (e) {}
+      throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.');
     }
+
     const txt = await res.text();
-    return txt ? JSON.parse(txt) : null;
+    const data = txt ? JSON.parse(txt) : null;
+    if (!res.ok) throw Object.assign(new Error(data?.error || `Error ${res.status}`), { code: data?.code, status: res.status });
+    return data;
   }
+
+  const filtroDesde = (filters) => Object.entries(filters)
+    .map(([k, v]) => `${k}=eq.${encodeURIComponent(v)}`)
+    .join('&');
 
   return {
-    configured,
+    configured: true,
 
-    /** Lee todos los registros de una tabla. queryStr ej: '?order=nombre.asc' */
-    async getAll(table, queryStr = '') {
-      if (!configured) throw new Error('Supabase no configurado');
-      return req(`${SUPABASE_URL}/rest/v1/${table}${queryStr}`, {
-        headers: headers()
-      });
-    },
+    /** Lee registros de una tabla. queryStr ej: '?order=nombre.asc' */
+    getAll: (table, query = '') => llamar({ op: 'select', table, query }),
 
-    /** Upsert: inserta o actualiza según onConflict (nombre de columna) */
-    async upsert(table, data, onConflict = '') {
-      if (!configured) throw new Error('Supabase no configurado');
-      const qs = onConflict ? `?on_conflict=${onConflict}` : '';
-      return req(`${SUPABASE_URL}/rest/v1/${table}${qs}`, {
-        method: 'POST',
-        headers: headers({ 'Prefer': 'return=representation,resolution=merge-duplicates' }),
-        body: JSON.stringify(data)
-      });
-    },
+    /** Inserta o actualiza según onConflict (nombre de columna) */
+    upsert: (table, data, onConflict = '') => llamar({ op: 'upsert', table, data, onConflict }),
 
     /** Elimina registros que cumplan los filtros { columna: valor } */
-    async delete(table, filters) {
-      if (!configured) throw new Error('Supabase no configurado');
-      const qs = Object.entries(filters)
-        .map(([k, v]) => `${k}=eq.${encodeURIComponent(v)}`)
-        .join('&');
-      return req(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, {
-        method: 'DELETE',
-        headers: headers()
-      });
-    },
+    delete: (table, filters) => llamar({ op: 'delete', table, filter: filtroDesde(filters) }),
 
-    /** Elimina todos los registros de una tabla usando un filtro raw */
-    async deleteWhere(table, rawFilter) {
-      if (!configured) throw new Error('Supabase no configurado');
-      return req(`${SUPABASE_URL}/rest/v1/${table}?${rawFilter}`, {
-        method: 'DELETE',
-        headers: headers()
-      });
-    },
+    /** Elimina usando un filtro PostgREST literal */
+    deleteWhere: (table, rawFilter) => llamar({ op: 'delete', table, filter: rawFilter }),
 
     /** Lee un valor de la tabla `meta` */
     async getMeta(key, fallback = null) {
-      if (!configured) return fallback;
       try {
-        const rows = await this.getAll('meta', `?key=eq.${encodeURIComponent(key)}`);
+        const rows = await llamar({ op: 'select', table: 'meta', query: `?key=eq.${encodeURIComponent(key)}` });
         if (rows && rows.length) {
           const val = rows[0].value;
-          // Intentar parsear JSON (para arrays/objetos)
           try { return JSON.parse(val); } catch { return val; }
         }
-      } catch (e) { /* sin conexión → fallback */ }
+      } catch (e) { /* sin conexión o sin sesión → fallback */ }
       return fallback;
     },
 
     /** Guarda un valor en la tabla `meta` */
     async setMeta(key, value) {
-      if (!configured) return;
       const strVal = typeof value === 'string' ? value : JSON.stringify(value);
-      await this.upsert('meta', { key, value: strVal }, 'key');
-    }
+      await llamar({ op: 'upsert', table: 'meta', data: { key, value: strVal }, onConflict: 'key' });
+    },
   };
 })();
