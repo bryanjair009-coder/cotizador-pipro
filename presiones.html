@@ -147,13 +147,15 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 .edu-note{background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.15);border-radius:7px;padding:8px 12px;margin-top:10px;font-size:11px;color:rgba(96,165,250,.8);line-height:1.5}
 .edu-note strong{color:#60a5fa}
 /* Guide Section */
-.guide-card{background:rgba(59,130,246,.08);border:2px solid rgba(96,165,250,.2);border-radius:10px;padding:16px;margin-bottom:14px}
-.guide-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;user-select:none}
-.guide-header:hover{opacity:0.8}
-.guide-title{font-size:13px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.04em;flex:1}
-.guide-toggle{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#60a5fa;transition:transform .2s}
-.guide-toggle.collapsed{transform:rotate(-90deg)}
-.guide-content{display:none;padding-top:12px;border-top:1px solid rgba(96,165,250,.15)}
+/* Guía plegada por omisión: el trabajo real ocupa la primera pantalla */
+.guide-card{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:10px;padding:11px 16px;margin-bottom:12px}
+.guide-header{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.guide-header:hover .guide-title{color:var(--gd-red)}
+.guide-title{font-size:12px;font-weight:700;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.05em;flex:1;transition:color .13s}
+.guide-toggle{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--gd-text-soft);transition:transform .2s}
+.guide-toggle{transform:rotate(90deg)}          /* abierto: apunta abajo */
+.guide-toggle.collapsed{transform:none}         /* plegado: apunta a la derecha */
+.guide-content{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--gd-border)}
 .guide-content.show{display:block}
 .guide-steps{display:grid;gap:8px;margin:12px 0}
 .guide-step{padding:10px 12px;background:var(--gd-bg-elev);border-left:3px solid #60a5fa;border-radius:4px;font-size:11px;color:var(--gd-text);line-height:1.5}
@@ -181,11 +183,13 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 <div class="guide-card">
   <div class="guide-header" onclick="toggleGuide()">
     <span class="guide-title">🎓 Guía Paso a Paso: Diseño de Red de Aire Comprimido</span>
-    <span class="guide-toggle" id="guide-toggle">▸</span>
+    <span class="guide-toggle collapsed" id="guide-toggle">▸</span>
   </div>
-  <div class="guide-content show" id="guide-content">
+  <div class="guide-content" id="guide-content">
     <p style="font-size:12px;color:var(--gd-text);margin-bottom:12px;line-height:1.6">
-      Llena los campos de cada paso y la herramienta calcula automáticamente. Haz clic en <span style="color:#60a5fa;font-weight:700;border:1px solid rgba(96,165,250,.3);border-radius:50%;padding:0 4px">?</span> para saber qué significa cada dato y dónde obtenerlo.
+      Llena los campos de cada paso y la herramienta calcula automáticamente. Pasa el cursor
+      sobre el icono <span class="tooltip-trigger" style="cursor:default">i</span> de cada campo
+      para saber qué significa el dato y dónde obtenerlo.
     </p>
     <div class="guide-steps">
       <div class="guide-step"><strong style="color:#60a5fa">① COMPRESORES:</strong> Agrega tu(s) compresor(es). Escribe HP y el SCFM del compresor (dato de la placa o catálogo). El sistema calcula cuánto aire real circule por la red (ACFM).</div>
@@ -262,12 +266,13 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 <div class="card">
   <div class="card-header">
     <span class="step-label"><span class="step-badge">1</span><span class="card-title">Planta de Compresores</span></span>
+    <button class="gd-i" data-info-title="Qué llenar aquí"
+            data-info="Agrega cada compresor con su potencia (HP), el caudal nominal del catálogo (SCFM) y la presión de descarga. El sistema suma los caudales y calcula el ACFM real que circula por la red."></button>
     <span class="card-badge" id="comp-count-badge">0 compresores</span>
     <button class="gd-i" data-info-title="Caudal total de la planta"
             data-formula="SCFM total = Σ (Caudal × Factor de carga simultánea)"
             data-fuente="El factor de carga refleja que rara vez todos los compresores trabajan al 100% a la vez."></button>
   </div>
-  <div class="edu-note">💡 <strong>Qué llenar:</strong> Agrega cada compresor con su potencia (HP), caudal nominal (SCFM del catálogo) y presión de descarga. El sistema suma los caudales y calcula el ACFM real que circula por la red.</div>
 
   <!-- Tabla de compresores en paralelo -->
   <div style="overflow-x:auto">
@@ -297,8 +302,10 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
     <span class="step-badge">2</span>
     <h3 style="margin:0">Parámetros de Red — Condiciones de Diseño</h3>
+    <button class="gd-i" data-info-title="Qué llenar aquí"
+            data-info="Presión de trabajo de la red (psi), temperatura del aire después del enfriador (°F) y altitud de la planta. Estos tres valores determinan la densidad del aire y, con ella, la velocidad en toda la red."
+            data-fuente="Los valores por omisión son típicos para el centro de México (CDMX)."></button>
   </div>
-  <p class="edu-note" style="margin-top:0;margin-bottom:10px">💡 <strong>Qué llenar:</strong> Presión de trabajo de la red (psi), temperatura del aire post-enfriador (°F) y altitud de la planta. Estos valores afectan la densidad del aire y la velocidad en toda la red. Los valores por defecto son típicos para México (CDMX).</p>
 
   <div class="grid g4" style="margin-top:8px">
     <div class="field">
@@ -338,8 +345,10 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
     <span class="step-label"><span class="step-badge">3</span><span class="card-title">Cabezal — Línea Principal</span></span>
     <span class="card-badge">Caudal total del compresor</span>
     <span id="cab-mat-badge" class="pipro-badge" style="display:none">PIPRO Aluminio</span>
-  </div>
-  <div class="edu-note" style="margin-bottom:10px">💡 <strong>Qué hacer:</strong> Selecciona el diámetro del cabezal y escribe la longitud total de la tubería principal. Revisa la velocidad resultante — debe estar entre <strong>4 y 6 m/s</strong>. Si es mayor de 6 m/s, aumenta el diámetro.</div>
+    <button class="gd-i" data-info-title="Qué hacer aquí"
+            data-info="Selecciona el diámetro del cabezal y escribe la longitud total de la tubería principal. Después revisa la velocidad resultante."
+            data-formula="Velocidad objetivo: 4 a 6 m/s
+Por encima de 6 m/s → aumenta el diámetro"></button>
   <div class="grid g4">
     <div class="field">
       <label>Diámetro cabezal <span class="tooltip-trigger" onclick="openTooltip('cab-diam')" title="Más información">i</span></label>
@@ -399,8 +408,10 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
     <span class="step-label"><span class="step-badge">4</span><span class="card-title">Bajadas / Puntos de Uso</span></span>
     <span class="card-badge">Caudal por maquinaria / herramienta</span>
     <span id="baj-mat-badge" class="pipro-badge" style="display:none">PIPRO Aluminio</span>
+    <button class="gd-i" data-info-title="Qué hacer aquí"
+            data-info="Agrega cada punto de consumo (máquina, herramienta o zona) con su nombre, el caudal que consume en CFM y la longitud de la bajada. El diámetro se recomienda solo."
+            data-formula="Velocidad recomendada en bajadas: 2 a 4 m/s"></button>
   </div>
-  <div class="edu-note" style="margin-bottom:10px">💡 <strong>Qué hacer:</strong> Agrega cada punto de consumo (máquina, herramienta, zona). Escribe el nombre, cuántos CFM consume y la longitud de esa bajada. La velocidad recomendada en bajadas es <strong>2–4 m/s</strong>. El sistema recomienda el diámetro automáticamente.</div>
   <div style="overflow-x:auto">
     <table class="btbl">
       <thead><tr>

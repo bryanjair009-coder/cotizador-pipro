@@ -851,18 +851,14 @@ function App(){
   ];
 
   return(<div style={{minHeight:'100vh',background:C.bg,color:C.text,paddingBottom:60}}>
-    <header style={{borderBottom:'1px solid '+C.border,background:C.panel,padding:'16px 0',marginBottom:28}}>
-      <div style={{maxWidth:960,margin:'0 auto',padding:'0 24px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <div style={{width:38,height:38,borderRadius:9,background:C.accent,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>📦</div>
-          <div><h1 style={{fontSize:17,fontWeight:800,letterSpacing:'-.3px'}}>Dashboard de Requisiciones</h1><p style={{fontSize:11.5,color:C.textDim,marginTop:1}}>Departamento de Ingeniería · Gardner Denver México</p></div>
-        </div>
-        <div style={{fontSize:11.5,color:C.textFaint,textAlign:'right'}}>
-          {USE_SB()?<span style={{color:C.green}}>☁️ Supabase · Compartido</span>:<span>💾 Local · Solo este navegador</span>}
-        </div>
+    {/* El título del módulo ya lo pone la barra superior: aquí sólo el
+        indicador de dónde se están guardando los datos. */}
+    <div style={{maxWidth:960,margin:'0 auto',padding:'18px 24px 0',display:'flex',justifyContent:'flex-end'}}>
+      <div style={{fontSize:11.5,color:C.textFaint}}>
+        {USE_SB()?<span style={{color:C.green}}>☁️ Guardado compartido</span>:<span>💾 Local · Solo este navegador</span>}
       </div>
-    </header>
-    <div style={{maxWidth:960,margin:'0 auto',padding:'0 24px'}}>
+    </div>
+    <div style={{maxWidth:960,margin:'0 auto',padding:'14px 24px 0'}}>
       {dbErr&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid '+C.red,borderRadius:8,padding:'10px 14px',marginBottom:18,fontSize:13,color:C.red}}>{dbErr}</div>}
       <div style={{display:'flex',gap:4,marginBottom:24,background:C.panel,padding:5,borderRadius:11,border:'1px solid '+C.border,width:'fit-content'}}>
         {tabs.map(t=>{const a=tab===t.id;return(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13.5,fontWeight:700,fontFamily:"'Archivo',sans-serif",background:a?C.accent:'transparent',color:a?C.bg:C.textDim,transition:'all .15s'}}>

@@ -109,7 +109,16 @@ const info = GD.info = (function () {
     if (!(e.target.closest && e.target.closest('.gd-pop'))) cerrar();
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
-  window.addEventListener('scroll', cerrar, true);
+  // Al desplazar la página el popover se reubica sobre su icono; sólo se
+  // cierra si el icono salió de la vista. Desplazarse DENTRO del propio
+  // popover no lo cierra.
+  window.addEventListener('scroll', e => {
+    if (!activo) return;
+    if (e.target && e.target.closest && e.target.closest('.gd-pop')) return;
+    const r = activo.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) { cerrar(); return; }
+    colocar(activo);
+  }, true);
   window.addEventListener('resize', cerrar);
 
   return {
