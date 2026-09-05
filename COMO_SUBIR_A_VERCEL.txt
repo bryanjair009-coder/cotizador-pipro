@@ -47,7 +47,8 @@ NOTAS IMPORTANTES:
 - Funciona en Safari (iPad/iPhone), Chrome, Edge, Firefox
 - Los cambios al carrito y productos se guardan mientras
   la pestaña esté abierta
-- Contraseña de administrador: pipro2026
+- Acceso: cada persona con su usuario y contraseña
+  (ver PUESTA_EN_MARCHA.md para dar de alta al personal)
 - Los documentos Word (.doc) y Excel (.xlsx) se descargan
   directamente desde el navegador
 ═══════════════════════════════════════════════════════

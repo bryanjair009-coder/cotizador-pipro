@@ -12,19 +12,53 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 
 | Archivo | Propósito |
 |---|---|
-| `cotizador.html` | Cotizaciones (IP = con MO, IT = sin MO) |
+| `index.html` | Portal (6 iframes) + pantalla de acceso + menú de cuenta |
+| `cotizador.html` | Cotizaciones (IP = con MO, IT = sin MO) + panel admin |
 | `presiones.html` | Estudio de caídas de presión + PDF ejecutivo |
 | `requisiciones.html` | Requisiciones de material (React via Babel CDN) |
+| `electrico.html` | Selección eléctrica NOM-001-SEDE-2012 |
+| `reportes.html` | Cartas de entrega de proyecto |
+| `fugas.html` | Estudio ultrasónico de fugas |
 | `materiales.js` | Catálogo bundled 254+ items (fuente de siembra) |
-| `supabase-client.js` | Cliente REST de Supabase (sin SDK) |
-| `api/parse-table.js` | Serverless — Claude Vision para OCR de tablas |
+| `supabase-client.js` | Fachada de datos → llama a `/api/db` (sin credenciales) |
+| `gd-theme.css` / `gd-ui.css` | Tema Gardner Denver + componentes compartidos |
+| `gd-ui.js` | `GD.esc`, popovers de info, dimensionado de campos, buscador |
+| `api/` | Funciones de Vercel: login, session, db, usuarios, parse-table |
+
+> `gantt.html` se eliminó en la auditoría de 2026-09 (sin uso).
+
+## Seguridad (auditoría 2026-09 — NO revertir)
+
+- **El navegador nunca habla con Supabase.** Todo pasa por `/api/db`, que valida
+  sesión, aplica lista blanca de tabla+operación por rol y registra en bitácora.
+- **Credenciales sólo en variables de entorno de Vercel:** `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`.
+- **Sesiones:** HMAC-SHA256 en cookie HttpOnly + Secure + SameSite=Strict, 10 h.
+- **Contraseñas:** scrypt N=16384 con sal. Mínimo 10 caracteres con letra y número.
+- **Roles:** `admin` (catálogo, utilidades, cuentas) y `usuario`. `GD.sesion.esAdmin`.
+- **XSS:** usar SIEMPRE `GD.esc()` antes de meter datos en `innerHTML`.
+- **Nunca** volver a poner una contraseña o llave en el HTML/JS del cliente.
+- Puesta en marcha: ver `PUESTA_EN_MARCHA.md`; SQL en `SUPABASE_SEGURIDAD.sql`.
 
 ## Supabase
 
-- **Tablas:** `materiales` (catálogo), `clientes`, `requisiciones`, `meta`
+- **Tablas:** `materiales` (catálogo), `clientes`, `requisiciones`, `meta`,
+  `usuarios` (hashes), `bitacora` (inmutable, purga a 24 meses)
+- **RLS:** sin políticas permisivas. Sólo `service_role` (vía `/api`) entra.
 - **Fuente de verdad:** Supabase — localStorage solo respaldo offline
 - **Siembra:** Solo una vez (flag `meta.materiales_seed_done = true`)
 - **Upsert key:** `numero_parte` para materiales
+- `meta.utilidades` sólo la escribe un administrador (mueve dinero)
+
+## Componentes de interfaz (gd-ui)
+
+- **Icono de información:** `<button class="gd-i" data-info-title data-info
+  data-formula data-fuente>`. Sustituye a las notas impresas bajo los campos.
+- **Campos dimensionados:** `data-chars="N"`, o se deduce de `maxlength` / `max`.
+  Con `<body data-gd-autosize>` se aplica a todo el módulo salvo dentro de tablas.
+- **Buscador de materiales:** `GD.picker.configurar({...})` + `GD.picker.abrir()`.
+  Ctrl+K lo abre. Enter agrega sin cerrar; Shift+Enter agrega y cierra.
+- Tras pintar HTML nuevo, llamar `GD.refrescar(raiz)`.
 
 ## PDF / Word
 
@@ -34,7 +68,8 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 
 ## Panel admin (cotizador.html)
 
-- Contraseña: `pipro2026`
+- Acceso por **rol `admin`** de la sesión (`aplicarPermisos()`), no por contraseña
+- Secciones: utilidades, carga de Excel, catálogo, usuarios, bitácora
 - Tabla de materiales con edición inline (descripción, No. Parte, precio)
 - Cambios sincronizan automáticamente a Supabase
 - Cambio de `numero_parte` = DELETE viejo + INSERT nuevo (es PK)
@@ -66,4 +101,10 @@ git push origin main
 
 ## Variables de entorno (Vercel)
 
-- `ANTHROPIC_API_KEY` — para `api/parse-table.js`
+| Variable | Uso |
+|---|---|
+| `SUPABASE_URL` | URL del proyecto de Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Llave de servicio — **nunca** al cliente |
+| `SESSION_SECRET` | Firma de las cookies de sesión (≥32 caracteres) |
+| `ANTHROPIC_API_KEY` | `api/parse-table.js` (OCR de tablas) |
+| `ADMIN_BOOTSTRAP_PASSWORD` | Sólo para crear el primer admin; borrar después |
