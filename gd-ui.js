@@ -207,6 +207,7 @@ const fields = GD.fields = (function () {
 
 const picker = GD.picker = (function () {
   let cfg = null, filtrados = [], sel = 0, chip = '', bk = null, ultimoFoco = null;
+  const cantidades = new Map();   // clave de material → cantidad escrita
 
   const norm = s => String(s || '').toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '');   // ignora acentos
@@ -252,13 +253,10 @@ const picker = GD.picker = (function () {
         <div class="gdm-chips" id="gdm-chips"></div>
         <div class="gdm-list" id="gdm-list"></div>
         <div class="gdm-foot">
-          <span><span class="gdm-kbd">↑</span> <span class="gdm-kbd">↓</span> navegar</span>
+          <span><span class="gdm-kbd">↑</span> <span class="gdm-kbd">↓</span> elegir</span>
+          <span><span class="gdm-kbd">+</span> <span class="gdm-kbd">−</span> cantidad</span>
           <span><span class="gdm-kbd">Enter</span> agregar</span>
-          <span><span class="gdm-kbd">Shift</span>+<span class="gdm-kbd">Enter</span> agregar y cerrar</span>
-          <span class="gdm-qty">
-            <label for="gdm-qty">Cantidad</label>
-            <input type="number" id="gdm-qty" value="1" min="1" max="99999" data-chars="5">
-          </span>
+          <span style="margin-left:auto;">La cantidad se fija en cada renglón antes de agregar</span>
         </div>
       </div>`;
     document.body.appendChild(bk);
@@ -266,11 +264,17 @@ const picker = GD.picker = (function () {
     bk.addEventListener('click', e => { if (e.target === bk) cerrar(); });
     $('#gdm-q', bk).addEventListener('input', () => { sel = 0; filtrar(); });
     $('#gdm-q', bk).addEventListener('keydown', teclado);
-    $('#gdm-qty', bk).addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); agregar(e.shiftKey); }
-      if (e.key === 'Escape') { e.preventDefault(); cerrar(); }
-    });
-    fields.aplicar($('#gdm-qty', bk));
+  }
+
+  /** Cantidad escrita en el renglón i (por omisión 1). */
+  function cantidadDe(i) {
+    const inp = bk && bk.querySelector(`.gdm-row[data-i="${i}"] .gdm-qty-ctl input`);
+    return Math.max(1, parseInt(inp && inp.value) || 1);
+  }
+  function ajustarCantidad(i, delta) {
+    const inp = bk.querySelector(`.gdm-row[data-i="${i}"] .gdm-qty-ctl input`);
+    if (!inp) return;
+    inp.value = Math.max(1, (parseInt(inp.value) || 1) + delta);
   }
 
   function teclado(e) {
@@ -278,7 +282,9 @@ const picker = GD.picker = (function () {
     else if (e.key === 'ArrowUp')   { e.preventDefault(); mover(-1); }
     else if (e.key === 'Enter')     { e.preventDefault(); agregar(e.shiftKey); }
     else if (e.key === 'Escape')    { e.preventDefault(); cerrar(); }
-    else if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); $('#gdm-qty', bk).select(); }
+    // +/- ajustan la cantidad del renglón elegido sin salir del buscador
+    else if (e.key === '+' || (e.key === 'ArrowRight' && e.ctrlKey)) { e.preventDefault(); ajustarCantidad(sel, 1); }
+    else if (e.key === '-' || (e.key === 'ArrowLeft' && e.ctrlKey))  { e.preventDefault(); ajustarCantidad(sel, -1); }
   }
 
   function mover(d) {
@@ -335,30 +341,69 @@ const picker = GD.picker = (function () {
     lista.innerHTML = filtrados.map((m, i) => {
       const k = cfg.claveDe ? cfg.claveDe(m) : m.numero_parte;
       const enCarrito = carrito && carrito[k];
+      const prev = cantidades.get(k) || 1;
       return `<div class="gdm-row${i === sel ? ' sel' : ''}" data-i="${i}">
         <div>
           <div class="gdm-desc">${resaltar(m.descripcion, tokens)}</div>
           <div class="gdm-part">${resaltar(m.numero_parte, tokens)}</div>
         </div>
-        ${enCarrito ? `<span class="gdm-incart">✓ ${enCarrito.cantidad} en carrito</span>` : '<span></span>'}
-        <span class="gdm-price">${GD.esc(cfg.precio(m))}</span>
+        <span class="gdm-price">${GD.esc(cfg.precio(m))}
+          ${enCarrito ? `<span class="gdm-incart" title="Ya está en el carrito">✓ ${enCarrito.cantidad}</span>` : ''}
+        </span>
+        <span class="gdm-qty-ctl">
+          <button type="button" data-paso="-1" aria-label="Quitar uno">−</button>
+          <input type="number" min="1" max="99999" value="${prev}"
+                 aria-label="Cantidad a agregar" class="gd-no-size">
+          <button type="button" data-paso="1" aria-label="Agregar uno">+</button>
+        </span>
+        <button type="button" class="gdm-add">Agregar</button>
       </div>`;
     }).join('');
 
-    lista.querySelectorAll('.gdm-row').forEach(f => {
-      f.onclick = e => { sel = +f.dataset.i; pintarSeleccion(); agregar(e.shiftKey); };
+    lista.querySelectorAll('.gdm-row').forEach(fila => {
+      const i = +fila.dataset.i;
+      const inp = fila.querySelector('.gdm-qty-ctl input');
+
+      // Elegir el renglón no lo agrega: eso sólo lo hace el botón
+      fila.addEventListener('mousedown', e => {
+        if (e.target.closest('.gdm-qty-ctl, .gdm-add')) return;
+        sel = i; pintarSeleccion();
+      });
+      fila.querySelectorAll('.gdm-qty-ctl button').forEach(b => {
+        b.onclick = e => { e.stopPropagation(); sel = i; pintarSeleccion();
+          inp.value = Math.max(1, (parseInt(inp.value) || 1) + (+b.dataset.paso)); inp.focus(); };
+      });
+      inp.addEventListener('input', () => cantidades.set(claveFila(i), Math.max(1, parseInt(inp.value) || 1)));
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); sel = i; agregar(e.shiftKey); }
+        if (e.key === 'Escape') { e.preventDefault(); cerrar(); }
+      });
+      fila.querySelector('.gdm-add').onclick = e => { e.stopPropagation(); sel = i; agregar(e.shiftKey); };
     });
   }
+
+  const claveFila = i => {
+    const m = filtrados[i];
+    return m ? (cfg.claveDe ? cfg.claveDe(m) : m.numero_parte) : '';
+  };
 
   function agregar(cerrarDespues) {
     const m = filtrados[sel];
     if (!m) return;
-    const qty = Math.max(1, parseInt($('#gdm-qty', bk).value) || 1);
+    const qty = cantidadDe(sel);
     cfg.onAgregar(m, qty);
+    cantidades.delete(claveFila(sel));            // la próxima vez vuelve a 1
+
     if (cerrarDespues) { cerrar(); return; }
-    filtrar();                                    // refresca el distintivo "en carrito"
-    const q = $('#gdm-q', bk);
-    q.select(); q.focus();
+
+    // Confirmación breve en el propio botón, antes de repintar la lista
+    const btn = bk.querySelector(`.gdm-row[data-i="${sel}"] .gdm-add`);
+    if (btn) { btn.textContent = '✓ Agregado'; btn.classList.add('hecho'); }
+    setTimeout(() => {
+      filtrar();                                  // refresca el distintivo "en carrito"
+      const q = $('#gdm-q', bk);
+      q.select(); q.focus();
+    }, 420);
   }
 
   function abrir(textoInicial) {
@@ -367,7 +412,7 @@ const picker = GD.picker = (function () {
     bk.classList.add('open');
     ultimoFoco = document.activeElement;
     chip = ''; sel = 0;
-    $('#gdm-qty', bk).value = 1;
+    cantidades.clear();
     const q = $('#gdm-q', bk);
     q.value = textoInicial || '';
     chips();

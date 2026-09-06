@@ -109,6 +109,7 @@
   --gd-space-4: 16px; --gd-space-5: 20px; --gd-space-6: 24px;
   --gd-space-8: 32px; --gd-space-10: 40px; --gd-space-12: 48px;
 
+  --gd-velo:   rgba(15,18,24,.44);   /* fondo de los modales */
   --gd-rail: 216px;   /* ancho del carril de navegación */
   --gd-logo: url('assets/logo-gd.png');
 
@@ -176,6 +177,7 @@
   --gd-shadow-lg: 0 18px 44px -16px rgba(0,0,0,.8), 0 4px 10px -4px rgba(0,0,0,.5);
   --gd-shadow-focus: 0 0 0 3px rgba(255,77,104,.28);
 
+  --gd-velo: rgba(0,0,0,.66);
   --gd-logo: url('assets/logo-gd-dark.png');
 
   color-scheme: dark;

@@ -111,21 +111,82 @@ iframe.activo { opacity: 1; pointer-events: auto; }
 }
 @keyframes giro { to { transform: rotate(360deg); } }
 
-/* ── Estrecho: el carril se vuelve una barra superior ───────────────────── */
-@media (max-width: 860px) {
-  #portal { flex-direction: column; }
-  .rail { width: 100%; height: auto; }
-  .gd-rail { flex-direction: row; align-items: center; border-right: none;
-             border-bottom: 1px solid var(--gd-border); overflow-x: auto; }
-  .gd-rail-head { border-bottom: none; border-right: 1px solid var(--gd-border); padding: 12px 14px; }
-  .gd-rail-nav { display: flex; gap: 4px; padding: 8px; flex: 1; }
-  .gd-rail-group { display: none; }
-  .gd-rail-item { width: auto; white-space: nowrap; margin: 0; }
-  .gd-rail-item span:not(.gd-rail-ico):not(.rail-badge) { display: none; }
-  .gd-rail-foot { border-top: none; border-left: 1px solid var(--gd-border); display: flex; }
-  .cuenta-txt, .tema span:last-child { display: none; }
-  .menu { bottom: auto; top: 62px; left: auto; right: 10px; width: 220px; }
+/* ── Botón de menú (sólo en móvil) ──────────────────────────────────────── */
+.hamburguesa {
+  display: none; align-items: center; justify-content: center;
+  width: 38px; height: 38px; flex: none;
+  border: 1px solid var(--gd-border); border-radius: var(--gd-radius-md);
+  background: var(--gd-bg-elev); color: var(--gd-text);
+  font-size: 17px; cursor: pointer;
 }
+.barra-movil {
+  display: none; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: var(--gd-bg-elev); border-bottom: 1px solid var(--gd-border);
+}
+.velo {
+  display: none; position: fixed; inset: 0; z-index: 400;
+  background: rgba(9,12,16,.5);
+}
+.velo.on { display: block; }
+
+/* ── Media pantalla: el carril se reduce a iconos ────────────────────────
+   Antes se volvía una barra horizontal que se apelmazaba y salía con
+   desplazamiento lateral. Un carril de iconos aguanta cualquier ancho. */
+@media (max-width: 1040px) and (min-width: 641px) {
+  :root { --gd-rail: 58px; }
+  .gd-rail-head { justify-content: center; padding: 13px 8px; }
+  /* No cabe el logotipo: se usa una placa de marca con la regla roja */
+  .gd-rail-head .gd-logo {
+    width: 32px; height: 32px;
+    background-image: none;
+    background: var(--gd-graphite);
+    border-radius: var(--gd-radius-sm);
+    position: relative;
+  }
+  .gd-rail-head .gd-logo::after {
+    content: ''; position: absolute; left: 6px; right: 6px; top: 50%;
+    height: 3px; margin-top: -1.5px; background: var(--gd-red);
+  }
+  [data-theme="dark"] .gd-rail-head .gd-logo { background: var(--gd-bg-alt); }
+  .gd-rail-nav { padding: 10px 7px; }
+  /* Los grupos pasan de rótulo a filete: no hay ancho para la palabra */
+  .gd-rail-group {
+    padding: 0; margin: 11px 6px 8px; height: 1px;
+    background: var(--gd-border); text-indent: -9999px; overflow: hidden;
+  }
+  .gd-rail-group:first-child { margin-top: 2px; }
+  .gd-rail-item { justify-content: center; padding: 10px 0; }
+  .gd-rail-item > span:not(.gd-rail-ico) { display: none; }
+  .gd-rail-foot { padding: 8px 7px; }
+  .tema { justify-content: center; padding: 9px 0; }
+  .tema span:last-child { display: none; }
+  .cuenta { justify-content: center; padding: 8px 0; }
+  .cuenta-txt { display: none; }
+  .menu { left: 66px; width: 216px; }
+}
+
+/* ── Móvil: barra superior y carril como panel deslizante ───────────────── */
+@media (max-width: 640px) {
+  #portal { flex-direction: column; }
+  .barra-movil { display: flex; }
+  .hamburguesa { display: inline-flex; }
+  .rail {
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 500;
+    width: min(268px, 82vw);
+    transform: translateX(-102%);
+    box-shadow: var(--gd-shadow-lg);
+  }
+  .rail.abierto { transform: none; }
+  .lienzo { flex: 1; }
+  .menu { bottom: 62px; left: 10px; width: min(248px, 76vw); }
+}
+/* El panel aparece de inmediato: animar el transform lo dejaba a medio camino
+   al cruzar el punto de ruptura, y un menú a medias es peor que uno sin
+   animación. El velo sí se atenúa, que es donde la animación no estorba. */
+.velo { animation: velo-entra .15s ease; }
+@keyframes velo-entra { from { opacity: 0 } to { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .velo { animation: none } }
 </style>
 </head>
 <body>
@@ -159,7 +220,17 @@ iframe.activo { opacity: 1; pointer-events: auto; }
 <!-- ═══ PORTAL ══════════════════════════════════════════════════════════ -->
 <div id="portal" class="oculto">
 
-  <div class="rail">
+  <!-- Sólo en móvil: da acceso al carril, que ahí se oculta -->
+  <div class="barra-movil">
+    <button class="hamburguesa" onclick="alternarRail(event)" aria-label="Abrir menú" aria-expanded="false" id="btn-rail">☰</button>
+    <span class="gd-logo gd-logo-sm">Gardner Denver</span>
+    <span style="flex:1"></span>
+    <span id="movil-modulo" style="font-size:12.5px;font-weight:600;color:var(--gd-text-mute);"></span>
+  </div>
+
+  <div class="velo" id="velo" onclick="cerrarRail()"></div>
+
+  <div class="rail" id="rail">
     <nav class="gd-rail">
       <div class="gd-rail-head">
         <a href="#" onclick="ir('cotizador');return false;" title="Portal PIPRO">
@@ -226,7 +297,8 @@ function construir() {
   nav.innerHTML = GRUPOS.map(g => `
     <div class="gd-rail-group">${g.grupo}</div>
     ${g.modulos.map(m => `
-      <button class="gd-rail-item" data-id="${m.id}" onclick="ir('${m.id}')">
+      <button class="gd-rail-item" data-id="${m.id}" onclick="ir('${m.id}')"
+              title="${m.nombre}" aria-label="${m.nombre}">
         <span class="gd-rail-ico">${m.ico}</span><span>${m.nombre}</span>
       </button>`).join('')}
   `).join('');
@@ -260,7 +332,24 @@ function ir(id) {
 
   document.querySelectorAll('iframe').forEach(x => x.classList.toggle('activo', x.id === 'f-' + id));
   document.title = m.titulo + ' · Gardner Denver';
+  document.getElementById('movil-modulo').textContent = m.nombre;
+  cerrarRail();
   try { localStorage.setItem('gd-tab', id); } catch(e) {}
+}
+
+/* ── Carril deslizante (sólo móvil) ───────────────────────────────────── */
+function alternarRail(e) {
+  if (e) e.stopPropagation();
+  const r = document.getElementById('rail');
+  const abierto = r.classList.toggle('abierto');
+  document.getElementById('velo').classList.toggle('on', abierto);
+  document.getElementById('btn-rail').setAttribute('aria-expanded', String(abierto));
+}
+function cerrarRail() {
+  document.getElementById('rail').classList.remove('abierto');
+  document.getElementById('velo').classList.remove('on');
+  const b = document.getElementById('btn-rail');
+  if (b) b.setAttribute('aria-expanded', 'false');
 }
 
 function mostrarCargador(txt) {
@@ -350,7 +439,7 @@ document.addEventListener('click', () => {
   if (m && !m.hidden) { m.hidden = true; document.getElementById('btn-cuenta').setAttribute('aria-expanded','false'); }
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.getElementById('menu').hidden = true;
+  if (e.key === 'Escape') { document.getElementById('menu').hidden = true; cerrarRail(); }
 });
 
 async function cambiarPwd() {

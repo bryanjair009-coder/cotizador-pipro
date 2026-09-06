@@ -78,6 +78,15 @@ body{
   box-shadow:0 1px 3px rgba(15,15,30,.08), 0 1px 2px rgba(15,15,30,.04);
 }
 
+/* Botones anexos al campo de empresa: ver lista y dar de alta */
+.empresa-aux{
+  border:1.5px solid var(--gd-border);border-left:none;
+  background:var(--gd-bg-alt);padding:0 11px;cursor:pointer;
+  font-size:14px;color:var(--gd-text-mute);transition:background .13s,color .13s;
+  font-family:var(--gd-font-sans);
+}
+.empresa-aux:hover{background:var(--gd-red-light);color:var(--gd-red-ink);}
+
 /* ── PANEL DE ADMINISTRACIÓN ────────────────────────────────────────────────
    Antes era una sola página con cinco bloques apilados; ahora las cifras van
    arriba y el detalle se navega por áreas. */
@@ -116,23 +125,23 @@ body{
 .adm-sec[hidden]{display:none;}
 
 /* ── MAIN CONTENT ───────────────────────────────────────────────────────────── */
-.page{display:none;padding:16px;max-width:960px;margin:0 auto;}
+.page{display:none;padding:14px 16px 26px;max-width:1080px;margin:0 auto;}
 .page.active{display:block;}
 
 /* ── SECTION TITLE ──────────────────────────────────────────────────────────── */
 .sec-title{
-  color:var(--gd-text);font-weight:700;font-size:1rem;
-  border-bottom:3px solid var(--gd-red);padding-bottom:4px;
-  margin:20px 0 12px;
+  color:var(--gd-text);font-weight:700;font-size:.94rem;letter-spacing:-.01em;
+  border-bottom:2px solid var(--gd-red);padding-bottom:4px;
+  margin:16px 0 8px;
 }
 
 /* ── CARD ────────────────────────────────────────────────────────────────────── */
-.card{background:var(--gd-bg-elev);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;}
+.card{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:var(--radius);padding:13px 15px;margin-bottom:8px;}
 
 /* ── GRID ────────────────────────────────────────────────────────────────────── */
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 14px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 14px;}
 @media(max-width:640px){
   .grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr;}
   .grid-4{grid-template-columns:1fr 1fr;}
@@ -142,7 +151,7 @@ body{
 }
 
 /* ── FORM ELEMENTS ──────────────────────────────────────────────────────────── */
-label{font-size:.82rem;font-weight:600;color:var(--gd-text);display:block;margin-bottom:4px;}
+label{font-size:.79rem;font-weight:600;color:var(--gd-text-mute);display:block;margin-bottom:3px;}
 input[type=text],input[type=number],input[type=date],input[type=password],select{
   width:100%;padding:9px 10px;border:1.5px solid var(--gd-border);border-radius:6px;
   font-size:.92rem;font-family:var(--gd-font-sans);background:var(--gd-bg-elev);
@@ -205,14 +214,14 @@ details{background:var(--gd-bg-elev);border:1.5px solid var(--gd-border);border-
 #auto-details{overflow:visible;}
 #gm-map{width:100%;}
 summary{
-  padding:12px 14px;cursor:pointer;font-weight:700;font-size:.95rem;
+  padding:9px 13px;cursor:pointer;font-weight:600;font-size:.9rem;
   list-style:none;display:flex;align-items:center;justify-content:space-between;
   user-select:none;background:var(--gd-bg-alt);
 }
 summary::after{content:'▼';font-size:.75rem;color:var(--gd-text-soft);transition:transform .2s;}
 details[open] summary::after{transform:rotate(180deg);}
 summary::-webkit-details-marker{display:none;}
-.details-body{padding:14px;}
+.details-body{padding:12px 14px;}
 
 /* ── INFO / SUCCESS / WARNING BOXES ─────────────────────────────────────────── */
 .info-box{
@@ -484,8 +493,10 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
                    style="border-radius:6px 0 0 6px;border-right:none;flex:1;">
             <button type="button" id="empresa-btn" onclick="toggleClienteDD()"
                     title="Ver todos los clientes"
-                    style="border:1.5px solid var(--gd-border);border-left:none;border-radius:0 6px 6px 0;background:var(--gd-bg-alt);padding:0 11px;cursor:pointer;font-size:14px;color:var(--gd-text-mute);transition:background .15s;"
-                    onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f0f0f0'">▾</button>
+                    class="empresa-aux" style="border-radius:0;">▾</button>
+            <button type="button" onclick="abrirNuevoCliente()"
+                    title="Dar de alta un cliente nuevo"
+                    class="empresa-aux" style="border-radius:0 6px 6px 0;border-left:none;">＋</button>
           </div>
           <div id="cliente-dd"
                style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:200;
@@ -1141,6 +1152,64 @@ Descuento = Base × %"></button>
 <!-- ═══════════════════════════════════════════════════════════════════════════
      MODAL — AGREGAR PRODUCTO AL CATÁLOGO (sale del carrito)
      ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODAL — NUEVO CLIENTE (mismo esquema que el módulo de Requisiciones)
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="cliente-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarNuevoCliente()">
+  <div class="gd-modal" style="max-width:600px;">
+    <div class="gd-modal-header">
+      <h3>🏢 Nuevo cliente</h3>
+      <button class="gd-modal-close" onclick="cerrarNuevoCliente()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="gd-modal-body">
+      <div class="error-box hidden" id="ncli-err" style="margin-bottom:12px;"></div>
+
+      <div class="gd-fields">
+        <div class="gd-field gd-field-grow">
+          <label>Nombre de la empresa *
+            <button class="gd-i" data-info-title="Clave única"
+                    data-info="El nombre de la empresa identifica al cliente en toda la base. Una vez creado no se puede renombrar desde aquí."></button>
+          </label>
+          <input type="text" id="ncli-nombre" maxlength="120" placeholder="Ej. Grupo Industrial Monterrey">
+        </div>
+        <div class="gd-field gd-field-grow">
+          <label>Persona de contacto</label>
+          <input type="text" id="ncli-contacto" maxlength="90" placeholder="Ej. Ing. Roberto Hernández">
+        </div>
+        <div class="gd-field">
+          <label>Teléfono</label>
+          <input type="text" id="ncli-telefono" maxlength="20" placeholder="55 1234 5678" data-chars="14">
+        </div>
+        <div class="gd-field gd-field-grow">
+          <label>Correo electrónico</label>
+          <input type="email" id="ncli-email" maxlength="90" placeholder="contacto@empresa.com">
+        </div>
+        <div class="gd-field">
+          <label>RFC</label>
+          <input type="text" id="ncli-rfc" maxlength="13" placeholder="GIM920101ABC" data-chars="13"
+                 style="text-transform:uppercase;font-family:var(--gd-font-mono);">
+        </div>
+        <div class="gd-field gd-field-grow">
+          <label>Ciudad / Estado</label>
+          <input type="text" id="ncli-ciudad" maxlength="80" placeholder="Ej. Monterrey, N.L.">
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <label style="display:block;margin-bottom:3px;">Notas internas</label>
+        <textarea id="ncli-notas" rows="2" placeholder="Condiciones de pago, proyectos activos, observaciones…"
+                  style="width:100%;resize:vertical;"></textarea>
+      </div>
+
+      <div class="success-box hidden" id="ncli-ok" style="margin-top:12px;"></div>
+    </div>
+    <div class="gd-modal-foot">
+      <button class="btn btn-secondary" onclick="cerrarNuevoCliente()">Cancelar</button>
+      <button class="btn btn-primary" id="ncli-guardar" onclick="guardarNuevoCliente()">💾 Guardar cliente</button>
+    </div>
+  </div>
+</div>
+
 <div id="newprod-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)closeNewProdModal()">
   <div class="gd-modal is-lg" role="dialog" aria-modal="true" aria-labelledby="newprod-title">
     <div class="gd-modal-header">
@@ -4944,6 +5013,84 @@ function _escHtml(s) {
 }
 
 // showAll=true: muestra todos (botón ▾); showAll=false: filtra por lo escrito
+/* ── ALTA DE CLIENTE ─────────────────────────────────────────────────────────
+   Mismo esquema que el módulo de Requisiciones: ambos escriben en la tabla
+   `clientes`, así que un alta hecha aquí aparece allá y al revés.            */
+
+function abrirNuevoCliente() {
+  const m = el('cliente-modal');
+  if (!m) return;
+  ['nombre','contacto','telefono','email','rfc','ciudad','notas']
+    .forEach(k => { const c = el('ncli-' + k); if (c) c.value = ''; });
+  hideCls('ncli-err'); hideCls('ncli-ok');
+  // Si ya se escribió algo en el campo de empresa, se arrastra como nombre
+  const escrito = (el('empresa').value || '').trim();
+  if (escrito) el('ncli-nombre').value = escrito;
+  m.style.display = 'flex';
+  document.getElementById('cliente-dd').style.display = 'none';
+  setTimeout(() => el('ncli-nombre').focus(), 80);
+  GD.refrescar(m);
+}
+
+function cerrarNuevoCliente() {
+  const m = el('cliente-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function guardarNuevoCliente() {
+  const nombre = (el('ncli-nombre').value || '').trim();
+  const err = el('ncli-err');
+  const btn = el('ncli-guardar');
+  hideCls('ncli-ok');
+
+  if (!nombre) {
+    err.textContent = 'El nombre de la empresa es obligatorio.';
+    showCls('ncli-err');
+    el('ncli-nombre').focus();
+    return;
+  }
+  if (_clientesDB.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+    err.textContent = `Ya existe un cliente llamado "${nombre}".`;
+    showCls('ncli-err');
+    return;
+  }
+
+  const datos = {
+    nombre,
+    contacto: (el('ncli-contacto').value || '').trim(),
+    telefono: (el('ncli-telefono').value || '').trim(),
+    email:    (el('ncli-email').value || '').trim(),
+    rfc:      (el('ncli-rfc').value || '').trim().toUpperCase(),
+    ciudad:   (el('ncli-ciudad').value || '').trim(),
+    notas:    (el('ncli-notas').value || '').trim(),
+  };
+
+  hideCls('ncli-err');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando…';
+
+  try {
+    await window.SB.upsert('clientes', [datos], 'nombre');
+    await loadClientesDB();                      // recarga la lista compartida
+
+    // Queda seleccionado en la cotización que se está armando
+    el('empresa').value = nombre;
+    if (el('atencion') && datos.contacto) el('atencion').value = datos.contacto;
+    updateFolio();
+
+    el('ncli-ok').textContent = `✅ "${nombre}" quedó registrado y seleccionado.`;
+    showCls('ncli-ok');
+    toast(`✅ Cliente "${shortDesc(nombre, 30)}" agregado`);
+    setTimeout(cerrarNuevoCliente, 900);
+  } catch (e) {
+    err.textContent = 'No se pudo guardar: ' + e.message;
+    showCls('ncli-err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Guardar cliente';
+  }
+}
+
 function handleEmpresaInput(val, showAll) {
   const dd = document.getElementById('cliente-dd');
   if (!dd || !_clientesDB.length) return;
@@ -4951,7 +5098,21 @@ function handleEmpresaInput(val, showAll) {
   const matches = (showAll || !q)
     ? _clientesDB
     : _clientesDB.filter(c => c.nombre.toLowerCase().includes(q));
-  if (!matches.length) { dd.style.display = 'none'; return; }
+  // Sin coincidencias, el desplegable ofrece darlo de alta en vez de vaciarse
+  if (!matches.length) {
+    dd.innerHTML = `<div class="cli-nuevo" style="padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:9px;">
+        <span style="font-size:15px;">🏢</span>
+        <span>
+          <span style="display:block;font-weight:600;font-size:13.5px;color:var(--gd-text);">Dar de alta «${_escHtml(val.trim())}»</span>
+          <span style="font-size:12px;color:var(--gd-text-soft);">Ningún cliente coincide con lo escrito</span>
+        </span>
+      </div>`;
+    dd.querySelector('.cli-nuevo').addEventListener('mousedown', e => {
+      e.preventDefault(); abrirNuevoCliente();
+    });
+    dd.style.display = 'block';
+    return;
+  }
   dd.innerHTML = matches.map(c =>
     `<div class="cli-opt" data-nombre="${_escHtml(c.nombre)}"
           style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--gd-border);transition:background .1s;">
