@@ -430,24 +430,41 @@ label { color: var(--gd-text-mute); }
 .gd-table .num { text-align: right; font-family: var(--gd-font-mono); font-variant-numeric: tabular-nums; }
 .gd-scroll { overflow-x: auto; }
 
-/* ── MODALES ─────────────────────────────────────────────────────────────── */
-.gd-modal-backdrop {
+/* ── MODALES ─────────────────────────────────────────────────────────────────
+   `position: fixed` ancla el diálogo a la ventana, no al documento: aparece
+   siempre donde el usuario está mirando, sin importar cuánto haya bajado.
+   Se aceptan los dos nombres de clase porque el marcado usa ambos.          */
+.gd-modal-backdrop,
+.gd-modal-overlay {
   position: fixed; inset: 0; z-index: 8000;
-  display: none; align-items: flex-start; justify-content: center;
-  padding: 7vh 16px 24px;
-  background: rgba(9,12,16,.55);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px 16px;
+  background: var(--gd-velo);
   backdrop-filter: blur(3px);
-  overflow-y: auto;
+  /* El desplazamiento no se propaga a la página de fondo */
+  overflow: hidden; overscroll-behavior: contain;
 }
-.gd-modal-backdrop.open { display: flex; }
+.gd-modal-backdrop.open,
+.gd-modal-overlay.open { display: flex; }
+
 .gd-modal {
   width: 100%; max-width: 680px;
+  max-height: calc(100vh - 40px);       /* nunca sobresale de la ventana */
+  display: flex; flex-direction: column;
   background: var(--gd-bg-elev);
   border: 1px solid var(--gd-border);
   border-radius: var(--gd-radius-lg);
   box-shadow: var(--gd-shadow-lg);
   overflow: hidden;
+  animation: gd-modal-entra .16s cubic-bezier(.2,.8,.3,1);
 }
+.gd-modal.is-lg { max-width: 900px; }
+.gd-modal.is-sm { max-width: 460px; }
+@keyframes gd-modal-entra {
+  from { opacity: 0; transform: translateY(-8px) scale(.99); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .gd-modal { animation: none; } }
 .gd-modal-header {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 15px 20px; border-bottom: 1px solid var(--gd-border);
@@ -459,10 +476,12 @@ label { color: var(--gd-text-mute); }
   background: transparent; color: var(--gd-text-mute); font-size: 16px; cursor: pointer;
 }
 .gd-modal-close:hover { background: var(--gd-red-light); color:var(--gd-red-ink); }
-.gd-modal-body { padding: 20px; }
+/* Encabezado y pie quedan fijos; sólo el cuerpo se desplaza */
+.gd-modal-header, .gd-modal-foot { flex: none; }
+.gd-modal-body { padding: 18px 20px; flex: 1; overflow-y: auto; min-height: 0; }
 .gd-modal-foot {
   display: flex; gap: 9px; justify-content: flex-end;
-  padding: 14px 20px; border-top: 1px solid var(--gd-border); background: var(--gd-bg-alt);
+  padding: 13px 20px; border-top: 1px solid var(--gd-border); background: var(--gd-bg-alt);
 }
 
 /* ── INDICADORES ─────────────────────────────────────────────────────────── */

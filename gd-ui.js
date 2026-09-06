@@ -445,7 +445,23 @@ const picker = GD.picker = (function () {
 })();
 
 
-/* ── 4. SESIÓN ──────────────────────────────────────────────────────────────*/
+/* ── 4. MODALES: CIERRE CON ESCAPE ──────────────────────────────────────────
+   Cada modal conserva su propia función de cierre (que además limpia estado),
+   así que se pulsa su botón en lugar de ocultarlo a la fuerza.              */
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const abiertos = [...document.querySelectorAll('.gd-modal-overlay, .gd-modal-backdrop')]
+    .filter(m => getComputedStyle(m).display !== 'none');
+  if (!abiertos.length) return;
+  const ultimo = abiertos[abiertos.length - 1];      // el de más arriba
+  const cerrar = ultimo.querySelector('.gd-modal-close');
+  if (cerrar) cerrar.click();
+  else ultimo.style.display = 'none';
+});
+
+
+/* ── 5. SESIÓN ──────────────────────────────────────────────────────────────*/
 
 GD.sesion = {
   actual: null,
