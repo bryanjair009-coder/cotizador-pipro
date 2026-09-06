@@ -14,12 +14,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100%;font-family:'Inter','Segoe UI',Arial,sans-serif;background:var(--gd-bg);color:var(--gd-text);-webkit-font-smoothing:antialiased}
+html,body{min-height:100%;font-family:var(--gd-font-sans);background:var(--gd-bg);color:var(--gd-text);-webkit-font-smoothing:antialiased}
 body{padding:0;overflow-y:auto}
 
 /* ── Barra del módulo (clara, sticky arriba — coherente con portal) ─────── */
 .mod-header{
-  background:#FFFFFF;border-bottom:1px solid #E5E7EB;
+  background:var(--gd-bg-elev);border-bottom:1px solid var(--gd-border);
   padding:10px 22px;display:flex;align-items:center;gap:12px;
   position:sticky;top:0;z-index:200;
   box-shadow:0 1px 2px rgba(0,0,0,.4);
@@ -27,17 +27,17 @@ body{padding:0;overflow-y:auto}
 .mod-icon{
   display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;border-radius:8px;
-  background:#FFF5F7;color:#C8102E;font-size:18px;
-  border:1px solid #FCE7EB;
+  background:var(--gd-red-tint);color:var(--gd-red-ink);font-size:18px;
+  border:1px solid var(--gd-red-light);
 }
-.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
-.mod-sub{font-size:11px;color:#898B92;margin-top:2px;font-weight:500;}
+.mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;font-weight:500;}
 .mod-wrap{padding:16px;}
 
 .card{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:10px;padding:16px;margin-bottom:14px}
 .card-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--gd-border);flex-wrap:wrap}
 .card-title{font-size:13px;font-weight:700;color:var(--gd-text);letter-spacing:.04em;text-transform:uppercase}
-.card-badge{font-size:10px;background:#C8102E;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700}
+.card-badge{font-size:10px;background:var(--gd-red);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700}
 
 .grid{display:grid;gap:10px}
 .g2{grid-template-columns:repeat(2,1fr)}
@@ -50,73 +50,73 @@ body{padding:0;overflow-y:auto}
 .field input,.field select{
   background:var(--gd-bg);border:1px solid var(--gd-border-strong);border-radius:6px;
   color:var(--gd-text);font-size:13px;padding:7px 10px;width:100%;
-  outline:none;transition:border-color .15s;font-family:Arial,sans-serif;
+  outline:none;transition:border-color .15s;font-family:var(--gd-font-sans);
 }
-.field input:focus,.field select:focus{border-color:#C8102E}
+.field input:focus,.field select:focus{border-color:var(--gd-red)}
 
 /* Material toggle */
 .mat-toggle{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--gd-border);width:fit-content}
-.mat-btn{padding:6px 16px;font-size:12px;font-weight:700;font-family:Arial,sans-serif;border:none;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.05);color:var(--gd-text-mute)}
-.mat-btn.active{background:#C8102E;color:#fff}
+.mat-btn{padding:6px 16px;font-size:12px;font-weight:700;font-family:var(--gd-font-sans);border:none;cursor:pointer;transition:all .15s;background:rgba(255,255,255,.05);color:var(--gd-text-mute)}
+.mat-btn.active{background:var(--gd-red);color:#fff;font-weight:600}
 .mat-btn:not(.active):hover{background:var(--gd-bg-alt);color:var(--gd-text)}
 
 .result-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:var(--gd-bg);border-radius:8px;border:1px solid rgba(255,255,255,.06)}
 .ri{display:flex;flex-direction:column;gap:2px;min-width:90px}
 .rl{font-size:9px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.06em}
 .rv{font-size:15px;font-weight:700;color:var(--gd-text)}
-.rv.good{color:#22c55e}
-.rv.warn{color:#f59e0b}
-.rv.bad{color:#ef4444}
+.rv.good{color:var(--gd-success)}
+.rv.warn{color:var(--gd-warning)}
+.rv.bad{color:var(--gd-error)}
 .rs{font-size:10px;color:var(--gd-text-soft)}
 
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:Arial,sans-serif;transition:all .15s;white-space:nowrap}
-.btn-red{background:#C8102E;color:#fff}.btn-red:hover{background:#a50d26}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--gd-font-sans);transition:all .15s;white-space:nowrap}
+.btn-red{background:var(--gd-red);color:#fff}.btn-red:hover{background:var(--gd-red-dark)}
 .btn-ghost{background:var(--gd-border);color:var(--gd-text);border:1px solid var(--gd-border)}.btn-ghost:hover{background:var(--gd-border-strong)}
 .btn-sm{padding:4px 10px;font-size:11px}
-.btn-del{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2)}.btn-del:hover{background:rgba(239,68,68,.22)}
+.btn-del{background:rgba(239,68,68,.12);color:var(--gd-error);border:1px solid rgba(239,68,68,.2)}.btn-del:hover{background:rgba(239,68,68,.22)}
 
 .btbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
 .btbl th{padding:6px 6px;text-align:left;font-size:10px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gd-border);white-space:nowrap}
 .btbl td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
 .btbl tr:last-child td{border-bottom:none}
-.btbl input,.btbl select{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 6px;width:100%;outline:none;font-family:Arial,sans-serif}
-.btbl input:focus,.btbl select:focus{border-color:#C8102E}
+.btbl input,.btbl select{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 6px;width:100%;outline:none;font-family:var(--gd-font-sans);}
+.btbl input:focus,.btbl select:focus{border-color:var(--gd-red)}
 
 .acc-panel{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:8px;padding:10px;margin-top:8px}
 .acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
 .acc-item{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;background:var(--gd-bg-elev);border-radius:6px}
 .acc-name{font-size:11px;color:var(--gd-text-mute);flex:1}
 .acc-ctr{display:flex;align-items:center;gap:4px}
-.acc-ctr button{width:22px;height:22px;border-radius:4px;border:1px solid var(--gd-border);background:var(--gd-bg-alt);color:var(--gd-text);cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
-.acc-ctr button:hover{background:rgba(200,16,46,.3);border-color:#C8102E}
+.acc-ctr button{width:22px;height:22px;border-radius:4px;border:1px solid var(--gd-border);background:var(--gd-bg-alt);color:var(--gd-text);cursor:pointer;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:var(--gd-font-sans);}
+.acc-ctr button:hover{background:rgba(200,16,46,.3);border-color:var(--gd-red)}
 .acc-ctr span{min-width:22px;text-align:center;font-size:12px;font-weight:700;color:var(--gd-text)}
-.tacc-btn{font-size:10px;color:#C8102E;cursor:pointer;background:none;border:none;padding:0;font-family:Arial,sans-serif;text-decoration:underline;white-space:nowrap}
+.tacc-btn{font-size:10px;color:var(--gd-red-ink);cursor:pointer;background:none;border:none;padding:0;font-family:var(--gd-font-sans);text-decoration:underline;white-space:nowrap}
 
 .vbar{height:7px;border-radius:4px;background:var(--gd-border);overflow:hidden;margin:5px 0}
-.vfill{height:100%;border-radius:4px;transition:width .4s;background:#22c55e}
-.vfill.warn{background:#f59e0b}
-.vfill.bad{background:#ef4444}
+.vfill{height:100%;border-radius:4px;transition:width .4s;background:var(--gd-success)}
+.vfill.warn{background:var(--gd-warning)}
+.vfill.bad{background:var(--gd-error)}
 
 .ctbl{width:100%;border-collapse:collapse;font-size:12px}
 .ctbl th{padding:7px 8px;text-align:left;font-size:10px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gd-border);white-space:nowrap}
 .ctbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
-.ctbl input{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 7px;outline:none;font-family:Arial,sans-serif}
+.ctbl input{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 7px;outline:none;font-family:var(--gd-font-sans);}
 .ctbl input[type="text"]{width:140px}
 .ctbl input[type="number"]{width:80px}
-.ctbl input:focus{border-color:#C8102E}
+.ctbl input:focus{border-color:var(--gd-red)}
 
 .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
-.tag-ok{background:rgba(34,197,94,.15);color:#22c55e}
-.tag-warn{background:rgba(245,158,11,.15);color:#f59e0b}
-.tag-bad{background:rgba(239,68,68,.15);color:#ef4444}
+.tag-ok{background:rgba(34,197,94,.15);color:var(--gd-success)}
+.tag-warn{background:rgba(245,158,11,.15);color:var(--gd-warning)}
+.tag-bad{background:rgba(239,68,68,.15);color:var(--gd-error)}
 
-.rec{font-size:10px;color:#22c55e;font-weight:700;margin-top:2px}
+.rec{font-size:10px;color:var(--gd-success);font-weight:700;margin-top:2px}
 .divider{height:1px;background:rgba(255,255,255,.06);margin:12px 0}
 .note{font-size:10px;color:var(--gd-text-soft);line-height:1.6}
 h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 
 /* PIPRO highlight */
-.pipro-badge{font-size:10px;background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3);padding:2px 8px;border-radius:10px;font-weight:700}
+.pipro-badge{font-size:10px;background:rgba(59,130,246,.2);color:var(--gd-info);border:1px solid rgba(59,130,246,.3);padding:2px 8px;border-radius:10px;font-weight:700}
 
 /* Tooltip/Modal System */
 /* Icono de información — mismo lenguaje visual que el resto del portal */
@@ -134,23 +134,23 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 .modal-section{margin-bottom:14px}
 .modal-section-title{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .modal-section-content{font-size:12px;color:var(--gd-text);line-height:1.5}
-.modal-code{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:6px;padding:8px;font-family:monospace;font-size:11px;color:#a0ff9f;margin:8px 0;overflow-x:auto}
+.modal-code{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:6px;padding:8px;font-family:var(--gd-font-mono);font-size:11px;color:var(--gd-success);margin:8px 0;overflow-x:auto}
 .modal-list{list-style:none;padding:0;margin:8px 0}
 .modal-list li{padding:4px 0;padding-left:20px;position:relative;color:var(--gd-text);font-size:12px}
-.modal-list li:before{content:'▸';position:absolute;left:0;color:#C8102E}
+.modal-list li:before{content:'▸';position:absolute;left:0;color:var(--gd-red-ink)}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 
 /* Step badges */
-.step-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#C8102E;color:#fff;font-size:11px;font-weight:900;flex-shrink:0}
+.step-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--gd-red);color:#fff;font-size:11px;font-weight:900;flex-shrink:0}
 .step-label{display:inline-flex;align-items:center;gap:8px}
-.edu-note{background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.15);border-radius:7px;padding:8px 12px;margin-top:10px;font-size:11px;color:rgba(96,165,250,.8);line-height:1.5}
-.edu-note strong{color:#60a5fa}
+.edu-note{background:var(--gd-bg-alt);border:1px solid var(--gd-border);border-radius:7px;padding:8px 12px;margin-top:10px;font-size:11px;color:var(--gd-text-mute);line-height:1.5}
+.edu-note strong{color:var(--gd-info)}
 /* Guide Section */
 /* Guía plegada por omisión: el trabajo real ocupa la primera pantalla */
 .guide-card{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:10px;padding:11px 16px;margin-bottom:12px}
 .guide-header{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
-.guide-header:hover .guide-title{color:var(--gd-red)}
+.guide-header:hover .guide-title{color:var(--gd-red-ink)}
 .guide-title{font-size:12px;font-weight:700;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.05em;flex:1;transition:color .13s}
 .guide-toggle{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--gd-text-soft);transition:transform .2s}
 .guide-toggle{transform:rotate(90deg)}          /* abierto: apunta abajo */
@@ -158,9 +158,9 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 .guide-content{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--gd-border)}
 .guide-content.show{display:block}
 .guide-steps{display:grid;gap:8px;margin:12px 0}
-.guide-step{padding:10px 12px;background:var(--gd-bg-elev);border-left:3px solid #60a5fa;border-radius:4px;font-size:11px;color:var(--gd-text);line-height:1.5}
-.guide-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:Arial,sans-serif;background:#60a5fa;color:#fff;transition:all .15s;margin-top:12px}
-.guide-btn:hover{background:#4f9ff0}
+.guide-step{padding:10px 12px;background:var(--gd-bg-elev);border-left:3px solid var(--gd-info);border-radius:4px;font-size:11px;color:var(--gd-text);line-height:1.5}
+.guide-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--gd-font-sans);background:var(--gd-info);color:#fff;transition:all .15s;margin-top:12px}
+.guide-btn:hover{background:var(--gd-info)}
 
 @media(max-width:900px){.g4,.g5{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:550px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}
@@ -192,11 +192,11 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
       para saber qué significa el dato y dónde obtenerlo.
     </p>
     <div class="guide-steps">
-      <div class="guide-step"><strong style="color:#60a5fa">① COMPRESORES:</strong> Agrega tu(s) compresor(es). Escribe HP y el SCFM del compresor (dato de la placa o catálogo). El sistema calcula cuánto aire real circule por la red (ACFM).</div>
-      <div class="guide-step"><strong style="color:#60a5fa">② PARÁMETROS DE RED:</strong> Define la presión de trabajo de la red, temperatura del aire y altitud de tu planta. Estos afectan la densidad y velocidad del aire en todos los cálculos.</div>
-      <div class="guide-step"><strong style="color:#60a5fa">③ CABEZAL:</strong> Elige el diámetro de la línea principal. El sistema te muestra la velocidad resultante — debe estar entre 4 y 6 m/s para un diseño correcto.</div>
-      <div class="guide-step"><strong style="color:#60a5fa">④ BAJADAS:</strong> Agrega cada punto de uso (máquina, herramienta) con su consumo en CFM. El sistema recomienda el diámetro de cada bajada automáticamente.</div>
-      <div class="guide-step"><strong style="color:#60a5fa">⑤ RESUMEN FINAL:</strong> Revisa el panel al final de la página. Muestra la ΔP total, % de pérdida y un veredicto: ✅ RED CORRECTA o ⚠️ REVISAR.</div>
+      <div class="guide-step"><strong style="color:var(--gd-info)">① COMPRESORES:</strong> Agrega tu(s) compresor(es). Escribe HP y el SCFM del compresor (dato de la placa o catálogo). El sistema calcula cuánto aire real circule por la red (ACFM).</div>
+      <div class="guide-step"><strong style="color:var(--gd-info)">② PARÁMETROS DE RED:</strong> Define la presión de trabajo de la red, temperatura del aire y altitud de tu planta. Estos afectan la densidad y velocidad del aire en todos los cálculos.</div>
+      <div class="guide-step"><strong style="color:var(--gd-info)">③ CABEZAL:</strong> Elige el diámetro de la línea principal. El sistema te muestra la velocidad resultante — debe estar entre 4 y 6 m/s para un diseño correcto.</div>
+      <div class="guide-step"><strong style="color:var(--gd-info)">④ BAJADAS:</strong> Agrega cada punto de uso (máquina, herramienta) con su consumo en CFM. El sistema recomienda el diámetro de cada bajada automáticamente.</div>
+      <div class="guide-step"><strong style="color:var(--gd-info)">⑤ RESUMEN FINAL:</strong> Revisa el panel al final de la página. Muestra la ΔP total, % de pérdida y un veredicto: ✅ RED CORRECTA o ⚠️ REVISAR.</div>
     </div>
     <button class="guide-btn" onclick="loadExample()">📚 Cargar Ejemplo: 140 CFM + 300 HP</button>
   </div>
@@ -241,19 +241,19 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 
   <!-- Tabla catálogo PIPRO — visible solo cuando se selecciona PIPRO -->
   <div id="pipro-catalog" style="display:none;margin-top:14px">
-    <div style="font-size:11px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+    <div style="font-size:11px;font-weight:700;color:var(--gd-info);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
       Catálogo Tubería PIPRO Aluminio — Aleación 6063 T5 · Presión máx. 16 bar
     </div>
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:11px">
         <thead>
-          <tr style="border-bottom:1px solid rgba(96,165,250,.2)">
-            <th style="padding:5px 10px;text-align:left;color:rgba(96,165,250,.7);font-weight:700;white-space:nowrap">Diámetro</th>
-            <th style="padding:5px 10px;text-align:left;color:rgba(96,165,250,.7);font-weight:700">Código</th>
-            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">D exterior (mm)</th>
-            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">d interior (mm)</th>
-            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">Espesor (mm)</th>
-            <th style="padding:5px 10px;text-align:right;color:rgba(96,165,250,.7);font-weight:700">L barra (mm)</th>
+          <tr style="border-bottom:1px solid var(--gd-border)">
+            <th style="padding:5px 10px;text-align:left;color:var(--gd-text-mute);font-weight:700;white-space:nowrap">Diámetro</th>
+            <th style="padding:5px 10px;text-align:left;color:var(--gd-text-mute);font-weight:700">Código</th>
+            <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute);font-weight:700">D exterior (mm)</th>
+            <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute);font-weight:700">d interior (mm)</th>
+            <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute);font-weight:700">Espesor (mm)</th>
+            <th style="padding:5px 10px;text-align:right;color:var(--gd-text-mute);font-weight:700">L barra (mm)</th>
           </tr>
         </thead>
         <tbody id="pipro-tbl-body"></tbody>
@@ -456,8 +456,8 @@ Por encima de 6 m/s → aumenta el diámetro"></button>
 <!-- ════════════ RESUMEN FINAL DE RED ════════════ -->
 <div class="card" id="resumen-card" style="border:2px solid var(--gd-border)">
   <div class="card-header">
-    <span class="step-label"><span class="step-badge" style="background:#22c55e">✓</span><span class="card-title">Resumen Final de Red</span></span>
-    <span class="card-badge" id="rsm-estado-badge" style="background:#374151;font-size:11px">— Agrega datos para ver resultado</span>
+    <span class="step-label"><span class="step-badge" style="background:var(--gd-success)">✓</span><span class="card-title">Resumen Final de Red</span></span>
+    <span class="card-badge" id="rsm-estado-badge" style="background:var(--gd-invert-bg);font-size:11px">— Agrega datos para ver resultado</span>
   </div>
   <div class="grid g4" style="margin-bottom:12px">
     <div class="ri" style="min-width:100px">
@@ -487,15 +487,15 @@ Por encima de 6 m/s → aumenta el diámetro"></button>
       <span>0%</span><span>2%</span><span>5%</span><span>10%</span>
     </div>
     <div style="height:12px;background:var(--gd-border);border-radius:6px;overflow:hidden;position:relative">
-      <div id="rsm-bar" style="height:100%;border-radius:6px;background:#22c55e;transition:width .5s,background .3s;width:0%"></div>
+      <div id="rsm-bar" style="height:100%;border-radius:6px;background:var(--gd-success);transition:width .5s,background .3s;width:0%"></div>
       <!-- Marcadores -->
       <div style="position:absolute;left:20%;top:0;height:100%;border-right:2px solid rgba(34,197,94,.4)"></div>
       <div style="position:absolute;left:50%;top:0;height:100%;border-right:2px dashed rgba(245,158,11,.4)"></div>
     </div>
     <div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">
-      <span style="font-size:10px;color:#22c55e">● &lt;2% Excelente</span>
-      <span style="font-size:10px;color:#f59e0b">● 2–5% Aceptable</span>
-      <span style="font-size:10px;color:#ef4444">● &gt;5% Revisar diseño</span>
+      <span style="font-size:10px;color:var(--gd-success)">● &lt;2% Excelente</span>
+      <span style="font-size:10px;color:var(--gd-warning)">● 2–5% Aceptable</span>
+      <span style="font-size:10px;color:var(--gd-error)">● &gt;5% Revisar diseño</span>
     </div>
   </div>
   <!-- Estado general y recomendaciones -->
@@ -643,12 +643,12 @@ function buildPiproCatalogTable() {
   TUBERIAS_PIPRO.forEach((t, i) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = 'none';
-    tr.style.background   = i % 2 === 0 ? 'rgba(96,165,250,.04)' : 'transparent';
+    tr.style.background   = i % 2 === 0 ? 'var(--gd-bg-alt)' : 'transparent';
     tr.innerHTML = `
-      <td style="padding:5px 10px;color:#60a5fa;font-weight:700;white-space:nowrap">${t.label.split('—')[0].trim()}</td>
-      <td style="padding:5px 10px;color:var(--gd-text-mute);font-family:monospace">${t.codigo}</td>
+      <td style="padding:5px 10px;color:var(--gd-info);font-weight:700;white-space:nowrap">${t.label.split('—')[0].trim()}</td>
+      <td style="padding:5px 10px;color:var(--gd-text-mute);font-family:var(--gd-font-mono);">${t.codigo}</td>
       <td style="padding:5px 10px;text-align:right;color:var(--gd-text)">${(t.odMm).toFixed(1)}</td>
-      <td style="padding:5px 10px;text-align:right;color:#22c55e;font-weight:700">${(t.idM*1000).toFixed(1)}</td>
+      <td style="padding:5px 10px;text-align:right;color:var(--gd-success);font-weight:700">${(t.idM*1000).toFixed(1)}</td>
       <td style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">${t.esp}</td>
       <td style="padding:5px 10px;text-align:right;color:var(--gd-text-mute)">5800</td>`;
     tbody.appendChild(tr);
@@ -748,13 +748,13 @@ function addCompresor(preset) {
          oninput="updateCompRow(${id})"/></td>
     <td><select id="comp-diam-${id}" style="min-width:110px"
          onchange="updateCompRow(${id})">${opts}</select></td>
-    <td style="font-weight:700;color:#22c55e;white-space:nowrap">
+    <td style="font-weight:700;color:var(--gd-success);white-space:nowrap">
         <span id="comp-scfme-${id}">—</span></td>
-    <td style="color:#60a5fa;white-space:nowrap">
+    <td style="color:var(--gd-info);white-space:nowrap">
         <span id="comp-acfm-${id}">—</span></td>
     <td style="white-space:nowrap">
         <span id="comp-v-${id}">—</span></td>
-    <td style="color:#60a5fa;white-space:nowrap">
+    <td style="color:var(--gd-info);white-space:nowrap">
         <span id="comp-kw-${id}">—</span></td>
     <td><button class="btn btn-del btn-sm" onclick="removeCompresor(${id})">✕</button></td>`;
   tbody.appendChild(tr);
@@ -812,7 +812,7 @@ function updateCompRow(id) {
   if (acfmEl) acfmEl.textContent = acfmC.toFixed(1) + ' ACFM';
   if (vEl) {
     vEl.textContent  = vC.toFixed(2) + ' m/s';
-    vEl.style.color  = vC < 6 ? '#22c55e' : vC < 12 ? '#f59e0b' : '#ef4444';
+    vEl.style.color  = vC < 6 ? 'var(--gd-success)' : vC < 12 ? 'var(--gd-warning)' : 'var(--gd-error)';
   }
   if (kEl)    kEl.textContent    = kw.toFixed(1) + ' kW';
   recalcAll();
@@ -883,14 +883,14 @@ function addBajada(preset) {
     <td><input type="text" value="${preset ? preset.n : 'Punto '+id}" style="width:120px" oninput="recalcBajada(${id})"/></td>
     <td><input type="number" id="bcfm-${id}" value="${preset ? preset.cfm : 10}" min="0.1" style="width:65px" oninput="recalcBajada(${id})"/></td>
     <td><input type="number" id="bfs-${id}"  value="0.8" min="0.1" max="1" step="0.05" style="width:58px" oninput="recalcBajada(${id})"/></td>
-    <td style="font-weight:700;color:#C8102E"><span id="bcfme-${id}">—</span></td>
+    <td style="font-weight:700;color:var(--gd-red-ink)"><span id="bcfme-${id}">—</span></td>
     <td><input type="number" id="blong-${id}" value="5" min="0.1" style="width:58px" oninput="recalcBajada(${id})"/></td>
     <td><select id="bdiam-${id}" onchange="recalcBajada(${id})">${opts}</select>
         <div class="rec" id="brec-${id}"></div></td>
     <td><span id="bv-${id}">—</span></td>
     <td><span id="bdp-${id}">—</span></td>
     <td><span id="bpct-${id}">—</span></td>
-    <td style="font-size:10px;color:#22c55e;white-space:nowrap"><span id="brd-${id}">—</span></td>
+    <td style="font-size:10px;color:var(--gd-success);white-space:nowrap"><span id="brd-${id}">—</span></td>
     <td><button class="tacc-btn" onclick="togglePanel('bacc-${id}')">Acc</button></td>
     <td><button class="btn btn-del btn-sm" onclick="removeBajada(${id})">✕</button></td>`;
   tbody.appendChild(tr);
@@ -1081,13 +1081,13 @@ function renderDiamTable() {
     tr.style.background = isSel ? 'rgba(200,16,46,.12)' : '';
     tr.style.fontWeight  = isSel ? '700' : '';
     tr.innerHTML = `
-      <td style="padding:4px 10px;color:${isSel?'#C8102E':'var(--gd-text)'};white-space:nowrap">
+      <td style="padding:4px 10px;color:${isSel?'var(--gd-red)':'var(--gd-text)'};white-space:nowrap">
         ${tube.label.split('—')[0].trim()}${isSel?' ◀':''}</td>
-      <td style="padding:4px 10px;text-align:right;color:${v>12?'#ef4444':v>6?'#f59e0b':'#22c55e'}">${v.toFixed(2)}</td>
+      <td style="padding:4px 10px;text-align:right;color:${v>12?'var(--gd-error)':v>6?'var(--gd-warning)':'var(--gd-success)'}">${v.toFixed(2)}</td>
       <td style="padding:4px 10px;text-align:center;color:var(--gd-text-mute)">${regime}</td>
       <td style="padding:4px 10px;text-align:right;color:var(--gd-text-mute)">${f.toFixed(4)}</td>
-      <td style="padding:4px 10px;text-align:right;color:${pct>5?'#ef4444':pct>3?'#f59e0b':'#22c55e'}">${dP_psi.toFixed(3)}</td>
-      <td style="padding:4px 10px;text-align:right;color:${pct>5?'#ef4444':pct>3?'#f59e0b':'#22c55e'}">${pct.toFixed(2)}%</td>
+      <td style="padding:4px 10px;text-align:right;color:${pct>5?'var(--gd-error)':pct>3?'var(--gd-warning)':'var(--gd-success)'}">${dP_psi.toFixed(3)}</td>
+      <td style="padding:4px 10px;text-align:right;color:${pct>5?'var(--gd-error)':pct>3?'var(--gd-warning)':'var(--gd-success)'}">${pct.toFixed(2)}%</td>
       <td style="padding:4px 10px">${statusHtml}</td>`;
     tbody.appendChild(tr);
   });
@@ -1145,12 +1145,12 @@ function recalcBajada(id) {
 
   const vEl = document.getElementById(`bv-${id}`);
   vEl.textContent = fmt(r.v,2);
-  vEl.style.color = r.v<6?'#22c55e':r.v<12?'#f59e0b':'#ef4444';
+  vEl.style.color = r.v<6?'var(--gd-success)':r.v<12?'var(--gd-warning)':'var(--gd-error)';
 
   document.getElementById(`bdp-${id}`).textContent  = fmt(r.dP_psi,3);
   const pEl = document.getElementById(`bpct-${id}`);
   pEl.textContent = fmt(r.pct,2)+'%';
-  pEl.style.color = r.pct<3?'#22c55e':r.pct<5?'#f59e0b':'#ef4444';
+  pEl.style.color = r.pct<3?'var(--gd-success)':r.pct<5?'var(--gd-warning)':'var(--gd-error)';
   document.getElementById(`brd-${id}`).textContent  = cat[r.recIdx].label;
 
   recalcVerif();
@@ -1839,7 +1839,7 @@ function updateResumen() {
     rsmTotal.textContent = '—'; rsmPct.textContent = '—';
     rsmBar.style.width = '0%';
     rsmBadge.textContent = '— Agrega datos para ver resultado';
-    rsmBadge.style.background = '#374151';
+    rsmBadge.style.background = 'var(--gd-invert-bg)';
     if (rsmRec) rsmRec.style.display = 'none';
     return;
   }
@@ -1858,26 +1858,26 @@ function updateResumen() {
   // Paleta por rango: 0–2 % verde fuerte · 2–5 % verde lima · >5 % naranja
   if (pctLoss < 2) {
     estado = '✅ RED EXCELENTE';
-    badgeColor = '#15803d'; barColor = '#16a34a';
-    rsmTotal.style.color = '#16a34a'; rsmPct.style.color = '#16a34a';
+    badgeColor = 'var(--dp-verde)'; barColor = 'var(--dp-verde)';
+    rsmTotal.style.color = 'var(--dp-verde)'; rsmPct.style.color = 'var(--dp-verde)';
     recHtml = `<div style="padding:10px 14px;background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.30);border-radius:8px;font-size:12px;color:var(--gd-text);line-height:1.7">
-      <strong style="color:#16a34a">✅ Diseño correcto</strong> — La caída de presión es <strong>${pctLoss.toFixed(1)}%</strong> de la presión de red, lo que es excelente (límite recomendado: 5%).<br>
+      <strong style="color:var(--gd-success)">✅ Diseño correcto</strong> — La caída de presión es <strong>${pctLoss.toFixed(1)}%</strong> de la presión de red, lo que es excelente (límite recomendado: 5%).<br>
       Los equipos recibirán la presión nominal sin problemas. No es necesario ajustar diámetros.
     </div>`;
   } else if (pctLoss < 5) {
     estado = '🟢 RED ACEPTABLE';
-    badgeColor = '#4d7c0f'; barColor = '#84cc16';
-    rsmTotal.style.color = '#84cc16'; rsmPct.style.color = '#84cc16';
+    badgeColor = 'var(--dp-lima)'; barColor = 'var(--dp-lima)';
+    rsmTotal.style.color = 'var(--dp-lima)'; rsmPct.style.color = 'var(--dp-lima)';
     recHtml = `<div style="padding:10px 14px;background:rgba(132,204,22,.10);border:1px solid rgba(132,204,22,.30);border-radius:8px;font-size:12px;color:var(--gd-text);line-height:1.7">
-      <strong style="color:#84cc16">🟢 Diseño aceptable</strong> — Pérdida de <strong>${pctLoss.toFixed(1)}%</strong> está dentro del límite del 5%, pero es mejorable.<br>
+      <strong style="color:var(--dp-lima)">🟢 Diseño aceptable</strong> — Pérdida de <strong>${pctLoss.toFixed(1)}%</strong> está dentro del límite del 5%, pero es mejorable.<br>
       <strong>Recomendación:</strong> Considera aumentar un diámetro en el tramo de mayor pérdida, o ajustar la longitud de tuberías.
     </div>`;
   } else {
     estado = '⚠️ FUERA DE RANGO';
-    badgeColor = '#9a3412'; barColor = '#f97316';
-    rsmTotal.style.color = '#f97316'; rsmPct.style.color = '#f97316';
+    badgeColor = 'var(--dp-naranja)'; barColor = 'var(--dp-naranja)';
+    rsmTotal.style.color = 'var(--dp-naranja)'; rsmPct.style.color = 'var(--dp-naranja)';
     recHtml = `<div style="padding:10px 14px;background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.30);border-radius:8px;font-size:12px;color:var(--gd-text);line-height:1.7">
-      <strong style="color:#f97316">⚠️ Diseño fuera de rango</strong> — La pérdida de <strong>${pctLoss.toFixed(1)}%</strong> supera el límite del 5%. Los equipos recibirán presión insuficiente.<br>
+      <strong style="color:var(--dp-naranja)">⚠️ Diseño fuera de rango</strong> — La pérdida de <strong>${pctLoss.toFixed(1)}%</strong> supera el límite del 5%. Los equipos recibirán presión insuficiente.<br>
       <strong>Acciones recomendadas:</strong>
       <ul style="margin:8px 0 0 16px;line-height:1.8">
         <li>Aumentar el diámetro del cabezal al siguiente tamaño disponible.</li>
@@ -1891,6 +1891,7 @@ function updateResumen() {
   rsmBar.style.background = barColor;
   rsmBadge.textContent = estado;
   rsmBadge.style.background = badgeColor;
+  rsmBadge.style.color      = 'var(--dp-fg)';
   if (rsmRec)       rsmRec.style.display = 'block';
   if (rsmRecContent) rsmRecContent.innerHTML = recHtml;
   // Resaltar borde del card
@@ -2069,7 +2070,7 @@ function openTooltip(key) {
   if (tip.warning) {
     html += `<div class="modal-section">
       <div class="modal-section-title">⚠️ Error común / Advertencia</div>
-      <div class="modal-section-content" style="color:#f59e0b">${tip.warning}</div>
+      <div class="modal-section-content" style="color:var(--gd-warning)">${tip.warning}</div>
     </div>`;
   }
 

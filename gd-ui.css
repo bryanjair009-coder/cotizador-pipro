@@ -59,7 +59,7 @@
 .gd-pop-title {
   margin: 0 0 6px;
   font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--gd-red);
+  color:var(--gd-red-ink);
 }
 .gd-pop p { margin: 0 0 7px; }
 .gd-pop p:last-child { margin-bottom: 0; }
@@ -148,7 +148,7 @@
 }
 .gdm-trigger:hover {
   border-color: var(--gd-red); border-style: solid;
-  background: var(--gd-red-tint); color: var(--gd-red);
+  background: var(--gd-red-tint); color:var(--gd-red-ink);
 }
 .gdm-trigger .gdm-kbd { margin-left: auto; }
 .gdm-kbd {
@@ -209,7 +209,7 @@
   cursor: pointer; white-space: nowrap;
   transition: all .12s ease;
 }
-.gdm-chip:hover { border-color: var(--gd-red); color: var(--gd-red); }
+.gdm-chip:hover { border-color: var(--gd-red); color:var(--gd-red-ink); }
 .gdm-chip.on { background: var(--gd-red); border-color: var(--gd-red); color: #fff; }
 
 .gdm-list { max-height: min(52vh, 460px); overflow-y: auto; }
@@ -235,7 +235,7 @@
 .gdm-part {
   margin-top: 2px;
   font: 600 11px var(--gd-font-mono);
-  color: var(--gd-red); letter-spacing: .02em;
+  color:var(--gd-red-ink); letter-spacing: .02em;
 }
 .gdm-price {
   font: 700 13.5px var(--gd-font-sans);
@@ -282,9 +282,8 @@
   border-radius: var(--gd-radius-lg);
   box-shadow: var(--gd-shadow-lg);
 }
-.gd-auth-logo { margin-bottom: 24px; }
-.gd-auth-logo svg { height: 40px; width: auto; display: block; }
-[data-theme="dark"] .gd-auth-logo svg text { fill: #fff; }
+/* El logotipo es una imagen que cambia sola con el tema (--gd-logo) */
+.gd-auth-logo { margin-bottom: 26px; }
 .gd-auth-card h1 { margin: 0 0 4px; font-size: 17px; font-weight: 700; color: var(--gd-text); }
 .gd-auth-card .gd-auth-sub { margin: 0 0 22px; font-size: 12.5px; color: var(--gd-text-mute); }
 .gd-auth-card label {
@@ -341,7 +340,7 @@
   font: 700 9.5px var(--gd-font-sans); letter-spacing: .04em; text-transform: uppercase;
   color: var(--gd-text-soft);
 }
-.gd-user-rol.admin { background: var(--gd-red-light); border-color: var(--gd-red); color: var(--gd-red); }
+.gd-user-rol.admin { background: var(--gd-red-light); border-color: var(--gd-red); color:var(--gd-red-ink); }
 
 
 /* ── 5. REFINAMIENTOS DE DASHBOARD ──────────────────────────────────────────*/
@@ -374,7 +373,7 @@
   font-size: 19px; font-weight: 700; color: var(--gd-text);
   font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
-.gd-stat-value.acento { color: var(--gd-red); }
+.gd-stat-value.acento { color:var(--gd-red-ink); }
 .gd-stat-unit { font-size: 11.5px; font-weight: 600; color: var(--gd-text-soft); margin-left: 3px; }
 
 /* Barra de desplazamiento discreta y consistente */

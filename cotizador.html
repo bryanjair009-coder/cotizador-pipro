@@ -18,30 +18,20 @@
 <script src="materiales.js"></script>
 <script src="logo_b64.js"></script>
 <style>
-:root {
-  /* Variables locales legacy — apuntan al theme global cuando es posible.
-     Se mantienen los nombres para no romper estilos específicos más abajo. */
-  --gd-red:   #C8102E;
-  --gd-dark:  #1A1A1F;
-  --gd-gray:  #F8F9FB;
-  --gd-lgray: #E5E7EB;
-  --gd-blue:  #1F3864;
-  --gd-lblue: #D6E4F0;
-  --radius:   8px;
-  --shadow:   0 1px 3px rgba(15,15,30,.06), 0 1px 2px rgba(15,15,30,.04);
-}
+/* Los tokens locales se eliminaron en el rediseño 2026-09: sombreaban el
+   tema global y bloqueaban el modo oscuro. Todo procede de gd-theme.css. */
 *{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:16px;}
 body{
-  font-family:'Inter','Segoe UI',Arial,sans-serif;
-  background:#F8F9FB;color:#1A1A1F;min-height:100vh;
+  font-family:var(--gd-font-sans);
+  background:var(--gd-bg);color:var(--gd-text);min-height:100vh;
   -webkit-font-smoothing:antialiased;
 }
 
 /* ── BARRA DEL MÓDULO (compacta, sin logo — el logo vive en el portal) ─────── */
 .mod-header{
-  background:#FFFFFF;
-  border-bottom:1px solid #E5E7EB;
+  background:var(--gd-bg-elev);
+  border-bottom:1px solid var(--gd-border);
   padding:10px 22px;
   display:flex;align-items:center;justify-content:space-between;gap:20px;
   position:sticky;top:0;z-index:200;
@@ -51,42 +41,79 @@ body{
 .mod-icon{
   display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;border-radius:8px;
-  background:#FFF5F7;color:#C8102E;font-size:18px;
+  background:var(--gd-red-tint);color:var(--gd-red-ink);font-size:18px;
   border:1px solid #FCE7EB;
 }
-.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
-.mod-sub{font-size:11px;color:#898B92;margin-top:2px;letter-spacing:.01em;font-weight:500;}
+.mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;letter-spacing:.01em;font-weight:500;}
 
 /* ── Acciones del módulo (botón Cargar + tabs internos) ───────────────────── */
 .mod-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .mod-btn{
   display:inline-flex;align-items:center;gap:7px;
-  padding:7px 14px;border:1px solid #E5E7EB;background:#FFFFFF;
-  color:#4A4A52;border-radius:8px;font-size:12.5px;font-weight:600;
-  cursor:pointer;font-family:'Inter','Segoe UI',Arial,sans-serif;
+  padding:7px 14px;border:1px solid var(--gd-border);background:var(--gd-bg-elev);
+  color:var(--gd-text-mute);border-radius:8px;font-size:12.5px;font-weight:600;
+  cursor:pointer;font-family:var(--gd-font-sans);
   transition:all .15s ease;
 }
-.mod-btn:hover{border-color:#C8102E;color:#C8102E;background:#FFF5F7;}
+.mod-btn:hover{border-color:var(--gd-red);color:var(--gd-red-ink);background:var(--gd-red-tint);}
 .mod-btn span{font-size:14px;line-height:1;}
 
 /* ── NAV TABS internos (estilo pills modernos) ──────────────────────────────── */
 .mod-tabs{
   display:inline-flex;
-  background:#F1F2F5;
+  background:var(--gd-bg-alt);
   padding:3px;
   border-radius:9px;
   gap:2px;
 }
 .mod-tab{
   padding:7px 16px;border:none;background:transparent;border-radius:7px;
-  color:#6B6E76;font-size:12.5px;font-weight:600;cursor:pointer;
-  font-family:'Inter','Segoe UI',Arial,sans-serif;transition:all .15s ease;
+  color:var(--gd-text-mute);font-size:12.5px;font-weight:600;cursor:pointer;
+  font-family:var(--gd-font-sans);transition:all .15s ease;
 }
-.mod-tab:hover{color:#1A1A1F;}
+.mod-tab:hover{color:var(--gd-text);}
 .mod-tab.active{
-  background:#FFFFFF;color:#C8102E;
+  background:var(--gd-bg-elev);color:var(--gd-red-ink);
   box-shadow:0 1px 3px rgba(15,15,30,.08), 0 1px 2px rgba(15,15,30,.04);
 }
+
+/* ── PANEL DE ADMINISTRACIÓN ────────────────────────────────────────────────
+   Antes era una sola página con cinco bloques apilados; ahora las cifras van
+   arriba y el detalle se navega por áreas. */
+.adm-cifras{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;margin-bottom:14px;
+}
+.adm-cifra{
+  padding:12px 15px;background:var(--gd-bg-elev);
+  border:1px solid var(--gd-border);border-radius:var(--gd-radius-md);
+}
+.adm-cifra-l{
+  font-family:var(--gd-font-cond);font-size:10.5px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--gd-text-soft);margin-bottom:5px;
+}
+.adm-cifra-v{
+  font-size:21px;font-weight:700;line-height:1.05;color:var(--gd-text);
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+}
+.adm-cifra-v.acento{color:var(--gd-red-ink);}
+.adm-cifra-v.peq{font-size:13.5px;font-weight:600;letter-spacing:0;}
+
+.adm-nav{
+  display:flex;gap:2px;padding:3px;margin-bottom:14px;
+  background:var(--gd-bg-alt);border:1px solid var(--gd-border);
+  border-radius:var(--gd-radius-md);overflow-x:auto;
+}
+.adm-tab{
+  flex:1;min-width:fit-content;padding:8px 14px;border:none;
+  border-radius:var(--gd-radius-sm);background:transparent;
+  color:var(--gd-text-mute);font-family:var(--gd-font-sans);
+  font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:background .12s ease,color .12s ease;
+}
+.adm-tab:hover{color:var(--gd-text);}
+.adm-tab.active{background:var(--gd-bg-elev);color:var(--gd-red-ink);box-shadow:var(--gd-shadow-xs);}
+.adm-sec[hidden]{display:none;}
 
 /* ── MAIN CONTENT ───────────────────────────────────────────────────────────── */
 .page{display:none;padding:16px;max-width:960px;margin:0 auto;}
@@ -94,13 +121,13 @@ body{
 
 /* ── SECTION TITLE ──────────────────────────────────────────────────────────── */
 .sec-title{
-  color:var(--gd-dark);font-weight:700;font-size:1rem;
+  color:var(--gd-text);font-weight:700;font-size:1rem;
   border-bottom:3px solid var(--gd-red);padding-bottom:4px;
   margin:20px 0 12px;
 }
 
 /* ── CARD ────────────────────────────────────────────────────────────────────── */
-.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;}
+.card{background:var(--gd-bg-elev);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;}
 
 /* ── GRID ────────────────────────────────────────────────────────────────────── */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -115,10 +142,10 @@ body{
 }
 
 /* ── FORM ELEMENTS ──────────────────────────────────────────────────────────── */
-label{font-size:.82rem;font-weight:600;color:#444;display:block;margin-bottom:4px;}
+label{font-size:.82rem;font-weight:600;color:var(--gd-text);display:block;margin-bottom:4px;}
 input[type=text],input[type=number],input[type=date],input[type=password],select{
-  width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;
-  font-size:.92rem;font-family:Arial,sans-serif;background:#fff;
+  width:100%;padding:9px 10px;border:1.5px solid var(--gd-border);border-radius:6px;
+  font-size:.92rem;font-family:var(--gd-font-sans);background:var(--gd-bg-elev);
   transition:border-color .2s;-webkit-appearance:none;appearance:none;
 }
 input:focus,select:focus{outline:none;border-color:var(--gd-red);}
@@ -129,79 +156,79 @@ input[type=number]::-webkit-inner-spin-button{opacity:1;}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   padding:10px 18px;border:none;border-radius:6px;font-size:.9rem;
-  font-family:Arial,sans-serif;cursor:pointer;font-weight:600;
+  font-family:var(--gd-font-sans);cursor:pointer;font-weight:600;
   transition:filter .15s,transform .1s;min-height:44px;
 }
 .btn:active{transform:scale(.97);}
 .btn-primary{background:var(--gd-red);color:#fff;}
 .btn-primary:hover{filter:brightness(1.1);}
-.btn-secondary{background:var(--gd-lgray);color:var(--gd-dark);}
+.btn-secondary{background:var(--gd-bg-alt);color:var(--gd-text);border-color:var(--gd-border-strong);}
 .btn-secondary:hover{filter:brightness(.95);}
-.btn-dark{background:var(--gd-dark);color:#fff;}
+.btn-dark{background:var(--gd-invert-bg);color:var(--gd-invert-fg);}
 .btn-dark:hover{filter:brightness(1.3);}
 .btn-sm{padding:6px 12px;font-size:.82rem;min-height:36px;}
 .btn-full{width:100%;}
-.btn-danger{background:#dc3545;color:#fff;}
+.btn-danger{background:var(--gd-error);color:#fff;}
 
 /* ── RADIO GROUP ────────────────────────────────────────────────────────────── */
 .radio-group{display:flex;gap:10px;flex-wrap:wrap;}
 .radio-btn{
-  padding:9px 20px;border:2px solid #ccc;border-radius:6px;cursor:pointer;
-  font-size:.9rem;background:#fff;transition:all .2s;font-weight:600;
+  padding:9px 20px;border:2px solid var(--gd-border);border-radius:6px;cursor:pointer;
+  font-size:.9rem;background:var(--gd-bg-elev);transition:all .2s;font-weight:600;
 }
 .radio-btn.selected{border-color:var(--gd-red);background:var(--gd-red);color:#fff;}
 
 /* ── CATEGORY CHIPS ──────────────────────────────────────────────────────────── */
-.cat-divider{height:1px;background:#e8e8e8;margin:14px 0 12px;}
-.cat-label{font-size:.78rem;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.cat-divider{height:1px;background:var(--gd-border);margin:14px 0 12px;}
+.cat-label{font-size:.78rem;font-weight:700;color:var(--gd-text-mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
 .cat-group{display:flex;gap:8px;flex-wrap:wrap;}
 .cat-btn{
   display:inline-flex;align-items:center;gap:6px;
-  padding:7px 14px;border:2px solid #ddd;border-radius:20px;cursor:pointer;
-  font-size:.83rem;background:#fff;transition:all .18s;font-weight:600;
-  color:#555;user-select:none;
+  padding:7px 14px;border:2px solid var(--gd-border);border-radius:20px;cursor:pointer;
+  font-size:.83rem;background:var(--gd-bg-elev);transition:all .18s;font-weight:600;
+  color:var(--gd-text-mute);user-select:none;
 }
-.cat-btn:hover{border-color:#aaa;color:#333;}
+.cat-btn:hover{border-color:var(--gd-border-strong);color:var(--gd-text);}
 .cat-btn.selected{border-color:var(--gd-red);background:var(--gd-red);color:#fff;}
 .cat-btn .cat-icon{font-size:1rem;line-height:1;}
 
 /* ── FOLIO BOX ───────────────────────────────────────────────────────────────── */
 .folio-box{
-  background:var(--gd-gray);border-left:4px solid var(--gd-red);
-  padding:10px 14px;border-radius:4px;font-family:monospace;
-  font-size:1.1rem;font-weight:bold;color:var(--gd-dark);
+  background:var(--gd-bg-alt);border-left:4px solid var(--gd-red);
+  padding:10px 14px;border-radius:4px;font-family:var(--gd-font-mono);
+  font-size:1.1rem;font-weight:bold;color:var(--gd-text);
   margin:8px 0;letter-spacing:.03em;
 }
 
 /* ── EXPANDER / ACCORDION ───────────────────────────────────────────────────── */
-details{background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+details{background:var(--gd-bg-elev);border:1.5px solid var(--gd-border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
 #auto-details{overflow:visible;}
 #gm-map{width:100%;}
 summary{
   padding:12px 14px;cursor:pointer;font-weight:700;font-size:.95rem;
   list-style:none;display:flex;align-items:center;justify-content:space-between;
-  user-select:none;background:var(--gd-gray);
+  user-select:none;background:var(--gd-bg-alt);
 }
-summary::after{content:'▼';font-size:.75rem;color:#999;transition:transform .2s;}
+summary::after{content:'▼';font-size:.75rem;color:var(--gd-text-soft);transition:transform .2s;}
 details[open] summary::after{transform:rotate(180deg);}
 summary::-webkit-details-marker{display:none;}
 .details-body{padding:14px;}
 
 /* ── INFO / SUCCESS / WARNING BOXES ─────────────────────────────────────────── */
 .info-box{
-  background:#e8f4f8;border-left:4px solid #2196F3;
+  background:var(--gd-info-light);border-left:4px solid var(--gd-info);
   padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
 }
 .success-box{
-  background:#e8f5e9;border-left:4px solid #4CAF50;
+  background:var(--gd-success-light);border-left:4px solid var(--gd-success);
   padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
 }
 .warning-box{
-  background:#fff8e1;border-left:4px solid #FFC107;
+  background:var(--gd-warning-light);border-left:4px solid var(--gd-warning);
   padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
 }
 .error-box{
-  background:#ffebee;border-left:4px solid var(--gd-red);
+  background:var(--gd-error-light);border-left:4px solid var(--gd-red);
   padding:10px 14px;border-radius:4px;font-size:.88rem;margin:8px 0;
 }
 
@@ -210,18 +237,18 @@ summary::-webkit-details-marker{display:none;}
 
 /* ── Resumen de obra: filas tipo factura ─────────────────────────────────── */
 .r-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:3px 0;}
-.r-lbl{color:#4A4A52;font-weight:500;}
-.r-val{color:#1A1A1F;font-weight:700;font-variant-numeric:tabular-nums;}
-.r-sub{font-size:11px;color:#898B92;font-weight:400;line-height:1.3;padding:1px 0 3px 0;display:block;}
+.r-lbl{color:var(--gd-text-mute);font-weight:500;}
+.r-val{color:var(--gd-text);font-weight:700;font-variant-numeric:tabular-nums;}
+.r-sub{font-size:11px;color:var(--gd-text-soft);font-weight:400;line-height:1.3;padding:1px 0 3px 0;display:block;}
 .metric-card{
-  background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);
+  background:var(--gd-bg-elev);border:1.5px solid var(--gd-border);border-radius:var(--radius);
   padding:12px;text-align:center;
 }
-.metric-label{font-size:.78rem;color:#666;margin-bottom:4px;}
-.metric-value{font-size:1.1rem;font-weight:700;color:var(--gd-dark);}
-.metric-delta{font-size:.76rem;color:#888;margin-top:2px;}
+.metric-label{font-size:.78rem;color:var(--gd-text-mute);margin-bottom:4px;}
+.metric-value{font-size:1.1rem;font-weight:700;color:var(--gd-text);}
+.metric-delta{font-size:.76rem;color:var(--gd-text-mute);margin-top:2px;}
 .metric-card.highlight{background:var(--gd-red);border-color:var(--gd-red);}
-.metric-card.highlight .metric-label{color:#ffaaaa;}
+.metric-card.highlight .metric-label{color:rgba(255,255,255,.75);}
 .metric-card.highlight .metric-value,.metric-card.highlight .metric-delta{color:#fff;}
 
 /* ── SEARCH AUTOCOMPLETE ─────────────────────────────────────────────────────── */
@@ -229,29 +256,29 @@ summary::-webkit-details-marker{display:none;}
 .search-wrap input{font-size:.95rem;padding:11px 14px;}
 .dropdown{
   position:absolute;top:100%;left:0;right:0;
-  background:#fff;border:1.5px solid #ccc;border-top:none;
+  background:var(--gd-bg-elev);border:1.5px solid var(--gd-border);border-top:none;
   border-radius:0 0 8px 8px;max-height:320px;overflow-y:auto;
   z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.15);
 }
 .dropdown.hidden{display:none;}
 .dd-item{
-  padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;
+  padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--gd-border);
   font-size:.88rem;line-height:1.4;
 }
-.dd-item:hover,.dd-item.active{background:var(--gd-lgray);}
-.dd-item .part{color:var(--gd-red);font-weight:700;font-size:.8rem;}
-.dd-item .price{float:right;font-weight:700;color:var(--gd-dark);}
-.dd-item .desc{color:#333;}
-.dd-count{padding:6px 14px;font-size:.78rem;color:#888;background:#fafafa;border-bottom:1px solid #f0f0f0;}
+.dd-item:hover,.dd-item.active{background:var(--gd-bg-alt);}
+.dd-item .part{color:var(--gd-red-ink);font-weight:700;font-size:.8rem;}
+.dd-item .price{float:right;font-weight:700;color:var(--gd-text);}
+.dd-item .desc{color:var(--gd-text);}
+.dd-count{padding:6px 14px;font-size:.78rem;color:var(--gd-text-mute);background:var(--gd-bg-alt);border-bottom:1px solid var(--gd-border);}
 
 /* ── SELECTED MATERIAL PREVIEW ───────────────────────────────────────────────── */
 .mat-preview{
-  background:var(--gd-gray);border-left:4px solid var(--gd-red);
+  background:var(--gd-bg-alt);border-left:4px solid var(--gd-red);
   padding:12px 14px;border-radius:4px;margin:8px 0;display:none;
 }
 .mat-preview .mat-name{font-weight:700;font-size:.95rem;margin-bottom:4px;}
-.mat-preview .mat-meta{font-size:.85rem;color:#555;}
-.mat-preview .mat-price{color:var(--gd-red);font-weight:700;font-size:1.05rem;}
+.mat-preview .mat-meta{font-size:.85rem;color:var(--gd-text-mute);}
+.mat-preview .mat-price{color:var(--gd-red-ink);font-weight:700;font-size:1.05rem;}
 .mat-preview .add-row{display:flex;gap:8px;margin-top:10px;align-items:center;}
 .mat-preview .add-row input{width:80px;flex-shrink:0;}
 
@@ -261,100 +288,100 @@ summary::-webkit-details-marker{display:none;}
   background:var(--gd-blue);color:#fff;padding:8px 10px;text-align:left;
   font-size:.82rem;white-space:nowrap;
 }
-.cart-table td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:middle;}
-.cart-table tr:nth-child(even) td{background:#f9f9f9;}
+.cart-table td{padding:7px 10px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
+.cart-table tr:nth-child(even) td{background:var(--gd-bg-alt);}
 .cart-table .col-qty input{width:70px;padding:5px;text-align:center;}
-.cart-table .col-disp input{width:70px;padding:5px;text-align:center;border:1px solid #ccc;border-radius:4px;}
-.cart-table .col-fecha input{width:150px;padding:4px;border:1px solid #ccc;border-radius:4px;font-size:.78rem;}
+.cart-table .col-disp input{width:70px;padding:5px;text-align:center;border:1px solid var(--gd-border);border-radius:4px;}
+.cart-table .col-fecha input{width:150px;padding:4px;border:1px solid var(--gd-border);border-radius:4px;font-size:.78rem;}
 .cart-table .col-total{font-weight:700;text-align:right;white-space:nowrap;}
-.cart-table .col-price{text-align:right;white-space:nowrap;color:#555;}
+.cart-table .col-price{text-align:right;white-space:nowrap;color:var(--gd-text-mute);}
 .cart-table .col-rm{text-align:center;}
-.cart-table .col-num{text-align:center;color:#888;font-size:.8rem;}
-.cart-table .col-part{color:var(--gd-red);font-size:.8rem;white-space:nowrap;}
-.cart-table tr.row-insuf td{background:#FFF59D !important;}
-.cart-table tr.row-insuf .col-disp input{border-color:#F57F17;background:#FFFDE7;font-weight:600;color:#E65100;}
-.cart-totals{margin-top:12px;background:#fff;border:1.5px solid #e0e0e0;border-radius:var(--radius);padding:14px;}
+.cart-table .col-num{text-align:center;color:var(--gd-text-mute);font-size:.8rem;}
+.cart-table .col-part{color:var(--gd-red-ink);font-size:.8rem;white-space:nowrap;}
+.cart-table tr.row-insuf td{background:var(--gd-warning-light) !important;}
+.cart-table tr.row-insuf .col-disp input{border-color:var(--gd-warning);background:var(--gd-warning-light);font-weight:600;color:var(--gd-warning);}
+.cart-totals{margin-top:12px;background:var(--gd-bg-elev);border:1.5px solid var(--gd-border);border-radius:var(--radius);padding:14px;}
 .cart-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:.9rem;}
-.cart-total-row.subtotal{border-top:1px solid #eee;margin-top:4px;padding-top:8px;}
-.cart-total-row.grand{border-top:2px solid var(--gd-dark);margin-top:6px;padding-top:8px;font-size:1.05rem;font-weight:700;}
-.cart-total-row .label{color:#555;}
-.cart-total-row .amount{font-weight:700;color:var(--gd-dark);}
-.cart-total-row.grand .amount{color:var(--gd-red);font-size:1.1rem;}
-.cart-empty{text-align:center;color:#aaa;padding:24px;font-size:.95rem;}
+.cart-total-row.subtotal{border-top:1px solid var(--gd-border);margin-top:4px;padding-top:8px;}
+.cart-total-row.grand{border-top:2px solid var(--gd-text);margin-top:6px;padding-top:8px;font-size:1.05rem;font-weight:700;}
+.cart-total-row .label{color:var(--gd-text-mute);}
+.cart-total-row .amount{font-weight:700;color:var(--gd-text);}
+.cart-total-row.grand .amount{color:var(--gd-red-ink);font-size:1.1rem;}
+.cart-empty{text-align:center;color:var(--gd-text-soft);padding:24px;font-size:.95rem;}
 
 /* ── ADMIN TABLE ─────────────────────────────────────────────────────────────── */
 .admin-table{width:100%;border-collapse:collapse;font-size:.85rem;}
 .admin-table th{background:var(--gd-blue);color:#fff;padding:7px 10px;text-align:left;}
-.admin-table td{padding:4px 8px;border-bottom:1px solid #eee;vertical-align:middle;}
-.admin-table tr:nth-child(even) td{background:#f9f9f9;}
-.admin-wrap{max-height:480px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:var(--radius);}
+.admin-table td{padding:4px 8px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
+.admin-table tr:nth-child(even) td{background:var(--gd-bg-alt);}
+.admin-wrap{max-height:480px;overflow-y:auto;border:1px solid var(--gd-border);border-radius:var(--radius);}
 /* Inputs editables inline */
 .admin-edit{width:100%;padding:5px 7px;border:1px solid transparent;background:transparent;font:inherit;font-size:.85rem;color:inherit;border-radius:4px;box-sizing:border-box;}
-.admin-edit:hover{border-color:#d0d0d0;background:#fff;}
-.admin-edit:focus{border-color:var(--gd-red);background:#fff;outline:none;box-shadow:0 0 0 2px rgba(200,16,46,.15);}
-.admin-edit.admin-part{font-family:'Consolas','Courier New',monospace;font-size:.82rem;color:var(--gd-red);}
+.admin-edit:hover{border-color:var(--gd-border-strong);background:var(--gd-bg-elev);}
+.admin-edit:focus{border-color:var(--gd-red);background:var(--gd-bg-elev);outline:none;box-shadow:0 0 0 2px rgba(200,16,46,.15);}
+.admin-edit.admin-part{font-family:'Consolas','Courier New',monospace;font-size:.82rem;color:var(--gd-red-ink);}
 .admin-edit.admin-price{text-align:right;width:110px;font-variant-numeric:tabular-nums;}
 .admin-actions{white-space:nowrap;text-align:center;width:90px;}
 .admin-save-status{display:inline-block;width:18px;font-size:13px;text-align:center;}
-.admin-save-status.ok{color:#16a34a;}
-.admin-save-status.saving{color:#f59e0b;}
-.admin-save-status.err{color:#dc2626;}
-.btn-icon-del{background:none;border:none;cursor:pointer;color:#aaa;padding:4px 8px;border-radius:4px;font-size:14px;}
-.btn-icon-del:hover{background:#fee2e2;color:#c00;}
+.admin-save-status.ok{color:var(--gd-success);}
+.admin-save-status.saving{color:var(--gd-warning);}
+.admin-save-status.err{color:var(--gd-error);}
+.btn-icon-del{background:none;border:none;cursor:pointer;color:var(--gd-text-soft);padding:4px 8px;border-radius:4px;font-size:14px;}
+.btn-icon-del:hover{background:var(--gd-error-light);color:var(--gd-red-ink);}
 
 /* ── UTILIDADES PANEL ───────────────────────────────────────────────────────── */
 .util-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
-.util-card{background:#fafafa;border:1px solid #e0e0e0;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:6px;}
-.util-card-head{font-weight:700;font-size:.95rem;color:var(--gd-dark);}
-.util-card-help{font-size:.76rem;color:#666;line-height:1.3;}
+.util-card{background:var(--gd-bg-alt);border:1px solid var(--gd-border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:6px;}
+.util-card-head{font-weight:700;font-size:.95rem;color:var(--gd-text);}
+.util-card-help{font-size:.76rem;color:var(--gd-text-mute);line-height:1.3;}
 .util-input-row{display:flex;align-items:center;gap:6px;margin:6px 0;}
-.util-input-row input{flex:1;padding:8px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:1.05rem;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
+.util-input-row input{flex:1;padding:8px 10px;border:1.5px solid var(--gd-border);border-radius:6px;font-size:1.05rem;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
 .util-input-row input:focus{border-color:var(--gd-red);outline:none;box-shadow:0 0 0 3px rgba(200,16,46,.12);}
-.util-symbol{font-size:1.05rem;font-weight:700;color:var(--gd-red);min-width:18px;text-align:center;}
-.util-preview{font-size:.78rem;color:#2e7d32;background:#f0fdf4;border-left:3px solid #16a34a;padding:6px 8px;border-radius:4px;line-height:1.35;}
+.util-symbol{font-size:1.05rem;font-weight:700;color:var(--gd-red-ink);min-width:18px;text-align:center;}
+.util-preview{font-size:.78rem;color:var(--gd-success);background:var(--gd-success-light);border-left:3px solid var(--gd-success);padding:6px 8px;border-radius:4px;line-height:1.35;}
 
 /* ── MODAL ──────────────────────────────────────────────────────────────────── */
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px;}
-.modal-card{background:#fff;border-radius:10px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;}
+.modal-card{background:var(--gd-bg-elev);border-radius:10px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;}
 .modal-head{background:var(--gd-red);color:#fff;padding:12px 16px;font-weight:700;font-size:1.05rem;}
-.modal-body{padding:18px 16px;font-size:.92rem;line-height:1.5;color:#333;}
+.modal-body{padding:18px 16px;font-size:.92rem;line-height:1.5;color:var(--gd-text);}
 .modal-body table{width:100%;border-collapse:collapse;margin-top:10px;}
-.modal-body table td{padding:6px 8px;border-bottom:1px solid #eee;font-size:.9rem;}
-.modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;background:#fafafa;border-top:1px solid #eee;}
+.modal-body table td{padding:6px 8px;border-bottom:1px solid var(--gd-border);font-size:.9rem;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;background:var(--gd-bg-alt);border-top:1px solid var(--gd-border);}
 
 /* ── CHECKBOX ─────────────────────────────────────────────────────────────────── */
 .check-group{display:flex;flex-direction:column;gap:4px;}
 .check-label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.88rem;font-weight:normal;}
 .check-label input[type=checkbox]{width:18px;height:18px;accent-color:var(--gd-red);cursor:pointer;flex-shrink:0;}
-.check-info{font-size:.78rem;color:#888;margin-left:26px;}
+.check-info{font-size:.78rem;color:var(--gd-text-mute);margin-left:26px;}
 
 /* ── HR ──────────────────────────────────────────────────────────────────────── */
-hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
+hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
 
 /* ── UPLOAD AREA ─────────────────────────────────────────────────────────────── */
 .upload-area{
-  border:2px dashed #ccc;border-radius:var(--radius);padding:24px;
+  border:2px dashed var(--gd-border);border-radius:var(--radius);padding:24px;
   text-align:center;cursor:pointer;transition:border-color .2s;
 }
 .upload-area:hover{border-color:var(--gd-red);}
 .upload-area input{display:none;}
 
 /* ── SPINNER ─────────────────────────────────────────────────────────────────── */
-.spinner{display:none;width:20px;height:20px;border:3px solid #f3f3f3;
+.spinner{display:none;width:20px;height:20px;border:3px solid var(--gd-border);
   border-top:3px solid var(--gd-red);border-radius:50%;animation:spin .8s linear infinite;
   margin:0 auto 8px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* ── MO DAYS HIGHLIGHT ───────────────────────────────────────────────────────── */
-.dias-box{background:#fff;border:2px solid var(--gd-red);border-radius:var(--radius);padding:14px;}
-.dias-box label{color:var(--gd-red);font-size:.95rem;}
-.dias-box input{font-size:1.4rem;font-weight:700;text-align:center;border-color:var(--gd-red);color:var(--gd-red);}
-.dias-preview{font-size:.88rem;color:#555;margin-top:6px;}
+.dias-box{background:var(--gd-bg-elev);border:2px solid var(--gd-red);border-radius:var(--radius);padding:14px;}
+.dias-box label{color:var(--gd-red-ink);font-size:.95rem;}
+.dias-box input{font-size:1.4rem;font-weight:700;text-align:center;border-color:var(--gd-red);color:var(--gd-red-ink);}
+.dias-preview{font-size:.88rem;color:var(--gd-text-mute);margin-top:6px;}
 
 /* ── TOAST ────────────────────────────────────────────────────────────────────── */
 .toast{
   position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:var(--gd-dark);color:#fff;padding:10px 24px;border-radius:20px;
+  background:var(--gd-invert-bg);color:var(--gd-invert-fg);padding:10px 24px;border-radius:20px;
   font-size:.9rem;z-index:999;display:none;white-space:nowrap;
 }
 .toast.show{display:block;animation:fadeInOut 2.5s forwards;}
@@ -393,8 +420,8 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
 </header>
 
 <!-- Banner persistente "MODO EDICIÓN ACTIVO" — visible en cualquier pestaña -->
-<div id="edicion-banner" style="display:none;background:linear-gradient(90deg,#FFFBEB,#FEF3C7);
-     border-bottom:1px solid #FCD34D;padding:10px 22px;font-size:13px;color:#92400E;
+<div id="edicion-banner" style="display:none;background:linear-gradient(90deg,var(--gd-warning-light),var(--gd-warning-light));
+     border-bottom:1px solid var(--gd-warning);padding:10px 22px;font-size:13px;color:var(--gd-warning);
      display:none;align-items:center;justify-content:space-between;gap:14px;">
   <div>
     🔄 <b>Modo edición activo:</b> editando folio <b id="edicion-folio-actual">—</b> ·
@@ -438,7 +465,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         <span class="cat-icon">📦</span> Materiales Generales
       </div>
     </div>
-    <div id="cat-nota" style="margin-top:8px;font-size:.78rem;color:#888;display:none;"></div>
+    <div id="cat-nota" style="margin-top:8px;font-size:.78rem;color:var(--gd-text-mute);display:none;"></div>
   </div>
 
   <!-- 2. DATOS DEL CLIENTE ────────────────────────────────────────────────────── -->
@@ -457,17 +484,17 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
                    style="border-radius:6px 0 0 6px;border-right:none;flex:1;">
             <button type="button" id="empresa-btn" onclick="toggleClienteDD()"
                     title="Ver todos los clientes"
-                    style="border:1.5px solid #ccc;border-left:none;border-radius:0 6px 6px 0;background:#f0f0f0;padding:0 11px;cursor:pointer;font-size:14px;color:#555;transition:background .15s;"
+                    style="border:1.5px solid var(--gd-border);border-left:none;border-radius:0 6px 6px 0;background:var(--gd-bg-alt);padding:0 11px;cursor:pointer;font-size:14px;color:var(--gd-text-mute);transition:background .15s;"
                     onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f0f0f0'">▾</button>
           </div>
           <div id="cliente-dd"
                style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:200;
-                      background:#fff;border:1.5px solid #ccc;border-radius:6px;
+                      background:var(--gd-bg-elev);border:1.5px solid var(--gd-border);border-radius:6px;
                       box-shadow:0 6px 24px rgba(0,0,0,.15);max-height:240px;overflow-y:auto;"></div>
         </div>
       </div>
       <div>
-        <label>Atención a <span style="font-size:.75rem;font-weight:400;color:#888;">(se llena solo al seleccionar de la lista)</span></label>
+        <label>Atención a <span style="font-size:.75rem;font-weight:400;color:var(--gd-text-mute);">(se llena solo al seleccionar de la lista)</span></label>
         <input type="text" id="atencion" placeholder="Ej: Ing. Diego García">
       </div>
     </div>
@@ -501,7 +528,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
     <div class="folio-box" id="folio-preview">📄 XXXX-010125-IP-JLD</div>
 
     <!-- Moneda de la cotización -->
-    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin-top:12px;">
+    <div style="background:var(--gd-info-light);border:1px solid var(--gd-border);border-radius:8px;padding:12px 14px;margin-top:12px;">
       <label class="check-label" style="font-weight:600;">
         <input type="checkbox" id="cot_usd" onchange="toggleMoneda()">
         💵 Cotización en dólares (USD)
@@ -518,7 +545,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
                    placeholder="ej. 17.50" oninput="updateMonedaPreview();updateTotales();renderCart();updateMO();">
           </div>
           <div style="display:flex;align-items:flex-end;">
-            <div id="usd-preview" style="font-size:.85rem;color:#0369a1;background:#fff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;width:100%;">
+            <div id="usd-preview" style="font-size:.85rem;color:var(--gd-info);background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:6px;padding:8px 10px;width:100%;">
               Los precios se convertirán automáticamente: <b>MXN → USD</b>
             </div>
           </div>
@@ -600,7 +627,7 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
         </div>
         <div class="success-box" id="costo-mo-preview" style="margin-top:24px;">
           <b>Costo M.O. = ($72,882 / 30) × 0 días</b><br>
-          <span style="font-size:1.3rem;font-weight:700;color:#2e7d32;">$0.00</span>
+          <span style="font-size:1.3rem;font-weight:700;color:var(--gd-success);">$0.00</span>
         </div>
       </div>
     </div>
@@ -668,30 +695,30 @@ hr{border:none;border-top:1.5px solid #e0e0e0;margin:16px 0;}
       <div class="details-body">
 
         <!-- ── OSM ROUTE PLANNER (Leaflet + OSRM — sin clave API) ──────── -->
-        <div style="background:#f0f4ff;border:1px solid #c5d5f5;border-radius:8px;padding:14px;margin-bottom:14px;">
-          <div style="font-size:.85rem;font-weight:700;color:#1F3864;margin-bottom:10px;">🗺️ Calcular ruta (OpenStreetMap — gratuito)</div>
+        <div style="background:var(--gd-info-light);border:1px solid var(--gd-border);border-radius:8px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:.85rem;font-weight:700;color:var(--gd-blue);margin-bottom:10px;">🗺️ Calcular ruta (OpenStreetMap — gratuito)</div>
           <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:flex-end;margin-bottom:8px;">
             <div style="position:relative;">
-              <label style="font-size:.79rem;font-weight:600;color:#444;">📍 Origen</label>
+              <label style="font-size:.79rem;font-weight:600;color:var(--gd-text);">📍 Origen</label>
               <input type="text" id="gm-origin" placeholder="Ej. Guadalajara, Jalisco" autocomplete="off"
                 oninput="nominatimSearch(this,'gm-origin-dd','origin')"
-                style="width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:.9rem;font-family:Arial,sans-serif;">
+                style="width:100%;padding:9px 10px;border:1.5px solid var(--gd-border);border-radius:6px;font-size:.9rem;font-family:var(--gd-font-sans);">
               <div id="gm-origin-dd" style="display:none;position:absolute;z-index:9999;top:100%;left:0;right:0;
-                background:#fff;border:1px solid #ccc;border-top:none;border-radius:0 0 6px 6px;
+                background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-top:none;border-radius:0 0 6px 6px;
                 max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.15);"></div>
             </div>
             <div style="position:relative;">
-              <label style="font-size:.79rem;font-weight:600;color:#444;">🏁 Destino</label>
+              <label style="font-size:.79rem;font-weight:600;color:var(--gd-text);">🏁 Destino</label>
               <input type="text" id="gm-dest" placeholder="Ej. Monterrey, Nuevo León" autocomplete="off"
                 oninput="nominatimSearch(this,'gm-dest-dd','dest')"
-                style="width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:.9rem;font-family:Arial,sans-serif;">
+                style="width:100%;padding:9px 10px;border:1.5px solid var(--gd-border);border-radius:6px;font-size:.9rem;font-family:var(--gd-font-sans);">
               <div id="gm-dest-dd" style="display:none;position:absolute;z-index:9999;top:100%;left:0;right:0;
-                background:#fff;border:1px solid #ccc;border-top:none;border-radius:0 0 6px 6px;
+                background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-top:none;border-radius:0 0 6px 6px;
                 max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.15);"></div>
             </div>
             <button class="btn btn-primary" style="height:40px;white-space:nowrap;" onclick="calcularRuta()">🗺 Calcular ruta</button>
           </div>
-          <div id="gm-map" style="height:300px;border-radius:8px;border:1px solid #c5d5f5;margin-bottom:8px;"></div>
+          <div id="gm-map" style="height:300px;border-radius:8px;border:1px solid var(--gd-border);margin-bottom:8px;"></div>
           <div id="gm-info" style="display:none;"></div>
         </div>
         <!-- ─────────────────────────────────────────────────────────────── -->
@@ -788,27 +815,27 @@ Combustible = litros × precio por litro"></button>
     </details>
 
     <!-- Total viáticos (solo comidas + hospedaje) -->
-    <div style="background:#fff8e1;border-left:4px solid #FFC107;padding:10px 14px;border-radius:4px;margin:8px 0;">
-      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#555;margin-bottom:4px;">
+    <div style="background:var(--gd-warning-light);border-left:4px solid var(--gd-warning);padding:10px 14px;border-radius:4px;margin:8px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:var(--gd-text-mute);margin-bottom:4px;">
         <span>Sub-Viáticos (comidas + hospedaje)</span><span id="viat-real">$0.00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#e65100;margin-bottom:4px;">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--gd-warning);margin-bottom:4px;">
         <span id="viat-gan-label">+ Ganancia 30%</span><span id="viat-gan">$0.00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid #ffe082;padding-top:4px;margin-top:2px;">
+      <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid var(--gd-border);padding-top:4px;margin-top:2px;">
         <span>🧾 Viáticos cobrado al cliente</span><span id="viaticos-total">$0.00</span>
       </div>
     </div>
 
     <!-- Total movilidad (auto + vuelo) -->
-    <div style="background:#e3f2fd;border-left:4px solid #1976D2;padding:10px 14px;border-radius:4px;margin:8px 0;">
-      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:#555;margin-bottom:4px;">
+    <div style="background:var(--gd-info-light);border-left:4px solid var(--gd-info);padding:10px 14px;border-radius:4px;margin:8px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:.88rem;color:var(--gd-text-mute);margin-bottom:4px;">
         <span>Sub-Movilidad (auto + vuelo)</span><span id="mov-real">$0.00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#1565C0;margin-bottom:4px;">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--gd-info);margin-bottom:4px;">
         <span id="mov-gan-label">+ Utilidad 40%</span><span id="mov-gan">$0.00</span>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid #bbdefb;padding-top:4px;margin-top:2px;">
+      <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;border-top:1px solid var(--gd-border);padding-top:4px;margin-top:2px;">
         <span>🚗✈️ Movilidad cobrada al cliente</span><span id="movilidad-total">$0.00</span>
       </div>
     </div>
@@ -895,35 +922,35 @@ Total = costo diario × días de trabajo"
       <div id="sop-table-wrap" style="display:none;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;">
           <thead>
-            <tr style="background:#f5f5f5;">
-              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:32px;">#</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">No. Parte</th>
-              <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #ddd;">Descripción</th>
-              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:90px;">Cantidad</th>
-              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #ddd;width:60px;">Unidad</th>
-              <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:100px;">P. Unit.</th>
-              <th style="padding:8px 10px;text-align:right;border-bottom:2px solid #ddd;width:110px;">Total</th>
+            <tr style="background:var(--gd-bg-alt);">
+              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--gd-border);width:32px;">#</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--gd-border);">No. Parte</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--gd-border);">Descripción</th>
+              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--gd-border);width:90px;">Cantidad</th>
+              <th style="padding:8px 10px;text-align:center;border-bottom:2px solid var(--gd-border);width:60px;">Unidad</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--gd-border);width:100px;">P. Unit.</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:2px solid var(--gd-border);width:110px;">Total</th>
             </tr>
           </thead>
           <tbody id="sop-tbody"></tbody>
           <tfoot>
             <tr>
-              <td colspan="6" style="padding:7px 10px;text-align:right;border-top:1px solid #e0e0e0;color:#666;">Subtotal costo</td>
-              <td id="sop-subtotal" style="padding:7px 10px;text-align:right;border-top:1px solid #e0e0e0;color:#666;"></td>
+              <td colspan="6" style="padding:7px 10px;text-align:right;border-top:1px solid var(--gd-border);color:var(--gd-text-mute);">Subtotal costo</td>
+              <td id="sop-subtotal" style="padding:7px 10px;text-align:right;border-top:1px solid var(--gd-border);color:var(--gd-text-mute);"></td>
             </tr>
             <tr>
               <td colspan="6" style="padding:7px 10px;text-align:right;color:#2a7a2a;font-weight:600;">Utilidad (40%)</td>
               <td id="sop-utilidad" style="padding:7px 10px;text-align:right;color:#2a7a2a;font-weight:600;"></td>
             </tr>
-            <tr style="background:#fafafa;font-weight:700;">
-              <td colspan="6" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;">TOTAL CON UTILIDAD</td>
-              <td id="sop-total" style="padding:9px 10px;text-align:right;border-top:2px solid #ddd;color:#C8102E;"></td>
+            <tr style="background:var(--gd-bg-alt);font-weight:700;">
+              <td colspan="6" style="padding:9px 10px;text-align:right;border-top:2px solid var(--gd-border);">TOTAL CON UTILIDAD</td>
+              <td id="sop-total" style="padding:9px 10px;text-align:right;border-top:2px solid var(--gd-border);color:var(--gd-red-ink);"></td>
             </tr>
           </tfoot>
         </table>
         <div style="text-align:right;">
           <button class="btn" onclick="downloadSoporteriaPDF()"
-            style="background:#C8102E;color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
+            style="background:var(--gd-red);color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
             🖨 Descargar Requisición de Soportería (PDF)
           </button>
         </div>
@@ -931,9 +958,9 @@ Total = costo diario × días de trabajo"
     </div>
 
     <!-- Resumen MO -->
-    <div class="card" id="mo-resumen" style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:0;overflow:hidden;">
+    <div class="card" id="mo-resumen" style="background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:12px;padding:0;overflow:hidden;">
       <!-- Encabezado con TOTAL destacado (hero) -->
-      <div style="background:linear-gradient(135deg,#C8102E,#A10D24);color:#FFFFFF;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div style="background:linear-gradient(135deg,var(--gd-red),var(--gd-red-dark));color:#FFFFFF;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
         <div>
           <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.85;margin-bottom:4px;">📊 Resumen Programación de Obra</div>
           <div style="font-size:13px;opacity:.9;">Total M.O. + Equipo + Viáticos cobrado al cliente</div>
@@ -945,13 +972,13 @@ Total = costo diario × días de trabajo"
       </div>
 
       <!-- Grid de 4 grupos compactos -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0;background:#E5E7EB;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0;background:var(--gd-bg-sunken);">
 
         <!-- 👥 Personal y Equipo -->
-        <div style="background:#FFFFFF;padding:16px 18px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+        <div style="background:var(--gd-bg-elev);padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gd-border);">
             <span style="font-size:14px;">👥</span>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Personal y Equipo</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gd-text-mute);">Personal y Equipo</span>
           </div>
           <div class="r-row"><span class="r-lbl">💼 Mano de obra</span><span class="r-val" id="r-mo">$0.00</span></div>
           <div class="r-row r-sub" id="r-mo-d">3 pers × 0 días</div>
@@ -962,45 +989,45 @@ Total = costo diario × días de trabajo"
         </div>
 
         <!-- 🚗 Movilidad -->
-        <div style="background:#FFFFFF;padding:16px 18px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+        <div style="background:var(--gd-bg-elev);padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gd-border);">
             <span style="font-size:14px;">🚗</span>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Movilidad (Auto + Vuelo)</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gd-text-mute);">Movilidad (Auto + Vuelo)</span>
           </div>
           <div class="r-row"><span class="r-lbl">🚗 Automóvil</span><span class="r-val" id="r-auto">$0.00</span></div>
           <div class="r-row r-sub" id="r-auto-d">0 km</div>
           <div class="r-row"><span class="r-lbl">✈️ Vuelo</span><span class="r-val" id="r-vuelo">$0.00</span></div>
           <div class="r-row r-sub" id="r-vuelo-d">0 pers</div>
-          <div class="r-row r-sub" id="r-mov-real-row" style="margin-top:6px;padding-top:6px;border-top:1px dashed #E5E7EB;">Subtotal real <span id="r-mov-real" style="float:right;font-weight:600;color:#6B6E76;">$0.00</span></div>
-          <div class="r-row r-sub" id="r-mov-gan-row"><span id="r-mov-gan-label">+ Util. movilidad 40%</span> <span id="r-mov-gan" style="float:right;font-weight:600;color:#E65100;">$0.00</span></div>
-          <div class="r-row" style="margin-top:4px;"><span class="r-lbl" style="color:#1565C0;font-weight:700;">Movilidad cobrada</span><span class="r-val" id="r-mov" style="color:#1565C0;">$0.00</span></div>
+          <div class="r-row r-sub" id="r-mov-real-row" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--gd-border);">Subtotal real <span id="r-mov-real" style="float:right;font-weight:600;color:var(--gd-text-mute);">$0.00</span></div>
+          <div class="r-row r-sub" id="r-mov-gan-row"><span id="r-mov-gan-label">+ Util. movilidad 40%</span> <span id="r-mov-gan" style="float:right;font-weight:600;color:var(--gd-warning);">$0.00</span></div>
+          <div class="r-row" style="margin-top:4px;"><span class="r-lbl" style="color:var(--gd-info);font-weight:700;">Movilidad cobrada</span><span class="r-val" id="r-mov" style="color:var(--gd-info);">$0.00</span></div>
         </div>
 
         <!-- 🧾 Viáticos (comidas + hospedaje) -->
-        <div style="background:#FFFFFF;padding:16px 18px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+        <div style="background:var(--gd-bg-elev);padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gd-border);">
             <span style="font-size:14px;">🧾</span>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Viáticos (Com + Hosp)</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gd-text-mute);">Viáticos (Com + Hosp)</span>
           </div>
           <div class="r-row"><span class="r-lbl">Sub-viáticos real</span><span class="r-val" id="r-viat-real">$0.00</span></div>
-          <div class="r-row r-sub"><span id="r-viat-gan-label">+ Ganancia 30%</span> <span id="r-viat-gan" style="float:right;font-weight:600;color:#E65100;">$0.00</span></div>
-          <div class="r-row" style="margin-top:4px;"><span class="r-lbl" style="color:#E65100;font-weight:700;">Viáticos cobrado</span><span class="r-val" id="r-viat" style="color:#E65100;">$0.00</span></div>
+          <div class="r-row r-sub"><span id="r-viat-gan-label">+ Ganancia 30%</span> <span id="r-viat-gan" style="float:right;font-weight:600;color:var(--gd-warning);">$0.00</span></div>
+          <div class="r-row" style="margin-top:4px;"><span class="r-lbl" style="color:var(--gd-warning);font-weight:700;">Viáticos cobrado</span><span class="r-val" id="r-viat" style="color:var(--gd-warning);">$0.00</span></div>
         </div>
 
         <!-- 📦 Materiales -->
-        <div style="background:#FFFFFF;padding:16px 18px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F1F2F5;">
+        <div style="background:var(--gd-bg-elev);padding:16px 18px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gd-border);">
             <span style="font-size:14px;">📦</span>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B6E76;">Materiales de Apoyo</span>
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gd-text-mute);">Materiales de Apoyo</span>
           </div>
-          <div class="r-row"><span class="r-lbl">🔩 Soportería</span><span class="r-val" id="r-sop" style="color:#C8102E;">$0.00</span></div>
+          <div class="r-row"><span class="r-lbl">🔩 Soportería</span><span class="r-val" id="r-sop" style="color:var(--gd-red-ink);">$0.00</span></div>
           <div class="r-row r-sub">Material de instalación y soportes</div>
         </div>
       </div>
     </div>
 
     <!-- Descuento Global sobre el Total del Pedido -->
-    <div class="card" id="descuento-ip-card" style="margin-top:14px;border-left:4px solid #C8102E;">
+    <div class="card" id="descuento-ip-card" style="margin-top:14px;border-left:4px solid var(--gd-red);">
       <div class="sec-title" style="margin-top:0;">🏷️ Descuento Global</div>
       <div class="gd-fields" style="align-items:flex-end;">
         <div class="gd-field">
@@ -1086,12 +1113,25 @@ Descuento = Base × %"></button>
   <div class="sec-title">6. Generar Cotización</div>
   <div class="card">
     <div class="error-box hidden" id="gen-warning">⚠️ Completa empresa, abreviatura e iniciales del ingeniero.</div>
-    <div class="gen-row">
-      <button class="btn btn-dark" onclick="generateWord()">📄 Generar Word (.doc)</button>
-      <button class="btn btn-primary" onclick="generateExcel()">📊 Generar Excel (.xlsx)</button>
-      <button class="btn btn-secondary" onclick="generateBoth()">📦 Ambos</button>
-      <button class="btn btn-secondary" onclick="generatePDF()" style="background:#C8102E;color:#fff;border-color:#C8102E;">🖨 Generar PDF</button>
+    <!-- La acción habitual es entregar los tres formatos, así que va primera y
+         destacada; los individuales quedan como alternativa. -->
+    <button class="btn btn-primary btn-full" onclick="generateAll()" id="btn-gen-todo"
+            style="padding:14px;font-size:.98rem;">
+      📦 Generar los 3 archivos · PDF + Word + Excel
+    </button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:14px 0 12px;">
+      <span style="flex:1;height:1px;background:var(--gd-border);"></span>
+      <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gd-text-soft);">o uno solo</span>
+      <span style="flex:1;height:1px;background:var(--gd-border);"></span>
     </div>
+
+    <div class="gen-row">
+      <button class="btn btn-secondary" onclick="generatePDF()">🖨 PDF</button>
+      <button class="btn btn-secondary" onclick="generateWord()">📄 Word (.doc)</button>
+      <button class="btn btn-secondary" onclick="generateExcel()">📊 Excel (.xlsx)</button>
+    </div>
+    <div id="gen-progreso" style="display:none;margin-top:12px;"></div>
   </div>
 
 
@@ -1157,8 +1197,8 @@ Descuento = Base × %"></button>
         <div class="success-box hidden" id="add-prod-ok" style="margin-top:10px;"></div>
 
         <!-- Importar desde Excel -->
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #E5E7EB;">
-          <label style="font-size:.82rem;font-weight:600;color:#444;margin-bottom:6px;display:block;">
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--gd-border);">
+          <label style="font-size:.82rem;font-weight:600;color:var(--gd-text);margin-bottom:6px;display:block;">
             📎 Importar múltiples productos desde Excel
           </label>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1166,7 +1206,7 @@ Descuento = Base × %"></button>
               📂 Seleccionar archivo .xlsx / .xls
               <input type="file" id="qx-file" accept=".xls,.xlsx" style="display:none" onchange="initQuickExcel(this)">
             </label>
-            <span id="qx-fname" style="font-size:.82rem;color:#888;"></span>
+            <span id="qx-fname" style="font-size:.82rem;color:var(--gd-text-mute);"></span>
           </div>
           <div id="qx-preview" style="display:none;margin-top:12px;"></div>
         </div>
@@ -1195,14 +1235,14 @@ Descuento = Base × %"></button>
       </div>
 
       <!-- Alta individual -->
-      <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">Agregar uno al carrito</h4>
+      <h4 style="font-size:.82rem;color:var(--gd-text-mute);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">Agregar uno al carrito</h4>
       <div class="grid-4">
         <div style="grid-column:span 2;">
           <label>Descripción</label>
           <input type="text" id="qm-desc" placeholder="Descripción del material">
         </div>
         <div>
-          <label>No. Parte <span style="font-weight:normal;color:#888;">(opcional)</span></label>
+          <label>No. Parte <span style="font-weight:normal;color:var(--gd-text-mute);">(opcional)</span></label>
           <input type="text" id="qm-part" placeholder="Ej. TEMP-01">
         </div>
         <div>
@@ -1222,11 +1262,11 @@ Descuento = Base × %"></button>
       <div class="success-box hidden" id="qm-ok" style="margin-top:10px;"></div>
 
       <!-- Carga masiva desde Excel -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid #E5E7EB;">
-        <h4 style="font-size:.82rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gd-border);">
+        <h4 style="font-size:.82rem;color:var(--gd-text-mute);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;">
           📎 Subir lista rápida desde Excel
         </h4>
-        <div style="font-size:.78rem;color:#888;margin-bottom:8px;">
+        <div style="font-size:.78rem;color:var(--gd-text-mute);margin-bottom:8px;">
           Columnas: Descripción, No. de Parte (opcional), Precio Unitario, Cantidad (opcional, por defecto 1).
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1234,7 +1274,7 @@ Descuento = Base × %"></button>
             📂 Seleccionar archivo .xlsx / .xls
             <input type="file" id="qm-file" accept=".xls,.xlsx" style="display:none" onchange="initQuickMatExcel(this)">
           </label>
-          <span id="qm-fname" style="font-size:.82rem;color:#888;"></span>
+          <span id="qm-fname" style="font-size:.82rem;color:var(--gd-text-mute);"></span>
         </div>
         <div id="qm-preview" style="display:none;margin-top:12px;"></div>
       </div>
@@ -1264,13 +1304,13 @@ Descuento = Base × %"></button>
 
       <label class="upload-area" for="edicion-file" id="edicion-drop">
         <input type="file" id="edicion-file" accept=".xlsx,.xls,.doc,.docx,.pdf" onchange="cargarParaEditar(this)">
-        <div style="font-size:1.05rem;font-weight:700;color:var(--gd-dark);">📂 Haz clic o arrastra tu cotización aquí</div>
-        <div style="color:#888;font-size:.85rem;margin-top:8px;">Formatos: <b>.xlsx</b> · <b>.doc/.docx</b> (recomendado)</div>
-        <div style="color:#aaa;font-size:.78rem;margin-top:4px;">El archivo debe haber sido generado por este cotizador.</div>
+        <div style="font-size:1.05rem;font-weight:700;color:var(--gd-text);">📂 Haz clic o arrastra tu cotización aquí</div>
+        <div style="color:var(--gd-text-mute);font-size:.85rem;margin-top:8px;">Formatos: <b>.xlsx</b> · <b>.doc/.docx</b> (recomendado)</div>
+        <div style="color:var(--gd-text-soft);font-size:.78rem;margin-top:4px;">El archivo debe haber sido generado por este cotizador.</div>
       </label>
 
-      <div style="margin-top:14px;padding:10px 12px;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;font-size:.8rem;color:#555;">
-        <b style="color:var(--gd-red);">⚠️</b> Los archivos <b>antiguos</b> (sin datos embebidos) no podrán restaurarse. Regenera la cotización con la versión actual.
+      <div style="margin-top:14px;padding:10px 12px;background:var(--gd-bg-alt);border:1px solid var(--gd-border);border-radius:6px;font-size:.8rem;color:var(--gd-text-mute);">
+        <b style="color:var(--gd-red-ink);">⚠️</b> Los archivos <b>antiguos</b> (sin datos embebidos) no podrán restaurarse. Regenera la cotización con la versión actual.
       </div>
     </div>
     <div class="gd-modal-footer">
@@ -1301,11 +1341,41 @@ Descuento = Base × %"></button>
   <!-- Panel visible sólo con rol admin -->
   <div id="admin-panel" style="display:none;">
 
-    <!-- Utilidades configurables -->
+    <!-- Estado de un vistazo, antes del detalle -->
+    <div class="adm-cifras">
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Materiales en catálogo</div>
+        <div class="adm-cifra-v" id="adm-n-materiales">—</div>
+      </div>
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Cuentas activas</div>
+        <div class="adm-cifra-v" id="adm-n-usuarios">—</div>
+      </div>
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Utilidad M.O.</div>
+        <div class="adm-cifra-v acento" id="adm-util-mo">—</div>
+      </div>
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Sesión</div>
+        <div class="adm-cifra-v peq" id="adm-sesion">—</div>
+      </div>
+    </div>
+
+    <!-- El panel era una sola página interminable; ahora se navega por áreas -->
+    <div class="adm-nav" role="tablist">
+      <button class="adm-tab active" data-sec="catalogo"   onclick="admSeccion('catalogo')"   role="tab">📦 Catálogo</button>
+      <button class="adm-tab"        data-sec="utilidades" onclick="admSeccion('utilidades')" role="tab">💰 Utilidades</button>
+      <button class="adm-tab"        data-sec="usuarios"   onclick="admSeccion('usuarios')"   role="tab">👥 Usuarios</button>
+      <button class="adm-tab"        data-sec="bitacora"   onclick="admSeccion('bitacora')"   role="tab">📜 Bitácora</button>
+    </div>
+
+    <!-- ── UTILIDADES ──────────────────────────────────────────────────── -->
+    <section class="adm-sec" id="adm-utilidades" hidden>
     <div class="card">
       <div class="sec-title" style="margin-top:0;">💰 Utilidades / Markup</div>
       <div class="info-box" style="margin-bottom:12px;">
-        Configura los factores y porcentajes de utilidad aplicados a cada concepto de la cotización. Los cambios se guardan en Supabase y se aplican inmediatamente a todas las cotizaciones.
+        Factores y porcentajes de utilidad aplicados a cada concepto. Los cambios
+        se guardan en el servidor y afectan de inmediato a <b>todas</b> las cotizaciones nuevas.
       </div>
 
       <div class="util-grid">
@@ -1346,8 +1416,10 @@ Descuento = Base × %"></button>
         <span id="util-status" style="font-size:.85rem;font-weight:600;"></span>
       </div>
     </div>
+    </section>
 
-    <!-- Upload -->
+    <!-- ── CATÁLOGO ────────────────────────────────────────────────────── -->
+    <section class="adm-sec" id="adm-catalogo">
     <div class="card">
       <div class="sec-title" style="margin-top:0;">📁 Actualizar Base de Datos de Materiales</div>
       <div class="info-box" style="margin-bottom:10px;">
@@ -1356,7 +1428,7 @@ Descuento = Base × %"></button>
       <label class="upload-area" for="admin-file">
         <input type="file" id="admin-file" accept=".xls,.xlsx" onchange="uploadMateriales(this)">
         <div>📂 Haz clic o arrastra un archivo Excel (.xls / .xlsx)</div>
-        <div style="color:#999;font-size:.82rem;margin-top:4px;">Lista de Materiales</div>
+        <div style="color:var(--gd-text-soft);font-size:.82rem;margin-top:4px;">Lista de Materiales</div>
       </label>
       <div id="upload-status"></div>
     </div>
@@ -1369,7 +1441,7 @@ Descuento = Base × %"></button>
         <input type="text" id="admin-search" placeholder="Filtrar..." style="width:200px;" oninput="renderAdminTable()">
         <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
       </div>
-      <div style="font-size:.78rem;color:#666;margin-bottom:6px;">
+      <div style="font-size:.78rem;color:var(--gd-text-mute);margin-bottom:6px;">
         💡 Haz clic en cualquier celda para editar. Los cambios se guardan automáticamente.
       </div>
       <div class="admin-wrap">
@@ -1386,7 +1458,10 @@ Descuento = Base × %"></button>
       </div>
     </div>
 
-    <!-- Usuarios -->
+    </section>
+
+    <!-- ── USUARIOS ────────────────────────────────────────────────────── -->
+    <section class="adm-sec" id="adm-usuarios" hidden>
     <div class="card" id="usuarios-card">
       <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">👥 Usuarios del portal
         <button class="gd-i" data-info-title="Cuentas"
@@ -1438,7 +1513,10 @@ Descuento = Base × %"></button>
       </div>
     </div>
 
-    <!-- Bitácora -->
+    </section>
+
+    <!-- ── BITÁCORA ────────────────────────────────────────────────────── -->
+    <section class="adm-sec" id="adm-bitacora" hidden>
     <div class="card">
       <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">📜 Bitácora de auditoría
         <button class="gd-i" data-info-title="Bitácora"
@@ -1455,10 +1533,12 @@ Descuento = Base × %"></button>
             <th style="width:110px;">Tabla</th>
             <th>Detalle</th>
           </tr></thead>
-          <tbody id="bitacora-tbody"><tr><td colspan="5" style="padding:14px;color:#888;">Pulsa «Actualizar» para consultar.</td></tr></tbody>
+          <tbody id="bitacora-tbody"><tr><td colspan="5" style="padding:14px;color:var(--gd-text-mute);">Pulsa «Actualizar» para consultar.</td></tr></tbody>
         </table>
       </div>
     </div>
+    </section>
+
   </div>
 </div><!-- end page-admin -->
 
@@ -1937,7 +2017,8 @@ function showPage(pageId, btn) {
   if (btn && btn.classList) btn.classList.add('active');
   if (pageId==='admin') {
     aplicarPermisos();
-    if (GD.sesion.esAdmin) renderUsuarios();
+    // Sólo se pinta el área visible; el resto se carga al abrir su pestaña
+    if (GD.sesion.esAdmin) { admCifras(); admSeccion('catalogo'); }
   }
 }
 
@@ -2074,11 +2155,11 @@ function updateMO() {
   el('total-mens-box').innerHTML = `Total mensual sueldos: <b>${fmt(r.total_mensual)}</b>`;
   // MO preview
   el('costo-mo-preview').innerHTML = `
-    <div style="font-size:.82rem;color:#555;">M.O. base = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días = <b>${fmt(r.costo_mo_base)}</b></div>
-    ${r.dia_inhabil ? `<div style="font-size:.82rem;color:#7B1FA2;">🗓️ Día inhábil ×${FACTOR_DIA_INHABIL} (sueldo +25%, luego ×2) = <b>+${fmt(r.recargo_inhabil)}</b> → M.O. real <b>${fmt(r.costo_mo_real)}</b></div>` : ''}
-    <div style="font-size:.82rem;color:#e65100;">+ Utilidad ×${UTIL_MO_FACTOR} (cliente paga ${UTIL_MO_FACTOR}× el costo real) = <b>${fmt(r.utilidad_mo)}</b></div>
-    <div style="font-size:.9rem;font-weight:700;margin-top:4px;border-top:1px solid #c8e6c9;padding-top:4px;">M.O. cobrado al cliente:</div>
-    <span style="font-size:1.3rem;font-weight:700;color:#2e7d32;">${fmt(r.costo_mo)}</span>`;
+    <div style="font-size:.82rem;color:var(--gd-text-mute);">M.O. base = (${fmt(r.total_mensual)} / 30) × ${fmtNum(r.dias,1)} días = <b>${fmt(r.costo_mo_base)}</b></div>
+    ${r.dia_inhabil ? `<div style="font-size:.82rem;color:var(--gd-warning);">🗓️ Día inhábil ×${FACTOR_DIA_INHABIL} (sueldo +25%, luego ×2) = <b>+${fmt(r.recargo_inhabil)}</b> → M.O. real <b>${fmt(r.costo_mo_real)}</b></div>` : ''}
+    <div style="font-size:.82rem;color:var(--gd-warning);">+ Utilidad ×${UTIL_MO_FACTOR} (cliente paga ${UTIL_MO_FACTOR}× el costo real) = <b>${fmt(r.utilidad_mo)}</b></div>
+    <div style="font-size:.9rem;font-weight:700;margin-top:4px;border-top:1px solid var(--gd-border);padding-top:4px;">M.O. cobrado al cliente:</div>
+    <span style="font-size:1.3rem;font-weight:700;color:var(--gd-success);">${fmt(r.costo_mo)}</span>`;
   // Comidas
   el('sum-comidas').textContent = `🍽️ Comidas · (${r.total_personas} pers × ${fmtNum(r.dias,0)} días) = ${fmt(r.comidas_total)}`;
   el('comidas-result').innerHTML = `<b>Total Comidas: ${fmt(r.comidas_total)}</b> · ${r.total_personas} pers × ${fmt(r.costo_comida)} × ${r.comidas_por_dia} com/día × ${fmtNum(r.dias,0)} días`;
@@ -2349,31 +2430,31 @@ function renderQmMapper(rows, sheetName) {
     })
   ].join('');
 
-  const SS = 'width:100%;padding:7px 8px;border:1.5px solid #ccc;border-radius:6px;font-size:.84rem;font-family:Arial,sans-serif;';
-  const LS = 'font-size:.79rem;font-weight:600;color:#555;display:block;margin-bottom:3px;';
+  const SS = 'width:100%;padding:7px 8px;border:1.5px solid var(--gd-border);border-radius:6px;font-size:.84rem;font-family:var(--gd-font-sans);';
+  const LS = 'font-size:.79rem;font-weight:600;color:var(--gd-text-mute);display:block;margin-bottom:3px;';
 
   const previewRows = rows.slice(dataStart, dataStart + 5);
   const previewHtml = `<div style="overflow-x:auto;margin:8px 0 12px;">
     <table style="border-collapse:collapse;font-size:.78rem;width:100%;">
-      <thead><tr>${letters.map(l=>`<th style="border:1px solid #ddd;padding:3px 8px;background:#e9ecef;white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
-      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${GD.esc(String(r[i]||''))}</td>`).join('')}</tr>`).join('')}</tbody>
+      <thead><tr>${letters.map(l=>`<th style="border:1px solid var(--gd-border);padding:3px 8px;background:var(--gd-bg-sunken);white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
+      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid var(--gd-border);padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${GD.esc(String(r[i]||''))}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>`;
 
   const totalRows = rows.length - dataStart;
   const detected  = hdrRow >= 0 ? '✅ Encabezados detectados automáticamente' : '⚠️ Sin encabezados detectados — ajusta las columnas manualmente';
 
   el('qm-preview').innerHTML = `
-    <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:14px;">
-      <div style="font-size:.82rem;color:#555;margin-bottom:10px;">
+    <div style="background:var(--gd-bg-alt);border:1px solid var(--gd-border);border-radius:8px;padding:14px;">
+      <div style="font-size:.82rem;color:var(--gd-text-mute);margin-bottom:10px;">
         Hoja: <b>${GD.esc(sheetName)}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:8px;">
         <div><span style="${LS}">📝 Descripción</span><select id="qm-col-desc"  style="${SS}">${colOpts(colMap.desc)}</select></div>
-        <div><span style="${LS}">🔢 No. de Parte <span style="font-weight:400;color:#999;">(opc.)</span></span><select id="qm-col-part"  style="${SS}">${colOpts(colMap.part)}</select></div>
+        <div><span style="${LS}">🔢 No. de Parte <span style="font-weight:400;color:var(--gd-text-soft);">(opc.)</span></span><select id="qm-col-part"  style="${SS}">${colOpts(colMap.part)}</select></div>
         <div><span style="${LS}">💲 Precio Unitario MXN</span><select id="qm-col-price" style="${SS}">${colOpts(colMap.price)}</select></div>
-        <div><span style="${LS}">🔢 Cantidad <span style="font-weight:400;color:#999;">(opc., def. 1)</span></span><select id="qm-col-qty" style="${SS}">${colOpts(colMap.qty)}</select></div>
+        <div><span style="${LS}">🔢 Cantidad <span style="font-weight:400;color:var(--gd-text-soft);">(opc., def. 1)</span></span><select id="qm-col-qty" style="${SS}">${colOpts(colMap.qty)}</select></div>
       </div>
-      <div style="font-size:.78rem;color:#777;margin-bottom:2px;">Vista previa — primeras 5 filas a partir de la fila ${dataStart+1}:</div>
+      <div style="font-size:.78rem;color:var(--gd-text-mute);margin-bottom:2px;">Vista previa — primeras 5 filas a partir de la fila ${dataStart+1}:</div>
       ${previewHtml}
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" onclick="importQuickMatExcel(${dataStart})">✅ Agregar ${totalRows} al carrito</button>
@@ -2393,12 +2474,12 @@ function importQuickMatExcel(dataStart) {
   const qCol  = parseInt(el('qm-col-qty').value);
 
   if (dCol < 0 || prCol < 0) {
-    el('qm-status').style.color = '#c00';
+    el('qm-status').style.color = 'var(--gd-error)';
     el('qm-status').textContent = '⚠️ Selecciona al menos Descripción y Precio antes de importar.';
     return;
   }
 
-  el('qm-status').style.color = '#555';
+  el('qm-status').style.color = 'var(--gd-text-mute)';
   el('qm-status').textContent = '⏳ Procesando filas…';
 
   let added = 0, skipped = 0;
@@ -2415,11 +2496,11 @@ function importQuickMatExcel(dataStart) {
   });
 
   if (added === 0) {
-    el('qm-status').style.color = '#c00';
+    el('qm-status').style.color = 'var(--gd-error)';
     el('qm-status').textContent = `⚠️ Ningún renglón válido (${skipped} omitidos). Revisa las columnas seleccionadas.`;
     return;
   }
-  el('qm-status').style.color = '#2a7a2a';
+  el('qm-status').style.color = 'var(--gd-success)';
   el('qm-status').textContent = `✅ ${added} materiales agregados al carrito (temporales) · ${skipped} omitidos.`;
   toast(`⚡ ${added} materiales rápidos agregados al carrito`);
   window._qmRows = null;
@@ -2451,7 +2532,7 @@ function renderCart() {
       <td class="col-qty"><input type="number" value="${item.cantidad}" min="1" max="9999"
         data-key="${safeKey}"
         oninput="updateQtyFromInput(this)"
-        style="width:65px;padding:4px;text-align:center;border:1px solid #ccc;border-radius:4px;"></td>
+        style="width:65px;padding:4px;text-align:center;border:1px solid var(--gd-border);border-radius:4px;"></td>
       <td class="col-disp"><input type="number" value="${item.disponibilidad}" min="0" max="99999"
         data-key="${safeKey}"
         oninput="updateDispFromInput(this)"
@@ -2557,7 +2638,7 @@ function updateTotales() {
   const prevEl = el('descuento-ip-preview');
   if (prevEl) {
     prevEl.innerHTML = descuento > 0
-      ? `Total del pedido: <b>${fmt(total_bruto)}</b> · Descuento ${(descuento*100).toFixed(0)}%: <b style="color:#C8102E;">-${fmt(desc_monto)}</b> · Queda en <b>${fmt(total_neto)}</b> antes de IVA.`
+      ? `Total del pedido: <b>${fmt(total_bruto)}</b> · Descuento ${(descuento*100).toFixed(0)}%: <b style="color:var(--gd-red-ink);">-${fmt(desc_monto)}</b> · Queda en <b>${fmt(total_neto)}</b> antes de IVA.`
       : `Total del pedido: <b>${fmt(total_bruto)}</b> — sin descuento aplicado.`;
   }
 }
@@ -3397,13 +3478,13 @@ function buildWordHTML(d) {
   const gdLogo = window.LOGO_GD || '';
   const logoCell = gdLogo
     ? `<img src="${gdLogo}" alt="Gardner Denver" style="height:48pt;width:auto;display:block;">`
-    : `<span style="font-family:'Century Gothic',Arial,sans-serif;font-size:15pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER</span>`;
+    : `<span style="font-family:'Century Gothic',Arial,sans-serif;font-size:15pt;font-weight:bold;color:var(--gd-text);">GARDNER DENVER</span>`;
 
   // ── Section header bar — mismo estilo del PDF (texto rojo + línea roja) ─────
   const sectionHdr = (text) =>
     `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:12pt 0 6pt 0;"><tr>
-      <td style="border:none;border-bottom:1.5pt solid #C8102E;padding:0 0 3pt 0;">
-        <span style="font-family:Arial,sans-serif;font-size:9.5pt;font-weight:bold;color:#C8102E;letter-spacing:.04em;">${text}</span>
+      <td style="border:none;border-bottom:1.5pt solid var(--gd-red);padding:0 0 3pt 0;">
+        <span style="font-family:var(--gd-font-sans);font-size:9.5pt;font-weight:bold;color:var(--gd-red-ink);letter-spacing:.04em;">${text}</span>
       </td>
     </tr></table>`;
 
@@ -3423,13 +3504,13 @@ function buildWordHTML(d) {
       ? ((item.fechaEntrega || '').trim() || 'Por confirmar')
       : '—';
     return `<tr>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${i+1}</td>
-      <td bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.descripcion}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.numero_parte}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${item.cantidad}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #C5D5E8;font-size:7.5pt;">${fechaTxt}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;">${fmt(item.precio)}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #C5D5E8;font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${i+1}</td>
+      <td bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${item.descripcion}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${item.numero_parte}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${item.cantidad}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:7.5pt;">${fechaTxt}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${fmt(item.precio)}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid var(--gd-border);font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
     </tr>`;
   }).join('');
 
@@ -3446,8 +3527,8 @@ function buildWordHTML(d) {
   // ── Cost table (IP only) – compact single rows ─────────────────────────────
   function costRow(label, amount, bg, fc, fw, fs) {
     return `<tr>
-      <td bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid #BBBBBB;">${label}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid #BBBBBB;white-space:nowrap;">${fmt(amount)}</td>
+      <td bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid var(--gd-border-strong);">${label}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid var(--gd-border-strong);white-space:nowrap;">${fmt(amount)}</td>
     </tr>`;
   }
 
@@ -3465,7 +3546,7 @@ function buildWordHTML(d) {
     rows += costRow('IVA (16%)', iva, '#F5F5F5','#555555','400','8.5pt');
     rows += costRow('TOTAL DEL PROYECTO', total_con_iva, '#1F3864','#FFFFFF','700','10.5pt');
     return `<table width="60%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6pt 0 4pt auto;">${rows}</table>
-      <p style="font-size:7.5pt;font-style:italic;color:#666666;margin:3pt 0 8pt 0;">(${amountWords(total_con_iva)} incluye IVA)</p>`;
+      <p style="font-size:7.5pt;font-style:italic;color:var(--gd-text-mute);margin:3pt 0 8pt 0;">(${amountWords(total_con_iva)} incluye IVA)</p>`;
   })() : '';
 
   // ── Bloque TIEMPO DE INSTALACIÓN (solo IP) ─────────────────────────────────
@@ -3479,21 +3560,21 @@ function buildWordHTML(d) {
       ? 'El tiempo de instalacion indicado contempla trabajo en dias inhabiles (domingos o dias festivos), por lo que la mano de obra se cotiza con el recargo correspondiente conforme a la Ley Federal del Trabajo. El programa de trabajo se acordara previamente con el cliente.'
       : 'El tiempo de instalacion indicado corresponde a dias habiles (lunes a viernes). Los trabajos en fines de semana o dias festivos no estan contemplados en esta cotizacion; en caso de requerirse, el costo se recotizara de acuerdo con el programa de trabajo acordado con el cliente.';
     return `${sectionHdr('TIEMPO DE INSTALACIÓN')}
-<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#F5F8FC;border:0.5pt solid #C5D5E8;margin:0 0 6pt 0;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#F5F8FC;border:0.5pt solid var(--gd-border);margin:0 0 6pt 0;">
   <tr>
     <td style="border:none;padding:10pt 16pt;">
-      <span style="font-size:22pt;font-weight:bold;color:#C8102E;">${diasFmt}</span>
-      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;"> ${esInhabil ? 'dias' : 'dias habiles'}</span>
+      <span style="font-size:22pt;font-weight:bold;color:var(--gd-red-ink);">${diasFmt}</span>
+      <span style="font-size:12pt;font-weight:bold;color:var(--gd-text);"> ${esInhabil ? 'dias' : 'dias habiles'}</span>
     </td>
   </tr>
 </table>
-<p style="font-size:7.5pt;font-style:italic;color:#666666;margin:0 0 8pt 0;">${notaTiempo}</p>`;
+<p style="font-size:7.5pt;font-style:italic;color:var(--gd-text-mute);margin:0 0 8pt 0;">${notaTiempo}</p>`;
   })() : '';
 
   // ── Conditions ─────────────────────────────────────────────────────────────
   const condRow = (b, t) =>
     `<tr><td valign="top" width="26%" style="border:none;padding:3pt 9pt 3pt 0;"><b style="font-size:9pt;">${b}</b></td>
-     <td style="border:none;padding:3pt 0;font-size:9pt;color:#333333;">${t}</td></tr>`;
+     <td style="border:none;padding:3pt 0;font-size:9pt;color:var(--gd-text);">${t}</td></tr>`;
 
   const P_COM = `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
     ${state.moneda === 'USD' ? condRow('MONEDA:', `Cotización en Dólares Americanos (USD). Tipo de cambio del día: $${state.tipoCambio.toFixed(4)} MXN por 1.00 USD.`) : ''}
@@ -3527,7 +3608,7 @@ function buildWordHTML(d) {
   mso-footer: wdFtr;
 }
 div.Section1 { page:Word_Section_1; }
-body { font-family:Arial,sans-serif; font-size:9pt; color:#1F1F1F; line-height:1.4; margin:0; padding:0; }
+body { font-family:var(--gd-font-sans); font-size:9pt; color:var(--gd-text); line-height:1.4; margin:0; padding:0; }
 p  { margin:0 0 4pt 0; }
 ul { margin:3pt 0; padding-left:16pt; }
 li { margin:2pt 0; }
@@ -3543,15 +3624,15 @@ table { border-collapse:collapse; }
       <td valign="middle" style="border:none;padding:0;">
         ${gdLogo
           ? `<img src="${gdLogo}" alt="Gardner Denver" style="height:40pt;width:auto;">`
-          : `<span style="font-family:Arial,sans-serif;font-size:13pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER</span>`}
+          : `<span style="font-family:var(--gd-font-sans);font-size:13pt;font-weight:bold;color:var(--gd-text);">GARDNER DENVER</span>`}
       </td>
       <td align="right" valign="middle" style="border:none;padding:0;">
-        <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">${cliente.folio || ''}</span><br>
-        <span style="font-size:7.5pt;color:#666666;">${fechaES ? 'Ciudad de Mexico, ' + fechaES : ''}</span>
+        <span style="font-size:8pt;font-weight:bold;color:var(--gd-text);">${cliente.folio || ''}</span><br>
+        <span style="font-size:7.5pt;color:var(--gd-text-mute);">${fechaES ? 'Ciudad de Mexico, ' + fechaES : ''}</span>
       </td>
     </tr>
     <tr>
-      <td colspan="2" bgcolor="#C8102E" style="background:#C8102E;height:2pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+      <td colspan="2" bgcolor="#C8102E" style="background:var(--gd-red);height:2pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
     </tr>
   </table>
 </div>
@@ -3560,13 +3641,13 @@ table { border-collapse:collapse; }
 <div style="mso-element:footer" id="wdFtr">
   <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
     <tr>
-      <td colspan="2" bgcolor="#C8102E" style="background:#C8102E;height:1pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+      <td colspan="2" bgcolor="#C8102E" style="background:var(--gd-red);height:1pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
     </tr>
     <tr>
-      <td style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#666666;">
+      <td style="border:none;padding:3pt 0 0 0;font-size:6pt;color:var(--gd-text-mute);">
         GARDNER DENVER México, S.A. DE C.V. &nbsp;·&nbsp; Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX
       </td>
-      <td align="right" style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#888888;">${cliente.folio || ''}</td>
+      <td align="right" style="border:none;padding:3pt 0 0 0;font-size:6pt;color:var(--gd-text-mute);">${cliente.folio || ''}</td>
     </tr>
   </table>
 </div>
@@ -3577,13 +3658,13 @@ table { border-collapse:collapse; }
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8pt;">
   <tr>
     <td width="55%" valign="top" style="border:none;padding:0 10pt 0 0;">
-      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;">${cliente.empresa || ''}</span>
-      ${cliente.atencion ? `<br><span style="font-size:8.5pt;color:#555555;">Atencion: <b>${cliente.atencion}</b></span>` : ''}
+      <span style="font-size:12pt;font-weight:bold;color:var(--gd-text);">${cliente.empresa || ''}</span>
+      ${cliente.atencion ? `<br><span style="font-size:8.5pt;color:var(--gd-text-mute);">Atencion: <b>${cliente.atencion}</b></span>` : ''}
     </td>
     <td width="45%" valign="top" align="right" style="border:none;padding:0;">
-      <table cellpadding="0" cellspacing="0" style="border:1pt solid #C8102E;border-collapse:collapse;margin-left:auto;">
+      <table cellpadding="0" cellspacing="0" style="border:1pt solid var(--gd-red);border-collapse:collapse;margin-left:auto;">
         <tr><td style="padding:5pt 10pt;background:#FFF8F8;">
-          <span style="font-size:8pt;color:#1F1F1F;">
+          <span style="font-size:8pt;color:var(--gd-text);">
             <b>Asunto:</b> ${(is_ip ? catTxt.asunto_ip : catTxt.asunto_it).join('<br>')}
           </span>
         </td></tr>
@@ -3596,8 +3677,8 @@ table { border-collapse:collapse; }
 
 <!-- ═══ OBJETIVO ════════════════════════════════════════════════════════════ -->
 ${sectionHdr('OBJETIVO')}
-<p style="font-size:8.5pt;margin-bottom:4pt;color:#444444;">${catTxt.obj_intro}</p>
-<ul style="margin:0;padding-left:15pt;">${BENEFITS.map(b=>`<li style="font-size:8pt;color:#333333;margin:2pt 0;">${b}</li>`).join('')}</ul>
+<p style="font-size:8.5pt;margin-bottom:4pt;color:var(--gd-text);">${catTxt.obj_intro}</p>
+<ul style="margin:0;padding-left:15pt;">${BENEFITS.map(b=>`<li style="font-size:8pt;color:var(--gd-text);margin:2pt 0;">${b}</li>`).join('')}</ul>
 
 <!-- ═══ LISTA DE MATERIALES ══════════════════════════════════════════════════ -->
 ${sectionHdr(is_ip ? 'ALCANCE Y COSTO DEL MATERIAL' : 'LISTA DE MATERIALES')}
@@ -3605,13 +3686,13 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <thead><tr>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:4%;">#</th>
-    <th bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;text-align:left;width:34%;">Descripcion</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:16%;">No. de Parte</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:6%;">Cant.</th>
-    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:14%;">T. Entrega</th>
-    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">P. Unitario</th>
-    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">Total ${curLabel()}</th>
+    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:4%;">#</th>
+    <th bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;text-align:left;width:34%;">Descripcion</th>
+    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:16%;">No. de Parte</th>
+    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:6%;">Cant.</th>
+    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:14%;">T. Entrega</th>
+    <th align="right" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:13%;">P. Unitario</th>
+    <th align="right" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:13%;">Total ${curLabel()}</th>
   </tr></thead>
   <tbody>${matRows}</tbody>
 </table>
@@ -3619,13 +3700,13 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:5pt;">
   <tr>
     <td width="54%" style="border:none;"></td>
-    <td bgcolor="#D6E4F0" style="background:#D6E4F0;font-weight:bold;font-size:8.5pt;padding:4pt 8pt;border:0.5pt solid #AAAAAA;">SUBTOTAL MATERIAL</td>
-    <td align="right" style="padding:4pt 8pt;border:0.5pt solid #AAAAAA;font-weight:bold;font-size:9pt;white-space:nowrap;">${fmt(subtotal)}</td>
+    <td bgcolor="#D6E4F0" style="background:#D6E4F0;font-weight:bold;font-size:8.5pt;padding:4pt 8pt;border:0.5pt solid var(--gd-border-strong);">SUBTOTAL MATERIAL</td>
+    <td align="right" style="padding:4pt 8pt;border:0.5pt solid var(--gd-border-strong);font-weight:bold;font-size:9pt;white-space:nowrap;">${fmt(subtotal)}</td>
   </tr>
 </table>
-<p style="font-size:7pt;color:#666666;margin:3pt 0 6pt 0;font-style:italic;">${amountWords(subtotal)}</p>
+<p style="font-size:7pt;color:var(--gd-text-mute);margin:3pt 0 6pt 0;font-style:italic;">${amountWords(subtotal)}</p>
 ${avisoStockHTML}
-<p style="font-size:7.5pt;color:#666666;margin-bottom:4pt;">La lista de materiales es de acuerdo con la informacion que se nos proporciono; de existir alguna diferencia al colocarse el pedido, se ajustara el costo de esta cotizacion.</p>
+<p style="font-size:7.5pt;color:var(--gd-text-mute);margin-bottom:4pt;">La lista de materiales es de acuerdo con la informacion que se nos proporciono; de existir alguna diferencia al colocarse el pedido, se ajustara el costo de esta cotizacion.</p>
 ${(!is_ip && !mostrarResumenWord) ? '<p style="font-size:9pt;font-weight:bold;margin-bottom:4pt;">A estos precios anadirles el 16% de I.V.A.</p>' : ''}
 
 <!-- ═══ RESUMEN DE COSTOS (IP siempre, IT cuando hay descuento) ══════════════ -->
@@ -3645,14 +3726,14 @@ ${is_ip ? P_IP_extra : P_IT_extra}
   <tr>
     <td width="55%" valign="top" style="border:none;padding:0;">
       <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-        <tr><td bgcolor="#C8102E" style="background:#C8102E;height:2.5pt;width:60pt;font-size:1pt;line-height:1pt;">&nbsp;</td></tr>
+        <tr><td bgcolor="#C8102E" style="background:var(--gd-red);height:2.5pt;width:60pt;font-size:1pt;line-height:1pt;">&nbsp;</td></tr>
         <tr><td style="border:none;padding:5pt 0 0 0;">
-          <span style="font-size:9pt;font-weight:bold;color:#1F1F1F;">Ing. Marco Antonio Millan Ramirez</span><br>
-          <span style="font-size:8pt;color:#555555;">Gerente de Ingenieria</span><br>
-          <span style="font-size:8pt;color:#555555;">Tel: 5555 63 26 11 Ext: 520</span><br>
-          ${!is_ip ? '<span style="font-size:7.5pt;color:#555555;">MARCOANTONIO.MILLAN@GARDNERDENVER.COM</span><br>' : ''}
-          <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER México, S.A. DE C.V.</span><br>
-          <span style="font-size:7.5pt;color:#555555;">${is_ip ? 'Departamento de Ingenieria' : 'Departamento de Ingenieria de Tuberia'}</span>
+          <span style="font-size:9pt;font-weight:bold;color:var(--gd-text);">Ing. Marco Antonio Millan Ramirez</span><br>
+          <span style="font-size:8pt;color:var(--gd-text-mute);">Gerente de Ingenieria</span><br>
+          <span style="font-size:8pt;color:var(--gd-text-mute);">Tel: 5555 63 26 11 Ext: 520</span><br>
+          ${!is_ip ? '<span style="font-size:7.5pt;color:var(--gd-text-mute);">MARCOANTONIO.MILLAN@GARDNERDENVER.COM</span><br>' : ''}
+          <span style="font-size:8pt;font-weight:bold;color:var(--gd-text);">GARDNER DENVER México, S.A. DE C.V.</span><br>
+          <span style="font-size:7.5pt;color:var(--gd-text-mute);">${is_ip ? 'Departamento de Ingenieria' : 'Departamento de Ingenieria de Tuberia'}</span>
         </td></tr>
       </table>
     </td>
@@ -3672,15 +3753,71 @@ ${(() => {
 </div></body></html>`;
 }
 
-function generateBoth() {
-  generateWord();
-  setTimeout(generateExcel, 500);
+/**
+ * Genera los tres entregables en una sola acción.
+ * Se separan en el tiempo porque el navegador descarta descargas simultáneas
+ * disparadas desde el mismo gesto, y se informa del avance porque el Excel y
+ * el PDF con términos tardan lo suficiente como para parecer que no pasa nada.
+ */
+async function generateAll() {
+  const btn = el('btn-gen-todo');
+  const prog = el('gen-progreso');
+  const pasos = [
+    ['PDF',   generatePDF],
+    ['Word',  generateWord],
+    ['Excel', generateExcel],
+  ];
+
+  btn.disabled = true;
+  prog.style.display = 'block';
+  const listos = [];
+
+  for (const [nombre, fn] of pasos) {
+    prog.innerHTML = `<div class="info-box">⏳ Generando ${GD.esc(nombre)}…` +
+      (listos.length ? ` · Listo: ${GD.esc(listos.join(', '))}` : '') + `</div>`;
+    try {
+      fn();
+      listos.push(nombre);
+    } catch (e) {
+      prog.innerHTML = `<div class="error-box">No se pudo generar el ${GD.esc(nombre)}: ${GD.esc(e.message)}</div>`;
+      btn.disabled = false;
+      return;
+    }
+    await new Promise(r => setTimeout(r, 900));   // el navegador encola las descargas
+  }
+
+  prog.innerHTML = `<div class="success-box">✅ Los 3 archivos se descargaron: PDF, Word y Excel.</div>`;
+  btn.disabled = false;
+  setTimeout(() => { prog.style.display = 'none'; }, 6000);
 }
+
+// Alias conservado por compatibilidad con llamadas antiguas
+function generateBoth() { generateAll(); }
 
 // ── ADMINISTRACIÓN ────────────────────────────────────────────────────────────
 //  El acceso ya no depende de una contraseña escrita en este archivo (que
 //  cualquiera podía leer con «ver código fuente»), sino del rol que el servidor
 //  asignó a la sesión al iniciar sesión en el portal.
+
+/** Navegación por áreas del panel de administración. */
+function admSeccion(id) {
+  document.querySelectorAll('.adm-tab').forEach(t => t.classList.toggle('active', t.dataset.sec === id));
+  document.querySelectorAll('.adm-sec').forEach(s => { s.hidden = s.id !== 'adm-' + id; });
+  if (id === 'usuarios') renderUsuarios();
+  if (id === 'bitacora') renderBitacora();
+  if (id === 'catalogo') renderAdminTable();
+}
+
+/** Cifras de cabecera del panel. */
+function admCifras() {
+  const n = el('adm-n-materiales'); if (n) n.textContent = state.materiales.length.toLocaleString('es-MX');
+  const u = el('adm-util-mo');      if (u) u.textContent = '×' + UTIL_MO_FACTOR.toFixed(1);
+  const s = el('adm-sesion');
+  if (s && GD.sesion.actual) {
+    const quedan = Math.max(0, Math.round((GD.sesion.actual.expira - Date.now()) / 60000));
+    s.textContent = GD.sesion.actual.usuario + ' · ' + (quedan > 59 ? Math.floor(quedan/60) + ' h' : quedan + ' min');
+  }
+}
 
 function aplicarPermisos() {
   const admin = GD.sesion.esAdmin;
@@ -3690,6 +3827,7 @@ function aplicarPermisos() {
     show('admin-panel');
     renderAdminTable();
     renderUtilForm();
+    admCifras();
   } else {
     show('admin-gate');
     hide('admin-panel');
@@ -3709,10 +3847,7 @@ window.gdAbrirAdmin = function () {
   const t = document.querySelector('.mod-tab[data-tab="admin"], [onclick*="\'admin\'"]');
   if (typeof setTab === 'function') setTab('admin');
   else if (t) t.click();
-  setTimeout(() => {
-    const p = el('usuarios-card');
-    if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 250);
+  setTimeout(() => { if (GD.sesion.esAdmin) admSeccion('usuarios'); }, 250);
 };
 
 // ── USUARIOS Y BITÁCORA ───────────────────────────────────────────────────────
@@ -3731,10 +3866,12 @@ async function apiUsuarios(payload) {
 async function renderUsuarios() {
   const cont = el('usuarios-tbody');
   if (!cont) return;
-  cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:#888;">Cargando…</td></tr>';
+  cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--gd-text-mute);">Cargando…</td></tr>';
   try {
     const filas = await apiUsuarios({ accion: 'listar' });
-    if (!filas.length) { cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:#888;">Sin usuarios.</td></tr>'; return; }
+    if (!filas.length) { cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--gd-text-mute);">Sin usuarios.</td></tr>'; return; }
+    const activos = filas.filter(u => u.activo !== false).length;
+    const c = el('adm-n-usuarios'); if (c) c.textContent = activos + ' / ' + filas.length;
     cont.innerHTML = filas.map(u => {
       const acceso = u.ultimo_acceso
         ? new Date(u.ultimo_acceso).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
@@ -3743,7 +3880,7 @@ async function renderUsuarios() {
         <td><b>${GD.esc(u.usuario)}</b></td>
         <td>${GD.esc(u.nombre || '')}</td>
         <td><span class="gd-user-rol${u.rol === 'admin' ? ' admin' : ''}">${u.rol === 'admin' ? 'Admin' : 'Usuario'}</span></td>
-        <td style="font-size:.82rem;color:#777;">${GD.esc(acceso)}</td>
+        <td style="font-size:.82rem;color:var(--gd-text-mute);">${GD.esc(acceso)}</td>
         <td>${u.activo ? '🟢 Activo' : '⚪ Inactivo'}${u.debe_cambiar_password ? ' · 🔑' : ''}</td>
         <td style="white-space:nowrap;">
           <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" onclick="usuarioReset(this)" title="Asignar una contraseña nueva">🔑</button>
@@ -3753,7 +3890,7 @@ async function renderUsuarios() {
       </tr>`;
     }).join('');
   } catch (e) {
-    cont.innerHTML = `<tr><td colspan="6" style="padding:14px;color:#dc2626;">${GD.esc(e.message)}</td></tr>`;
+    cont.innerHTML = `<tr><td colspan="6" style="padding:14px;color:var(--gd-error);">${GD.esc(e.message)}</td></tr>`;
   }
 }
 
@@ -3802,19 +3939,19 @@ async function usuarioEliminar(btn) {
 async function renderBitacora() {
   const cont = el('bitacora-tbody');
   if (!cont) return;
-  cont.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#888;">Cargando…</td></tr>';
+  cont.innerHTML = '<tr><td colspan="5" style="padding:14px;color:var(--gd-text-mute);">Cargando…</td></tr>';
   try {
     const filas = await apiUsuarios({ accion: 'bitacora', limite: 300 });
-    if (!filas.length) { cont.innerHTML = '<tr><td colspan="5" style="padding:14px;color:#888;">Sin movimientos registrados.</td></tr>'; return; }
+    if (!filas.length) { cont.innerHTML = '<tr><td colspan="5" style="padding:14px;color:var(--gd-text-mute);">Sin movimientos registrados.</td></tr>'; return; }
     cont.innerHTML = filas.map(b => `<tr>
-      <td style="white-space:nowrap;font-size:.8rem;color:#777;">${GD.esc(new Date(b.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'medium' }))}</td>
+      <td style="white-space:nowrap;font-size:.8rem;color:var(--gd-text-mute);">${GD.esc(new Date(b.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'medium' }))}</td>
       <td><b>${GD.esc(b.usuario || '—')}</b></td>
       <td>${GD.esc(b.accion)}</td>
       <td>${GD.esc(b.tabla || '—')}</td>
-      <td style="font-size:.82rem;color:#555;">${GD.esc(b.detalle || '')}</td>
+      <td style="font-size:.82rem;color:var(--gd-text-mute);">${GD.esc(b.detalle || '')}</td>
     </tr>`).join('');
   } catch (e) {
-    cont.innerHTML = `<tr><td colspan="5" style="padding:14px;color:#dc2626;">${GD.esc(e.message)}</td></tr>`;
+    cont.innerHTML = `<tr><td colspan="5" style="padding:14px;color:var(--gd-error);">${GD.esc(e.message)}</td></tr>`;
   }
 }
 
@@ -3872,13 +4009,13 @@ async function guardarUtilidades() {
     <p>Estos valores se aplicarán inmediatamente a <b>todas las cotizaciones futuras</b>:</p>
     <table>
       <tr><td>🛠️ Mano de Obra</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">×${mo.toFixed(2)}</td></tr>
+          <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">×${mo.toFixed(2)}</td></tr>
       <tr><td>🧾 Ganancia Comidas + Hospedaje</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">+${vi.toFixed(1)}%</td></tr>
+          <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">+${vi.toFixed(1)}%</td></tr>
       <tr><td>🚗✈️ Utilidad Movilidad (Auto + Vuelo)</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">+${mv.toFixed(1)}%</td></tr>
+          <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">+${mv.toFixed(1)}%</td></tr>
     </table>
-    <p style="margin-top:10px;font-size:.82rem;color:#666;">Se guardarán en Supabase (todos los dispositivos) y en local.</p>
+    <p style="margin-top:10px;font-size:.82rem;color:var(--gd-text-mute);">Se guardarán en Supabase (todos los dispositivos) y en local.</p>
   `);
   if (!ok) return;
 
@@ -3894,16 +4031,17 @@ async function guardarUtilidades() {
 
   try { localStorage.setItem('pipro_utilidades', JSON.stringify(data)); } catch(e) {}
 
-  el('util-status').innerHTML = '<span style="color:#f59e0b;">⏳ Guardando…</span>';
+  el('util-status').innerHTML = '<span style="color:var(--gd-warning);">⏳ Guardando…</span>';
   try {
     if (window.SB && window.SB.configured) {
       await window.SB.setMeta('utilidades', data);
-      el('util-status').innerHTML = '<span style="color:#16a34a;">✅ Guardado en Supabase</span>';
+      el('util-status').innerHTML = '<span style="color:var(--gd-success);">✅ Guardado</span>';
+      admCifras();
     } else {
-      el('util-status').innerHTML = '<span style="color:#f59e0b;">⚠️ Guardado solo en local (sin conexión)</span>';
+      el('util-status').innerHTML = '<span style="color:var(--gd-warning);">⚠️ Guardado solo en local (sin conexión)</span>';
     }
   } catch(e) {
-    el('util-status').innerHTML = '<span style="color:#dc2626;">⚠️ Error de red — guardado solo en local</span>';
+    el('util-status').innerHTML = '<span style="color:var(--gd-error);">⚠️ Error de red — guardado solo en local</span>';
   }
   setTimeout(() => { el('util-status').innerHTML = ''; }, 5000);
 
@@ -3916,13 +4054,13 @@ async function restablecerUtilidades() {
     <p>¿Restablecer todos los valores a los predeterminados?</p>
     <table>
       <tr><td>🛠️ Mano de Obra</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">×${UTIL_DEFAULTS.UTIL_MO_FACTOR}</td></tr>
+          <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">×${UTIL_DEFAULTS.UTIL_MO_FACTOR}</td></tr>
       <tr><td>🧾 Ganancia Comidas + Hospedaje</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">+${UTIL_DEFAULTS.GANANCIA_VIATICOS_PCT * 100}%</td></tr>
+          <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">+${UTIL_DEFAULTS.GANANCIA_VIATICOS_PCT * 100}%</td></tr>
       <tr><td>🚗✈️ Utilidad Movilidad</td>
-          <td style="text-align:right;font-weight:700;color:#C8102E;">+${UTIL_DEFAULTS.UTIL_MOVILIDAD_PCT * 100}%</td></tr>
+          <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">+${UTIL_DEFAULTS.UTIL_MOVILIDAD_PCT * 100}%</td></tr>
     </table>
-    <p style="margin-top:10px;font-size:.82rem;color:#666;">Después debes presionar "Guardar cambios" para aplicarlos.</p>
+    <p style="margin-top:10px;font-size:.82rem;color:var(--gd-text-mute);">Después debes presionar "Guardar cambios" para aplicarlos.</p>
   `);
   if (!ok) return;
   el('util-mo').value = UTIL_DEFAULTS.UTIL_MO_FACTOR;
@@ -4177,11 +4315,11 @@ function nominatimSearch(inp, ddId, role) {
         <div class="osm-opt"
           data-lat="${GD.esc(item.lat)}" data-lon="${GD.esc(item.lon)}"
           data-nombre="${GD.esc(item.display_name)}"
-          style="padding:8px 12px;cursor:pointer;font-size:.83rem;border-bottom:1px solid #f0f0f0;line-height:1.35;"
+          style="padding:8px 12px;cursor:pointer;font-size:.83rem;border-bottom:1px solid var(--gd-border);line-height:1.35;"
         >${GD.esc(item.display_name)}</div>`).join('');
 
       dd.querySelectorAll('.osm-opt').forEach(op => {
-        op.addEventListener('mouseover', () => op.style.background = '#f0f4ff');
+        op.addEventListener('mouseover', () => op.style.background = 'var(--gd-bg-alt)');
         op.addEventListener('mouseout',  () => op.style.background = '');
         op.addEventListener('click', () =>
           selectPlace(ddId, role, op.dataset.lat, op.dataset.lon, op.dataset.nombre));
@@ -4285,7 +4423,7 @@ async function calcularRuta() {
       <div class="success-box" style="font-size:.83rem;line-height:1.8;">
         📏 Distancia: <b>${distKm} km</b> &nbsp;·&nbsp; ⏱ Tiempo estimado: <b>${durTxt}</b><br>
         🛣️ Casetas: ingrésalas manualmente en el campo de abajo<br>
-        <span style="color:#888;font-size:.78rem;">✅ El campo "Distancia al sitio" se actualizó automáticamente.</span>
+        <span style="color:var(--gd-text-mute);font-size:.78rem;">✅ El campo "Distancia al sitio" se actualizó automáticamente.</span>
       </div>`;
 
     updateMO();
@@ -4377,22 +4515,22 @@ function renderQxMapper(rows, sheetName) {
     })
   ].join('');
 
-  const SS = 'width:100%;padding:7px 8px;border:1.5px solid #ccc;border-radius:6px;font-size:.84rem;font-family:Arial,sans-serif;';
-  const LS = 'font-size:.79rem;font-weight:600;color:#555;display:block;margin-bottom:3px;';
+  const SS = 'width:100%;padding:7px 8px;border:1.5px solid var(--gd-border);border-radius:6px;font-size:.84rem;font-family:var(--gd-font-sans);';
+  const LS = 'font-size:.79rem;font-weight:600;color:var(--gd-text-mute);display:block;margin-bottom:3px;';
 
   const previewRows = rows.slice(dataStart, dataStart + 5);
   const previewHtml = `<div style="overflow-x:auto;margin:8px 0 12px;">
     <table style="border-collapse:collapse;font-size:.78rem;width:100%;">
-      <thead><tr>${letters.map(l=>`<th style="border:1px solid #ddd;padding:3px 8px;background:#e9ecef;white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
-      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid #ddd;padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${GD.esc(String(r[i]||''))}</td>`).join('')}</tr>`).join('')}</tbody>
+      <thead><tr>${letters.map(l=>`<th style="border:1px solid var(--gd-border);padding:3px 8px;background:var(--gd-bg-sunken);white-space:nowrap;">${l}</th>`).join('')}</tr></thead>
+      <tbody>${previewRows.map(r=>`<tr>${letters.map((_,i)=>`<td style="border:1px solid var(--gd-border);padding:2px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${GD.esc(String(r[i]||''))}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>`;
 
   const totalRows = rows.length - dataStart;
   const detected  = hdrRow >= 0 ? '✅ Encabezados detectados automáticamente' : '⚠️ Sin encabezados detectados — ajusta las columnas manualmente';
 
   el('qx-preview').innerHTML = `
-    <div style="background:#f8f9fa;border:1px solid #ddd;border-radius:8px;padding:14px;">
-      <div style="font-size:.82rem;color:#555;margin-bottom:10px;">
+    <div style="background:var(--gd-bg-alt);border:1px solid var(--gd-border);border-radius:8px;padding:14px;">
+      <div style="font-size:.82rem;color:var(--gd-text-mute);margin-bottom:10px;">
         Hoja: <b>${GD.esc(sheetName)}</b> · <b>${totalRows}</b> filas &nbsp;|&nbsp; ${detected}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px;">
@@ -4400,7 +4538,7 @@ function renderQxMapper(rows, sheetName) {
         <div><span style="${LS}">🔢 No. de Parte</span><select id="qx-col-part"  style="${SS}"><option value="-1">– No usar –</option>${colOpts(colMap.part)}</select></div>
         <div><span style="${LS}">💲 Precio Unitario MXN</span><select id="qx-col-price" style="${SS}"><option value="-1">– No usar –</option>${colOpts(colMap.price)}</select></div>
       </div>
-      <div style="font-size:.78rem;color:#777;margin-bottom:2px;">Vista previa — primeras 5 filas a partir de la fila ${dataStart+1}:</div>
+      <div style="font-size:.78rem;color:var(--gd-text-mute);margin-bottom:2px;">Vista previa — primeras 5 filas a partir de la fila ${dataStart+1}:</div>
       ${previewHtml}
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <button class="btn btn-primary btn-sm" onclick="importQuickExcel(${dataStart})">✅ Importar ${totalRows} productos</button>
@@ -4419,12 +4557,12 @@ async function importQuickExcel(dataStart) {
   const prCol = parseInt(el('qx-col-price').value);
 
   if (dCol < 0 || pCol < 0 || prCol < 0) {
-    el('qx-status').style.color = '#c00';
+    el('qx-status').style.color = 'var(--gd-error)';
     el('qx-status').textContent = '⚠️ Selecciona las tres columnas antes de importar.';
     return;
   }
 
-  el('qx-status').style.color = '#555';
+  el('qx-status').style.color = 'var(--gd-text-mute)';
   el('qx-status').textContent = '⏳ Procesando filas…';
 
   let added=0, updated=0, skipped=0;
@@ -4448,7 +4586,7 @@ async function importQuickExcel(dataStart) {
   });
 
   if (added + updated === 0) {
-    el('qx-status').style.color = '#c00';
+    el('qx-status').style.color = 'var(--gd-error)';
     el('qx-status').textContent = `⚠️ Ningún producto válido encontrado (${skipped} filas omitidas). Revisa las columnas seleccionadas.`;
     return;
   }
@@ -4465,14 +4603,14 @@ async function importQuickExcel(dataStart) {
       const BATCH = 500;
       for (let i = 0; i < toSync.length; i += BATCH)
         await window.SB.upsert('materiales', toSync.slice(i, i + BATCH), 'numero_parte');
-      el('qx-status').style.color = '#2a7a2a';
+      el('qx-status').style.color = 'var(--gd-success)';
       el('qx-status').textContent = `✅ ${added} nuevos · ${updated} actualizados · ${skipped} omitidos · Sincronizado ☁️`;
     } catch(e) {
-      el('qx-status').style.color = '#a05a00';
+      el('qx-status').style.color = 'var(--gd-warning)';
       el('qx-status').textContent = `✅ ${added} nuevos · ${updated} actualizados. ⚠️ Sin sync Supabase: ${e.message}`;
     }
   } else {
-    el('qx-status').style.color = '#2a7a2a';
+    el('qx-status').style.color = 'var(--gd-success)';
     el('qx-status').textContent = `✅ ${added} nuevos · ${updated} actualizados · ${skipped} omitidos.`;
   }
 
@@ -4498,7 +4636,7 @@ function renderAdminTable() {
     const desc = _attrEsc(m.descripcion);
     const statusId = 'save-' + encodeURIComponent(m.numero_parte);
     return `<tr>
-      <td style="color:#888;text-align:center;">${i+1}</td>
+      <td style="color:var(--gd-text-mute);text-align:center;">${i+1}</td>
       <td><input class="admin-edit" data-part="${np}" data-field="descripcion"
                  value="${desc}" onchange="updateMatField(this)" placeholder="Descripción"></td>
       <td><input class="admin-edit admin-part" data-part="${np}" data-field="numero_parte"
@@ -4816,13 +4954,13 @@ function handleEmpresaInput(val, showAll) {
   if (!matches.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = matches.map(c =>
     `<div class="cli-opt" data-nombre="${_escHtml(c.nombre)}"
-          style="padding:9px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;transition:background .1s;">
-       <div style="font-weight:600;font-size:13.5px;color:#1F1F1F;">${_escHtml(c.nombre)}</div>
-       ${c.contacto ? `<div style="font-size:12px;color:#777;margin-top:2px;">👤 ${_escHtml(c.contacto)}${c.ciudad ? ' · 📍 ' + _escHtml(c.ciudad) : ''}</div>` : ''}
+          style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--gd-border);transition:background .1s;">
+       <div style="font-weight:600;font-size:13.5px;color:var(--gd-text);">${_escHtml(c.nombre)}</div>
+       ${c.contacto ? `<div style="font-size:12px;color:var(--gd-text-mute);margin-top:2px;">👤 ${_escHtml(c.contacto)}${c.ciudad ? ' · 📍 ' + _escHtml(c.ciudad) : ''}</div>` : ''}
      </div>`
   ).join('');
   dd.querySelectorAll('.cli-opt').forEach(opt => {
-    opt.addEventListener('mouseenter', () => opt.style.background = '#f5f5f5');
+    opt.addEventListener('mouseenter', () => opt.style.background = 'var(--gd-bg-alt)');
     opt.addEventListener('mouseleave', () => opt.style.background = '');
     opt.addEventListener('mousedown', e => {
       e.preventDefault(); // evita que el input pierda foco antes del click
@@ -4978,31 +5116,31 @@ function calcSoporteria() {
     const qty    = isCalc ? (autoQty[m.np] || 0) : (prevManual[m.np] || 0);
     const line   = qty * m.precio;
     const active = qty > 0;
-    const borderColor = active ? '#C8102E' : '#ccc';
-    const bgColor     = active ? '#fff8f9' : '#fff';
+    const borderColor = active ? 'var(--gd-red)' : 'var(--gd-border-strong)';
+    const bgColor     = active ? 'var(--gd-red-tint)' : 'var(--gd-bg-elev)';
     // Separador antes del primer consumible
     let separator = '';
     if (m.cat === 'consumible' && !firstConsumibleSeen) {
       firstConsumibleSeen = true;
-      separator = `<tr style="background:#FFF3E0;border-top:2px solid #FB8C00;border-bottom:1px solid #FFB74D;">
-        <td colspan="7" style="padding:8px 12px;font-weight:700;color:#E65100;font-size:13px;letter-spacing:.5px;">
+      separator = `<tr style="background:var(--gd-warning-light);border-top:2px solid var(--gd-warning);border-bottom:1px solid var(--gd-B74D;">
+        <td colspan="7" style="padding:8px 12px;font-weight:700;color:var(--gd-warning);font-size:13px;letter-spacing:.5px;">
           🧴 CONSUMIBLES
         </td>
       </tr>`;
     }
-    const rowBg = m.cat === 'consumible' ? (active ? '#FFF8E1' : '#FFFDF7') : '';
-    return separator + `<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};">
-      <td style="padding:7px 10px;color:#aaa;text-align:center;">${i + 1}</td>
-      <td style="padding:7px 10px;font-family:monospace;font-size:11.5px;white-space:nowrap;">${m.np}</td>
+    const rowBg = m.cat === 'consumible' ? (active ? 'var(--gd-warning-light)' : 'var(--gd-bg-alt)') : '';
+    return separator + `<tr style="border-bottom:1px solid var(--gd-border);background:${rowBg};">
+      <td style="padding:7px 10px;color:var(--gd-text-soft);text-align:center;">${i + 1}</td>
+      <td style="padding:7px 10px;font-family:var(--gd-font-mono);font-size:11.5px;white-space:nowrap;">${m.np}</td>
       <td style="padding:7px 10px;">${m.desc}</td>
       <td style="padding:4px 6px;text-align:center;">
         <input type="number" id="sop-qty-${i}" min="0" value="${qty}"
           style="width:74px;padding:5px 6px;border:1.5px solid ${borderColor};border-radius:4px;text-align:center;font-weight:700;font-size:13px;background:${bgColor};"
           oninput="updateSopRow(${i})">
       </td>
-      <td style="padding:7px 10px;text-align:center;color:#888;font-size:12px;">${m.unidad}</td>
+      <td style="padding:7px 10px;text-align:center;color:var(--gd-text-mute);font-size:12px;">${m.unidad}</td>
       <td style="padding:7px 10px;text-align:right;">${fmt(m.precio)}</td>
-      <td id="sop-line-${i}" style="padding:7px 10px;text-align:right;font-weight:${active ? '700' : '400'};color:${active ? '#222' : '#bbb'};">${active ? fmt(line) : '—'}</td>
+      <td id="sop-line-${i}" style="padding:7px 10px;text-align:right;font-weight:${active ? '700' : '400'};color:${active ? 'var(--gd-text)' : '#bbb'};">${active ? fmt(line) : '—'}</td>
     </tr>`;
   }).join('');
 

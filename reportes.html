@@ -14,17 +14,12 @@
 <script src="supabase-client.js"></script>
 <script src="logo_b64.js"></script>
 <style>
-:root{
-  --gd-red:   #C8102E;
-  --gd-dark:  #1A1A1F;
-  --gd-lgray: #E5E7EB;
-  --gd-blue:  #1F3864;
-  --radius:   8px;
-}
+/* Los tokens locales se eliminaron en el rediseño 2026-09: sombreaban el
+   tema global y bloqueaban el modo oscuro. Todo viene de gd-theme.css. */
 *{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:16px;}
 body{
-  font-family:'Inter','Segoe UI',Arial,sans-serif;
+  font-family:var(--gd-font-sans);
   background:var(--gd-bg);color:var(--gd-text);min-height:100vh;
   -webkit-font-smoothing:antialiased;
 }
@@ -40,7 +35,7 @@ body{
 .mod-icon{
   display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;border-radius:8px;
-  background:var(--gd-red-light);color:#C8102E;font-size:18px;
+  background:var(--gd-red-light);color:var(--gd-red-ink);font-size:18px;
   border:1px solid var(--gd-red-light);
 }
 .mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
@@ -84,11 +79,11 @@ textarea{resize:vertical;line-height:1.55;}
   transition:all .15s;white-space:nowrap;
 }
 .btn-primary{background:var(--gd-red);color:#fff;}
-.btn-primary:hover{background:#A10D24;}
+.btn-primary:hover{background:var(--gd-red-dark);}
 .btn-secondary{background:var(--gd-graphite);color:#fff;}
-.btn-secondary:hover{background:#1A1A1F;}
+.btn-secondary:hover{background:var(--gd-invert-bg);}
 .btn-ghost{background:var(--gd-bg-elev);color:var(--gd-text-mute);border-color:var(--gd-border);}
-.btn-ghost:hover{border-color:var(--gd-red);color:var(--gd-red);}
+.btn-ghost:hover{border-color:var(--gd-red);color:var(--gd-red-ink);}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-lg{padding:13px 24px;font-size:14.5px;}
 
@@ -115,7 +110,7 @@ textarea{resize:vertical;line-height:1.55;}
   font-size:12.5px;font-weight:600;color:var(--gd-text-mute);
   transition:all .15s;user-select:none;
 }
-.cat-chip:hover{border-color:var(--gd-red);color:var(--gd-red);}
+.cat-chip:hover{border-color:var(--gd-red);color:var(--gd-red-ink);}
 .cat-chip.selected{
   background:var(--gd-red);border-color:var(--gd-red);color:#fff;
   box-shadow:0 2px 6px rgba(200,16,46,.25);
@@ -174,8 +169,8 @@ textarea{resize:vertical;line-height:1.55;}
 
 .folio-box{
   background:var(--gd-bg-alt);border:1px dashed var(--gd-border-strong);
-  border-radius:8px;padding:11px 14px;font-family:'Consolas',monospace;
-  font-size:13.5px;font-weight:700;color:var(--gd-red);letter-spacing:.03em;
+  border-radius:8px;padding:11px 14px;font-family:var(--gd-font-mono);
+  font-size:13.5px;font-weight:700;color:var(--gd-red-ink);letter-spacing:.03em;
 }
 .hidden{display:none !important;}
 </style>

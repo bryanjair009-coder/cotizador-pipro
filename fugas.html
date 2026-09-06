@@ -17,7 +17,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:16px;}
 body{
-  font-family:'Inter','Segoe UI',Arial,sans-serif;
+  font-family:var(--gd-font-sans);
   background:var(--gd-bg);color:var(--gd-text);min-height:100vh;
   -webkit-font-smoothing:antialiased;
 }
@@ -31,7 +31,7 @@ body{
 .mod-icon{
   display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;border-radius:8px;
-  background:var(--gd-red-light);color:#C8102E;font-size:18px;
+  background:var(--gd-red-light);color:var(--gd-red-ink);font-size:18px;
   border:1px solid var(--gd-red-light);
 }
 .mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
@@ -75,9 +75,9 @@ textarea{resize:vertical;line-height:1.55;}
   transition:all .15s;white-space:nowrap;
 }
 .btn-primary{background:var(--gd-red);color:#fff;}
-.btn-primary:hover{background:#A10D24;}
+.btn-primary:hover{background:var(--gd-red-dark);}
 .btn-ghost{background:var(--gd-bg-elev);color:var(--gd-text-mute);border-color:var(--gd-border);}
-.btn-ghost:hover{border-color:var(--gd-red);color:var(--gd-red);}
+.btn-ghost:hover{border-color:var(--gd-red);color:var(--gd-red-ink);}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-lg{padding:13px 24px;font-size:14.5px;}
 
@@ -106,7 +106,7 @@ textarea{resize:vertical;line-height:1.55;}
   text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;
 }
 .kpi-value{font-size:22px;font-weight:800;color:var(--gd-text);font-variant-numeric:tabular-nums;line-height:1.1;}
-.kpi.accent .kpi-value{color:var(--gd-red);}
+.kpi.accent .kpi-value{color:var(--gd-red-ink);}
 .kpi-sub{font-size:11px;color:var(--gd-text-soft);margin-top:3px;}
 
 /* ── Fotos ────────────────────────────────────────────────────────────────── */
@@ -153,8 +153,8 @@ textarea{resize:vertical;line-height:1.55;}
 
 .folio-box{
   background:var(--gd-bg-alt);border:1px dashed var(--gd-border-strong);
-  border-radius:8px;padding:11px 14px;font-family:'Consolas',monospace;
-  font-size:13.5px;font-weight:700;color:var(--gd-red);letter-spacing:.03em;
+  border-radius:8px;padding:11px 14px;font-family:var(--gd-font-mono);
+  font-size:13.5px;font-weight:700;color:var(--gd-red-ink);letter-spacing:.03em;
 }
 .hidden{display:none !important;}
 </style>

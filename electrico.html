@@ -12,52 +12,46 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
-:root{
-  --gd-red:#C8102E;
-  --gd-dark:#1E1E26;
-  --gd-blue:#1F3864;
-  --gd-gray:#888;
-  --gd-lgray:#e0e0e0;
-  --radius:8px;
-}
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter','Segoe UI',Arial,sans-serif;}
-body{background:#F8F9FB;color:#1A1A1F;-webkit-font-smoothing:antialiased;}
+/* Los tokens locales se eliminaron en el rediseño 2026-09: sombreaban el
+   tema global y bloqueaban el modo oscuro. Todo viene de gd-theme.css. */
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--gd-font-sans);}
+body{background:var(--gd-bg);color:var(--gd-text);-webkit-font-smoothing:antialiased;}
 .mod-wrap{padding:18px;max-width:1100px;margin:0 auto;}
 
 /* ── Barra del módulo (clara, coherente con cotizador) ─────────────────── */
 .mod-header{
-  background:#FFFFFF;border-bottom:1px solid #E5E7EB;
+  background:var(--gd-bg-elev);border-bottom:1px solid var(--gd-border);
   padding:10px 22px;display:flex;align-items:center;gap:12px;
   position:sticky;top:0;z-index:200;
 }
 .mod-icon{
   display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;border-radius:8px;
-  background:#FFF5F7;color:#C8102E;font-size:18px;
-  border:1px solid #FCE7EB;
+  background:var(--gd-red-tint);color:var(--gd-red-ink);font-size:18px;
+  border:1px solid var(--gd-red-light);
 }
-.mod-title{font-size:14px;font-weight:700;color:#1A1A1F;letter-spacing:-.01em;line-height:1.2;}
-.mod-sub{font-size:11px;color:#898B92;margin-top:2px;font-weight:500;}
+.mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;font-weight:500;}
 
-h1{color:var(--gd-dark);font-size:1.4rem;margin-bottom:4px;}
-.subtitle{color:var(--gd-gray);font-size:.85rem;margin-bottom:18px;}
+h1{color:var(--gd-text);font-size:1.4rem;margin-bottom:4px;}
+.subtitle{color:var(--gd-text-mute);font-size:.85rem;margin-bottom:18px;}
 
 .sec-title{
   font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
-  color:var(--gd-red);margin:22px 0 10px;padding-bottom:5px;
+  color:var(--gd-red-ink);margin:22px 0 10px;padding-bottom:5px;
   border-bottom:2px solid var(--gd-red);
 }
 .card{
-  background:#fff;border-radius:var(--radius);padding:16px;
+  background:var(--gd-bg-elev);border-radius:var(--radius);padding:16px;
   box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:12px;
 }
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
 .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;}
-label{display:block;font-size:.82rem;font-weight:600;color:#555;margin-bottom:4px;}
+label{display:block;font-size:.82rem;font-weight:600;color:var(--gd-text-mute);margin-bottom:4px;}
 input,select{
-  width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;
-  font-size:.92rem;font-family:Arial,sans-serif;
+  width:100%;padding:8px 10px;border:1px solid var(--gd-border);border-radius:6px;
+  font-size:.92rem;font-family:var(--gd-font-sans);
 }
 input:focus,select:focus{
   outline:none;border-color:var(--gd-red);box-shadow:0 0 0 3px rgba(200,16,46,.12);
@@ -70,24 +64,24 @@ input:focus,select:focus{
   transition:all .15s;
 }
 .btn-primary{background:var(--gd-red);color:#fff;}
-.btn-primary:hover{background:#a30d24;}
+.btn-primary:hover{background:var(--gd-red-dark);}
 .btn-secondary{background:var(--gd-blue);color:#fff;}
-.btn-secondary:hover{background:#13294a;}
-.btn-ghost{background:#fff;color:var(--gd-dark);border:1.5px solid var(--gd-lgray);}
-.btn-ghost:hover{background:#fafafa;border-color:var(--gd-red);color:var(--gd-red);}
+.btn-secondary:hover{background:var(--gd-invert-bg);}
+.btn-ghost{background:var(--gd-bg-elev);color:var(--gd-text);border:1.5px solid var(--gd-border);}
+.btn-ghost:hover{background:var(--gd-bg-alt);border-color:var(--gd-red);color:var(--gd-red-ink);}
 .btn-full{width:100%;justify-content:center;}
 
 .info-box{
-  background:#e3f2fd;border-left:4px solid #1976D2;padding:9px 12px;
-  border-radius:4px;font-size:.82rem;color:#1565C0;line-height:1.4;
+  background:var(--gd-info-light);border-left:4px solid var(--gd-info);padding:9px 12px;
+  border-radius:4px;font-size:.82rem;color:var(--gd-info);line-height:1.4;
 }
 .warn-box{
-  background:#FFF8E1;border-left:4px solid #FFA000;padding:9px 12px;
-  border-radius:4px;font-size:.82rem;color:#E65100;line-height:1.4;
+  background:var(--gd-warning-light);border-left:4px solid var(--gd-warning);padding:9px 12px;
+  border-radius:4px;font-size:.82rem;color:var(--gd-warning);line-height:1.4;
 }
 .success-box{
-  background:#E8F5E9;border-left:4px solid #43A047;padding:9px 12px;
-  border-radius:4px;font-size:.82rem;color:#2E7D32;line-height:1.4;
+  background:var(--gd-success-light);border-left:4px solid var(--gd-success);padding:9px 12px;
+  border-radius:4px;font-size:.82rem;color:var(--gd-success);line-height:1.4;
 }
 
 /* Resultados */
@@ -96,49 +90,49 @@ input:focus,select:focus{
   margin-top:14px;
 }
 .result-card{
-  background:#fff;border:1.5px solid var(--gd-lgray);border-radius:10px;
+  background:var(--gd-bg-elev);border:1.5px solid var(--gd-border);border-radius:10px;
   padding:14px;text-align:center;
 }
 .result-card.highlight{
-  background:linear-gradient(135deg,#fff8f9,#fff);
+  background:linear-gradient(135deg,var(--gd-red-tint),var(--gd-bg-elev));
   border-color:var(--gd-red);box-shadow:0 4px 12px rgba(200,16,46,.1);
 }
-.result-card.ok{background:linear-gradient(135deg,#F1F8E9,#fff);border-color:#43A047;}
-.result-card.warn{background:linear-gradient(135deg,#FFFDE7,#fff);border-color:#FFA000;}
-.result-card.bad{background:linear-gradient(135deg,#FFEBEE,#fff);border-color:#E53935;}
-.result-label{font-size:.72rem;text-transform:uppercase;color:#888;letter-spacing:.05em;margin-bottom:6px;font-weight:600;}
-.result-value{font-size:1.4rem;font-weight:800;color:var(--gd-dark);line-height:1.1;}
-.result-detail{font-size:.74rem;color:#888;margin-top:5px;}
-.result-card.highlight .result-value{color:var(--gd-red);}
-.result-card.ok .result-value{color:#2E7D32;}
-.result-card.warn .result-value{color:#E65100;}
-.result-card.bad .result-value{color:#C62828;}
+.result-card.ok{background:linear-gradient(135deg,var(--gd-success-light),var(--gd-bg-elev));border-color:var(--gd-success);}
+.result-card.warn{background:linear-gradient(135deg,var(--gd-warning-light),var(--gd-bg-elev));border-color:var(--gd-warning);}
+.result-card.bad{background:linear-gradient(135deg,var(--gd-error-light),var(--gd-bg-elev));border-color:var(--gd-error);}
+.result-label{font-size:.72rem;text-transform:uppercase;color:var(--gd-text-mute);letter-spacing:.05em;margin-bottom:6px;font-weight:600;}
+.result-value{font-size:1.4rem;font-weight:800;color:var(--gd-text);line-height:1.1;}
+.result-detail{font-size:.74rem;color:var(--gd-text-mute);margin-top:5px;}
+.result-card.highlight .result-value{color:var(--gd-red-ink);}
+.result-card.ok .result-value{color:var(--gd-success);}
+.result-card.warn .result-value{color:var(--gd-warning);}
+.result-card.bad .result-value{color:var(--gd-error);}
 
 /* Tabla de detalles */
 .detail-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px;}
 .detail-table th{background:var(--gd-blue);color:#fff;padding:7px 10px;text-align:left;font-weight:700;}
-.detail-table td{padding:6px 10px;border-bottom:1px solid #eee;}
-.detail-table tr:nth-child(even) td{background:#fafafa;}
-.detail-table td.lbl{font-weight:600;color:#555;width:50%;}
-.detail-table td.val{text-align:right;font-family:monospace;color:var(--gd-dark);font-weight:600;}
+.detail-table td{padding:6px 10px;border-bottom:1px solid var(--gd-border);}
+.detail-table tr:nth-child(even) td{background:var(--gd-bg-alt);}
+.detail-table td.lbl{font-weight:600;color:var(--gd-text-mute);width:50%;}
+.detail-table td.val{text-align:right;font-family:var(--gd-font-mono);color:var(--gd-text);font-weight:600;}
 
 details summary{
-  cursor:pointer;padding:10px 14px;background:#fafafa;border:1px solid var(--gd-lgray);
-  border-radius:6px;font-weight:700;color:var(--gd-dark);font-size:.9rem;
+  cursor:pointer;padding:10px 14px;background:var(--gd-bg-alt);border:1px solid var(--gd-border);
+  border-radius:6px;font-weight:700;color:var(--gd-text);font-size:.9rem;
 }
-details summary:hover{background:#f0f0f0;}
+details summary:hover{background:var(--gd-bg-alt);}
 details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0;}
-.details-body{background:#fff;border:1px solid var(--gd-lgray);border-top:none;
+.details-body{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-top:none;
   border-radius:0 0 6px 6px;padding:14px;}
 
-.muted{color:#888;font-size:.78rem;}
+.muted{color:var(--gd-text-mute);font-size:.78rem;}
 .tag{
   display:inline-block;padding:2px 8px;border-radius:10px;
   font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
 }
-.tag-ok{background:#E8F5E9;color:#2E7D32;}
-.tag-warn{background:#FFF8E1;color:#E65100;}
-.tag-bad{background:#FFEBEE;color:#C62828;}
+.tag-ok{background:var(--gd-success-light);color:var(--gd-success);}
+.tag-warn{background:var(--gd-warning-light);color:var(--gd-warning);}
+.tag-bad{background:var(--gd-error-light);color:var(--gd-error);}
 
 .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
 
@@ -427,28 +421,28 @@ const REGLAS_AMBIENTE = {
     tuberia_corta: 'EMT',
     soporteria: 'Abrazadera tipo uña o colgante tipo pera cada 1.5 m',
     accesorios: 'Conectores y coples EMT de presión',
-    color: '#1976D2',
+    color: 'var(--gd-info)',
   },
   exterior: {
     tuberia: 'IMC / RMC (Pared gruesa) — uso rudo',
     tuberia_corta: 'IMC',
     soporteria: 'Abrazadera tipo omega sobre unicanal galvanizado, espaciamiento máx. 2 m',
     accesorios: 'Conectores roscados, sello hermético, condulets tipo LB',
-    color: '#E65100',
+    color: 'var(--gd-warning)',
   },
   corrosivo: {
     tuberia: 'PVC pesado Cédula 80 o aluminio recubierto (tipo Ocal)',
     tuberia_corta: 'PVC CED-80',
     soporteria: 'Abrazaderas y unicanal en acero inoxidable 316 o fibra de vidrio',
     accesorios: 'Conexiones soldadas/cementadas con sello primario',
-    color: '#7B1FA2',
+    color: 'var(--gd-red)',
   },
   charola: {
     tuberia: 'Charola Portacables tipo escalera de aluminio — Art. 392',
     tuberia_corta: 'Charola escalera',
     soporteria: 'Ménsulas a pared o trapecios (varilla 3/8"–1/2") sobre unicanal 4×4 o 4×2, espaciamiento máx. 2 m',
     accesorios: 'Curvas horizontales/verticales, reductores, tapas, conectores de tierra cada 3 m',
-    color: '#00695C',
+    color: 'var(--gd-success)',
   },
 };
 
@@ -718,11 +712,11 @@ function renderResultados() {
     <tbody>
       ${r.bom.map((b,i) => `
         <tr>
-          <td style="text-align:center;color:#999;">${i+1}</td>
+          <td style="text-align:center;color:var(--gd-text-soft);">${i+1}</td>
           <td>${b.item}</td>
           <td style="text-align:right;font-weight:700;">${fmt(b.cant)}</td>
           <td style="text-align:center;">${b.unidad}</td>
-          <td style="font-size:.78rem;color:#666;">${b.notas}</td>
+          <td style="font-size:.78rem;color:var(--gd-text-mute);">${b.notas}</td>
         </tr>
       `).join('')}
     </tbody>
@@ -738,13 +732,13 @@ function renderResultados() {
 
   $('alertas').innerHTML = alertas.length
     ? `<div class="sec-title">⚠️ Alertas y observaciones</div>` +
-      alertas.map(a => `<div class="${a.tipo==='bad'?'warn-box':'warn-box'}" style="margin-bottom:6px;background:${a.tipo==='bad'?'#FFEBEE':'#FFF8E1'};color:${a.tipo==='bad'?'#C62828':'#E65100'};border-color:${a.tipo==='bad'?'#E53935':'#FFA000'};">${a.txt}</div>`).join('')
+      alertas.map(a => `<div class="${a.tipo==='bad'?'warn-box':'warn-box'}" style="margin-bottom:6px;background:${a.tipo==='bad'?'var(--gd-error-light)':'var(--gd-warning-light)'};color:${a.tipo==='bad'?'var(--gd-error)':'var(--gd-warning)'};border-color:${a.tipo==='bad'?'var(--gd-error)':'var(--gd-warning)'};">${a.txt}</div>`).join('')
     : '';
 
   // Tablas aplicadas (referencia)
   $('tablas-aplicadas').innerHTML = `
-    <p style="margin-bottom:8px;font-size:.85rem;color:#555;">Este cálculo aplica las siguientes tablas y artículos de la <b>NOM-001-SEDE-2012</b>:</p>
-    <ul style="margin-left:18px;line-height:1.6;font-size:.84rem;color:#444;">
+    <p style="margin-bottom:8px;font-size:.85rem;color:var(--gd-text-mute);">Este cálculo aplica las siguientes tablas y artículos de la <b>NOM-001-SEDE-2012</b>:</p>
+    <ul style="margin-left:18px;line-height:1.6;font-size:.84rem;color:var(--gd-text);">
       <li><b>Tabla 310-15(b)(16):</b> Ampacidad de conductores Cu THHW-LS a 75°C → calibre <b>${r.cable.calibre}</b> = ${r.cable.ampacidad} A</li>
       <li><b>Tabla 310-15(b)(2)(a):</b> Factor por temperatura ambiente ${r.inp.Tamb}°C → × ${r.Ftemp.toFixed(2)}</li>
       <li><b>Tabla 310-15(b)(3)(a):</b> Factor por ${r.inp.n_cond} conductores agrupados → × ${r.Fagrup.toFixed(2)}</li>

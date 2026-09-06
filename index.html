@@ -5,112 +5,135 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>Portal PIPRO · Gardner Denver</title>
-<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
-<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
+<link rel="icon" href="assets/logo-gd.png"/>
+<link rel="stylesheet" href="gd-theme.css?v=20260906"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260906"/>
 <script>
-  // Aplicar tema guardado ANTES de renderizar para evitar parpadeo
+  // Tema antes del primer pintado, para evitar el destello claro
   (function(){
     try {
-      var t = localStorage.getItem('gd-theme') || 'light';
-      if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      var t = localStorage.getItem('gd-theme');
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      if (t === 'dark') document.documentElement.setAttribute('data-theme','dark');
     } catch(e){}
   })();
 </script>
 <style>
 html, body { height: 100%; overflow: hidden; }
-body { background: var(--gd-bg); transition: background-color .2s ease; }
 
-.gd-shell-header {
-  height: 62px; padding: 0 20px;
-  background: var(--gd-bg-elev);
-  border-bottom: 1px solid var(--gd-border);
-}
-.gd-logo svg { height: 32px; }
-[data-theme="dark"] .gd-logo svg text { fill: #FFFFFF !important; }
-[data-theme="dark"] .gd-logo-sub { color: var(--gd-text-mute); border-left-color: var(--gd-border); }
-.gd-tab { height: 62px; }
-[data-theme="dark"] .gd-tab { color: var(--gd-text-mute); }
-[data-theme="dark"] .gd-tab:hover { color: var(--gd-text); }
+/* ── Estructura ─────────────────────────────────────────────────────────── */
+#portal { display: flex; height: 100vh; }
+#portal.oculto { display: none; }
 
-.theme-toggle {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; margin-left: 8px;
-  background: var(--gd-bg-alt); border: 1px solid var(--gd-border);
-  border-radius: 8px; cursor: pointer; font-size: 15px; color: var(--gd-text-mute);
-  transition: all .15s ease;
-}
-.theme-toggle:hover { background: var(--gd-red-light); color: var(--gd-red); border-color: var(--gd-red); }
+.rail { width: var(--gd-rail); flex: none; }
+.lienzo { flex: 1; position: relative; background: var(--gd-bg); min-width: 0; }
 
-.gd-shell-spacer { flex: 1; }
-
-main {
-  position: relative;
-  height: calc(100vh - 62px);
-  overflow: hidden;
-  background: var(--gd-bg);
-}
 iframe {
-  position: absolute; top: 0; left: 0;
-  width: 100%; height: 100%; border: none;
-  opacity: 0; pointer-events: none;
-  transition: opacity .18s ease;
-  background: var(--gd-bg);
+  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+  opacity: 0; pointer-events: none; transition: opacity .16s ease;
+  background: var(--gd-bg); color-scheme: normal;
 }
-iframe.active { opacity: 1; pointer-events: auto; }
+iframe.activo { opacity: 1; pointer-events: auto; }
 
-.gd-loader {
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  color: var(--gd-text-mute); font-size: 13px; font-weight: 500;
+/* ── Carril ─────────────────────────────────────────────────────────────── */
+.gd-rail { position: static; height: 100%; }
+.rail-badge {
+  margin-left: auto; padding: 1px 6px; border-radius: var(--gd-radius-full);
+  background: var(--gd-bg-sunken); color: var(--gd-text-soft);
+  font: 600 10px/1.5 var(--gd-font-mono);
 }
-.gd-spinner {
-  width: 34px; height: 34px;
-  border: 3px solid var(--gd-border); border-top-color: var(--gd-red);
-  border-radius: 50%; animation: gd-spin .8s linear infinite;
-}
-@keyframes gd-spin { to { transform: rotate(360deg); } }
+.gd-rail-item.active .rail-badge { background: var(--gd-red); color: #fff; }
 
-/* Menú desplegable de la cuenta */
-.gd-menu {
-  position: absolute; top: 56px; right: 18px; z-index: 500;
-  min-width: 216px; padding: 6px;
-  background: var(--gd-bg-elev);
-  border: 1px solid var(--gd-border);
-  border-radius: var(--gd-radius-md);
-  box-shadow: var(--gd-shadow-lg);
+.cuenta {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 9px; border: none; border-radius: var(--gd-radius-md);
+  background: transparent; cursor: pointer; text-align: left;
 }
-.gd-menu[hidden] { display: none; }
-.gd-menu-head {
-  padding: 9px 11px 10px; margin-bottom: 5px;
-  border-bottom: 1px solid var(--gd-border);
+.cuenta:hover { background: var(--gd-bg-alt); }
+.avatar {
+  width: 28px; height: 28px; flex: none; border-radius: var(--gd-radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gd-red); color: #fff;
+  font: 700 11px/1 var(--gd-font-sans);
 }
-.gd-menu-head b { display: block; font-size: 13px; color: var(--gd-text); }
-.gd-menu-head span { font-size: 11.5px; color: var(--gd-text-soft); }
-.gd-menu button {
-  display: block; width: 100%; padding: 8px 11px;
-  border: none; border-radius: var(--gd-radius-sm);
+.cuenta-txt { min-width: 0; flex: 1; }
+.cuenta-n {
+  font: 600 12.5px/1.3 var(--gd-font-sans); color: var(--gd-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cuenta-r {
+  font-family: var(--gd-font-cond);
+  font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--gd-text-soft);
+}
+.cuenta-r.admin { color: var(--gd-red); }
+
+.tema {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 9px; margin-bottom: 4px;
+  border: none; border-radius: var(--gd-radius-md);
+  background: transparent; color: var(--gd-text-mute);
+  font: 500 12.5px/1.2 var(--gd-font-sans); cursor: pointer; text-align: left;
+}
+.tema:hover { background: var(--gd-bg-alt); color: var(--gd-text); }
+.tema-ico { width: 20px; text-align: center; font-size: 14px; }
+
+/* ── Menú de cuenta ─────────────────────────────────────────────────────── */
+.menu {
+  position: fixed; bottom: 62px; left: 10px; z-index: 900;
+  width: calc(var(--gd-rail) - 20px); padding: 5px;
+  background: var(--gd-bg-elev); border: 1px solid var(--gd-border);
+  border-radius: var(--gd-radius-md); box-shadow: var(--gd-shadow-lg);
+}
+.menu[hidden] { display: none; }
+.menu button {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 10px; border: none; border-radius: var(--gd-radius-sm);
   background: transparent; color: var(--gd-text);
   font: 500 13px var(--gd-font-sans); text-align: left; cursor: pointer;
 }
-.gd-menu button:hover { background: var(--gd-bg-alt); }
-.gd-menu button.peligro:hover { background: var(--gd-error-light); color: var(--gd-error); }
+.menu button:hover { background: var(--gd-bg-alt); }
+.menu button.salir:hover { background: var(--gd-error-light); color: var(--gd-error); }
+.menu hr { border: none; border-top: 1px solid var(--gd-border); margin: 4px 0; }
 
-.gd-auth-hidden { display: none !important; }
+/* ── Cargador ───────────────────────────────────────────────────────────── */
+.cargando {
+  position: absolute; inset: 0; display: none;
+  flex-direction: column; align-items: center; justify-content: center; gap: 13px;
+  background: var(--gd-bg); color: var(--gd-text-mute);
+  font-size: 13px; font-weight: 500;
+}
+.cargando.on { display: flex; }
+.giro {
+  width: 30px; height: 30px; border: 2.5px solid var(--gd-border);
+  border-top-color: var(--gd-red); border-radius: 50%;
+  animation: giro .75s linear infinite;
+}
+@keyframes giro { to { transform: rotate(360deg); } }
+
+/* ── Estrecho: el carril se vuelve una barra superior ───────────────────── */
+@media (max-width: 860px) {
+  #portal { flex-direction: column; }
+  .rail { width: 100%; height: auto; }
+  .gd-rail { flex-direction: row; align-items: center; border-right: none;
+             border-bottom: 1px solid var(--gd-border); overflow-x: auto; }
+  .gd-rail-head { border-bottom: none; border-right: 1px solid var(--gd-border); padding: 12px 14px; }
+  .gd-rail-nav { display: flex; gap: 4px; padding: 8px; flex: 1; }
+  .gd-rail-group { display: none; }
+  .gd-rail-item { width: auto; white-space: nowrap; margin: 0; }
+  .gd-rail-item span:not(.gd-rail-ico):not(.rail-badge) { display: none; }
+  .gd-rail-foot { border-top: none; border-left: 1px solid var(--gd-border); display: flex; }
+  .cuenta-txt, .tema span:last-child { display: none; }
+  .menu { bottom: auto; top: 62px; left: auto; right: 10px; width: 220px; }
+}
 </style>
 </head>
 <body>
 
-<!-- ═══ PANTALLA DE ACCESO ═══════════════════════════════════════════════ -->
+<!-- ═══ ACCESO ══════════════════════════════════════════════════════════ -->
 <div class="gd-auth" id="auth">
   <div class="gd-auth-card">
-    <div class="gd-auth-logo">
-      <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" aria-label="Gardner Denver">
-        <text x="0" y="24" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Gardner</text>
-        <rect x="0" y="29" width="200" height="3.5" fill="#C8102E"/>
-        <text x="0" y="55" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Denver</text>
-      </svg>
-    </div>
+    <span class="gd-logo gd-logo-lg gd-auth-logo">Gardner Denver</span>
     <h1>Portal PIPRO</h1>
     <p class="gd-auth-sub">Acceso restringido a personal autorizado.</p>
 
@@ -120,10 +143,8 @@ iframe.active { opacity: 1; pointer-events: auto; }
       <label for="auth-user">Usuario</label>
       <input type="text" id="auth-user" name="username" autocomplete="username"
              autocapitalize="none" spellcheck="false" required>
-
       <label for="auth-pwd">Contraseña</label>
       <input type="password" id="auth-pwd" name="password" autocomplete="current-password" required>
-
       <button type="submit" class="gd-auth-btn" id="auth-btn">Entrar</button>
     </form>
 
@@ -135,228 +156,209 @@ iframe.active { opacity: 1; pointer-events: auto; }
   </div>
 </div>
 
-<!-- ═══ PORTAL ═══════════════════════════════════════════════════════════ -->
-<div id="portal" class="gd-auth-hidden">
+<!-- ═══ PORTAL ══════════════════════════════════════════════════════════ -->
+<div id="portal" class="oculto">
 
-<header class="gd-shell-header">
-  <a class="gd-logo" href="#" onclick="showTab('cotizador');return false;" title="Portal PIPRO · Gardner Denver">
-    <svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg" aria-label="Gardner Denver">
-      <text x="0" y="24" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Gardner</text>
-      <rect x="0" y="29" width="200" height="3.5" fill="#C8102E"/>
-      <text x="0" y="55" font-family="Inter, Arial, sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="#1A1A1F">Denver</text>
-    </svg>
-    <span class="gd-logo-sub">Portal PIPRO</span>
-  </a>
+  <div class="rail">
+    <nav class="gd-rail">
+      <div class="gd-rail-head">
+        <a href="#" onclick="ir('cotizador');return false;" title="Portal PIPRO">
+          <span class="gd-logo gd-logo-sm">Gardner Denver</span>
+        </a>
+      </div>
 
-  <nav class="gd-shell-nav" style="margin-left:18px;">
-    <button class="gd-tab active" data-tab="cotizador" onclick="showTab('cotizador')">
-      <span class="gd-tab-icon">📋</span> Cotizador
-    </button>
-    <button class="gd-tab" data-tab="requisiciones" onclick="showTab('requisiciones')">
-      <span class="gd-tab-icon">📦</span> Requisiciones
-    </button>
-    <button class="gd-tab" data-tab="presiones" onclick="showTab('presiones')">
-      <span class="gd-tab-icon">🔵</span> Caídas de Presión
-    </button>
-    <button class="gd-tab" data-tab="electrico" onclick="showTab('electrico')">
-      <span class="gd-tab-icon">⚡</span> Selección Eléctrica
-    </button>
-    <button class="gd-tab" data-tab="reportes" onclick="showTab('reportes')">
-      <span class="gd-tab-icon">📄</span> Reportes de Entrega
-    </button>
-    <button class="gd-tab" data-tab="fugas" onclick="showTab('fugas')">
-      <span class="gd-tab-icon">🔍</span> Reporte de Fugas
-    </button>
-  </nav>
+      <div class="gd-rail-nav" id="nav"></div>
 
-  <div class="gd-shell-spacer"></div>
-
-  <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()"
-          title="Cambiar entre modo claro y oscuro" aria-label="Cambiar tema">
-    <span id="theme-icon">🌙</span>
-  </button>
-
-  <button class="gd-user" id="user-btn" onclick="toggleMenu(event)" aria-haspopup="true" aria-expanded="false">
-    <span class="gd-user-av" id="user-av">··</span>
-    <span class="gd-user-name" id="user-name">…</span>
-    <span class="gd-user-rol" id="user-rol"></span>
-  </button>
-</header>
-
-<div class="gd-menu" id="user-menu" hidden>
-  <div class="gd-menu-head">
-    <b id="menu-nombre">—</b>
-    <span id="menu-usuario">—</span>
+      <div class="gd-rail-foot">
+        <button class="tema" onclick="alternarTema()" id="btn-tema">
+          <span class="tema-ico" id="tema-ico">🌙</span><span id="tema-txt">Modo oscuro</span>
+        </button>
+        <button class="cuenta" id="btn-cuenta" onclick="alternarMenu(event)" aria-haspopup="true" aria-expanded="false">
+          <span class="avatar" id="avatar">··</span>
+          <span class="cuenta-txt">
+            <span class="cuenta-n" id="cuenta-n">…</span>
+            <span class="cuenta-r" id="cuenta-r"></span>
+          </span>
+        </button>
+      </div>
+    </nav>
   </div>
-  <button onclick="abrirCambioPwd()">🔑 Cambiar mi contraseña</button>
-  <button id="menu-admin" onclick="irAdmin()" hidden>👥 Usuarios y bitácora</button>
-  <button class="peligro" onclick="GD.sesion.salir()">🚪 Cerrar sesión</button>
+
+  <div class="menu" id="menu" hidden>
+    <button onclick="cambiarPwd()">🔑 Cambiar mi contraseña</button>
+    <button id="menu-admin" onclick="irAdmin()" hidden>👥 Usuarios y bitácora</button>
+    <hr>
+    <button class="salir" onclick="GD.sesion.salir()">🚪 Cerrar sesión</button>
+  </div>
+
+  <main class="lienzo" id="lienzo">
+    <div class="cargando" id="cargando"><div class="giro"></div><span id="cargando-txt">Cargando…</span></div>
+  </main>
 </div>
 
-<main id="main">
-  <iframe id="frame-cotizador"     data-src="cotizador.html?v=20260905"></iframe>
-  <iframe id="frame-requisiciones" data-src="requisiciones.html?v=20260905"></iframe>
-  <iframe id="frame-presiones"     data-src="presiones.html?v=20260905"></iframe>
-  <iframe id="frame-electrico"     data-src="electrico.html?v=20260905"></iframe>
-  <iframe id="frame-reportes"      data-src="reportes.html?v=20260905"></iframe>
-  <iframe id="frame-fugas"         data-src="fugas.html?v=20260905"></iframe>
-
-  <div class="gd-loader" id="loader" style="display:none">
-    <div class="gd-spinner"></div>
-    <span id="loader-txt">Cargando…</span>
-  </div>
-</main>
-</div>
-
-<script src="gd-ui.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260906"></script>
 <script>
-const NAMES = {
-  cotizador:    'Cotizador PIPRO',
-  requisiciones:'Requisiciones',
-  presiones:    'Caídas de Presión',
-  electrico:    'Selección Eléctrica',
-  reportes:     'Reportes de Entrega',
-  fugas:        'Reporte de Fugas',
-};
-const LOADER_LABELS = {
-  cotizador:    'Cargando cotizador…',
-  requisiciones:'Cargando módulo de requisiciones…',
-  presiones:    'Cargando módulo de presiones…',
-  electrico:    'Cargando calculadora eléctrica…',
-  reportes:     'Cargando módulo de reportes…',
-  fugas:        'Cargando módulo de fugas…',
-};
+const V = '20260906';
 
-// ─── NAVEGACIÓN ──────────────────────────────────────────────────────────
-function showTab(name) {
-  document.querySelectorAll('.gd-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-  const frame = document.getElementById('frame-' + name);
-  if (!frame) return;
+/* Los módulos, agrupados por lo que hace la persona con ellos.
+   El orden no es alfabético: es el del flujo de trabajo real. */
+const GRUPOS = [
+  { grupo: 'Comercial', modulos: [
+    { id: 'cotizador',     ico: '📋', nombre: 'Cotizador',        titulo: 'Cotizador PIPRO' },
+    { id: 'requisiciones', ico: '📦', nombre: 'Requisiciones',    titulo: 'Requisiciones' },
+  ]},
+  { grupo: 'Ingeniería', modulos: [
+    { id: 'presiones',     ico: '🔵', nombre: 'Caídas de presión', titulo: 'Caídas de Presión' },
+    { id: 'electrico',     ico: '⚡', nombre: 'Selección eléctrica', titulo: 'Selección Eléctrica' },
+  ]},
+  { grupo: 'Entregables', modulos: [
+    { id: 'reportes',      ico: '📄', nombre: 'Reportes de entrega', titulo: 'Reportes de Entrega' },
+    { id: 'fugas',         ico: '🔍', nombre: 'Reporte de fugas',    titulo: 'Reporte de Fugas' },
+  ]},
+];
+const MODULOS = GRUPOS.flatMap(g => g.modulos);
+const buscarModulo = id => MODULOS.find(m => m.id === id);
 
-  if (frame.dataset.src) {
-    showLoader(LOADER_LABELS[name]);
-    let oculto = false;
-    const ocultarUnaVez = () => { if (!oculto) { oculto = true; hideLoader(); } };
-    const seguro = setTimeout(ocultarUnaVez, 2500);
-    frame.addEventListener('load', () => { clearTimeout(seguro); ocultarUnaVez(); }, { once: true });
-    frame.src = frame.dataset.src;
-    delete frame.dataset.src;
+/* ── Construcción del carril y los marcos ─────────────────────────────── */
+function construir() {
+  const nav = document.getElementById('nav');
+  const lienzo = document.getElementById('lienzo');
+  nav.innerHTML = GRUPOS.map(g => `
+    <div class="gd-rail-group">${g.grupo}</div>
+    ${g.modulos.map(m => `
+      <button class="gd-rail-item" data-id="${m.id}" onclick="ir('${m.id}')">
+        <span class="gd-rail-ico">${m.ico}</span><span>${m.nombre}</span>
+      </button>`).join('')}
+  `).join('');
+
+  const cargador = document.getElementById('cargando');
+  MODULOS.forEach(m => {
+    const f = document.createElement('iframe');
+    f.id = 'f-' + m.id;
+    f.dataset.src = `${m.id}.html?v=${V}`;
+    f.title = m.titulo;
+    lienzo.insertBefore(f, cargador);
+    f.addEventListener('load', () => enviarTema(f));
+  });
+}
+
+function ir(id) {
+  const m = buscarModulo(id);
+  if (!m) return;
+  document.querySelectorAll('.gd-rail-item').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+
+  const f = document.getElementById('f-' + id);
+  if (f.dataset.src) {
+    mostrarCargador('Cargando ' + m.nombre.toLowerCase() + '…');
+    let hecho = false;
+    const ocultar = () => { if (!hecho) { hecho = true; document.getElementById('cargando').classList.remove('on'); } };
+    const red = setTimeout(ocultar, 2500);
+    f.addEventListener('load', () => { clearTimeout(red); ocultar(); }, { once: true });
+    f.src = f.dataset.src;
+    delete f.dataset.src;
   }
 
-  document.querySelectorAll('iframe').forEach(f => f.classList.toggle('active', f.id === 'frame-' + name));
-  document.title = NAMES[name] + ' · Gardner Denver';
-  try { localStorage.setItem('gd-tab', name); } catch(e) {}
+  document.querySelectorAll('iframe').forEach(x => x.classList.toggle('activo', x.id === 'f-' + id));
+  document.title = m.titulo + ' · Gardner Denver';
+  try { localStorage.setItem('gd-tab', id); } catch(e) {}
 }
 
-function showLoader(msg) {
-  document.getElementById('loader-txt').textContent = msg;
-  document.getElementById('loader').style.display = 'flex';
+function mostrarCargador(txt) {
+  document.getElementById('cargando-txt').textContent = txt;
+  document.getElementById('cargando').classList.add('on');
 }
-function hideLoader() { document.getElementById('loader').style.display = 'none'; }
 
-// ─── TEMA ────────────────────────────────────────────────────────────────
-function getTheme() { return document.documentElement.getAttribute('data-theme') || 'light'; }
-function applyTheme(theme) {
-  if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+/* ── Tema ─────────────────────────────────────────────────────────────── */
+const temaActual = () => document.documentElement.getAttribute('data-theme') || 'light';
+
+function enviarTema(f) {
+  try { f.contentWindow.postMessage({ type: 'gd-theme', theme: temaActual() }, location.origin); } catch(e) {}
+}
+
+function aplicarTema(t) {
+  if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
   else document.documentElement.removeAttribute('data-theme');
-  const icon = document.getElementById('theme-icon');
-  if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
-  try { localStorage.setItem('gd-theme', theme); } catch(e) {}
-  document.querySelectorAll('iframe').forEach(f => {
-    try { f.contentWindow.postMessage({ type: 'gd-theme', theme }, location.origin); } catch(e) {}
-  });
+  const oscuro = t === 'dark';
+  document.getElementById('tema-ico').textContent = oscuro ? '☀️' : '🌙';
+  document.getElementById('tema-txt').textContent = oscuro ? 'Modo claro' : 'Modo oscuro';
+  document.getElementById('btn-tema').title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  try { localStorage.setItem('gd-theme', t); } catch(e) {}
+  document.querySelectorAll('iframe').forEach(enviarTema);
 }
-function toggleTheme() { applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
-applyTheme(getTheme());
+function alternarTema() { aplicarTema(temaActual() === 'dark' ? 'light' : 'dark'); }
 
-document.querySelectorAll('iframe').forEach(f => {
-  f.addEventListener('load', () => {
-    try { f.contentWindow.postMessage({ type: 'gd-theme', theme: getTheme() }, location.origin); } catch(e) {}
-  });
-});
-
-// ─── ACCESO ──────────────────────────────────────────────────────────────
-const authMsg = document.getElementById('auth-msg');
-
-function mostrarError(txt) {
-  authMsg.textContent = txt;
-  authMsg.hidden = false;
-}
+/* ── Acceso ───────────────────────────────────────────────────────────── */
+const msg = document.getElementById('auth-msg');
+const error = t => { msg.textContent = t; msg.hidden = false; };
 
 document.getElementById('auth-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const btn = document.getElementById('auth-btn');
-  authMsg.hidden = true;
-  btn.disabled = true; btn.textContent = 'Verificando…';
-
+  const b = document.getElementById('auth-btn');
+  msg.hidden = true; b.disabled = true; b.textContent = 'Verificando…';
   try {
     const r = await fetch('/api/login', {
-      method: 'POST',
-      credentials: 'same-origin',
+      method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         usuario: document.getElementById('auth-user').value,
         password: document.getElementById('auth-pwd').value,
       }),
     });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) { mostrarError(data.error || 'No se pudo iniciar sesión.'); return; }
-
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { error(d.error || 'No se pudo iniciar sesión.'); return; }
     document.getElementById('auth-pwd').value = '';
     await entrar();
-    if (data.debe_cambiar_password) {
-      setTimeout(() => alert('Por seguridad, cambia tu contraseña desde el menú de tu usuario (esquina superior derecha).'), 400);
+    if (d.debe_cambiar_password) {
+      setTimeout(() => alert('Por seguridad, cambia tu contraseña desde tu usuario, abajo a la izquierda.'), 400);
     }
   } catch (err) {
-    mostrarError('No hay conexión con el servidor. Verifica tu red e intenta de nuevo.');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Entrar';
-  }
+    error('No hay conexión con el servidor. Verifica tu red e intenta de nuevo.');
+  } finally { b.disabled = false; b.textContent = 'Entrar'; }
 });
 
 async function entrar() {
   const s = await GD.sesion.cargar();
   if (!s || !s.autenticado) return false;
 
-  document.getElementById('auth').classList.add('gd-auth-hidden');
-  document.getElementById('portal').classList.remove('gd-auth-hidden');
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('portal').classList.remove('oculto');
 
-  const iniciales = (s.nombre || s.usuario).trim().split(/\s+/).slice(0, 2)
-    .map(p => p[0]).join('').toUpperCase();
-  document.getElementById('user-av').textContent = iniciales || '··';
-  document.getElementById('user-name').textContent = (s.nombre || s.usuario).split(' ')[0];
-  const rol = document.getElementById('user-rol');
-  rol.textContent = s.rol === 'admin' ? 'Admin' : 'Usuario';
+  const nombre = s.nombre || s.usuario;
+  document.getElementById('avatar').textContent =
+    nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '··';
+  document.getElementById('cuenta-n').textContent = nombre;
+  const rol = document.getElementById('cuenta-r');
+  rol.textContent = s.rol === 'admin' ? 'Administrador' : 'Usuario';
   rol.classList.toggle('admin', s.rol === 'admin');
-  document.getElementById('menu-nombre').textContent = s.nombre || s.usuario;
-  document.getElementById('menu-usuario').textContent = s.usuario + ' · ' + (s.rol === 'admin' ? 'Administrador' : 'Usuario');
   document.getElementById('menu-admin').hidden = s.rol !== 'admin';
 
   let inicial = 'cotizador';
-  try { const g = localStorage.getItem('gd-tab'); if (g && NAMES[g]) inicial = g; } catch(e) {}
-  showTab(inicial);
+  try { const g = localStorage.getItem('gd-tab'); if (g && buscarModulo(g)) inicial = g; } catch(e) {}
+  ir(inicial);
   return true;
 }
 
-// ─── MENÚ DE CUENTA ──────────────────────────────────────────────────────
-function toggleMenu(e) {
+/* ── Menú de cuenta ───────────────────────────────────────────────────── */
+function alternarMenu(e) {
   e.stopPropagation();
-  const m = document.getElementById('user-menu');
+  const m = document.getElementById('menu');
   m.hidden = !m.hidden;
-  document.getElementById('user-btn').setAttribute('aria-expanded', String(!m.hidden));
+  document.getElementById('btn-cuenta').setAttribute('aria-expanded', String(!m.hidden));
 }
 document.addEventListener('click', () => {
-  const m = document.getElementById('user-menu');
-  if (m && !m.hidden) { m.hidden = true; document.getElementById('user-btn').setAttribute('aria-expanded','false'); }
+  const m = document.getElementById('menu');
+  if (m && !m.hidden) { m.hidden = true; document.getElementById('btn-cuenta').setAttribute('aria-expanded','false'); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('menu').hidden = true;
 });
 
-async function abrirCambioPwd() {
+async function cambiarPwd() {
   const actual = prompt('Contraseña actual:');
   if (!actual) return;
   const nueva = prompt('Nueva contraseña (mínimo 10 caracteres, con letras y números):');
   if (!nueva) return;
   if (nueva !== prompt('Repite la nueva contraseña:')) { alert('Las contraseñas no coinciden.'); return; }
-
   const r = await fetch('/api/usuarios', {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
@@ -367,26 +369,27 @@ async function abrirCambioPwd() {
 }
 
 function irAdmin() {
-  showTab('cotizador');
-  const f = document.getElementById('frame-cotizador');
-  const enviar = () => { try { f.contentWindow.postMessage({ type: 'gd-abrir-admin' }, location.origin); } catch(e) {} };
-  f.dataset.src ? f.addEventListener('load', () => setTimeout(enviar, 300), { once: true }) : enviar();
+  ir('cotizador');
+  const f = document.getElementById('f-cotizador');
+  const avisar = () => { try { f.contentWindow.postMessage({ type: 'gd-abrir-admin' }, location.origin); } catch(e) {} };
+  f.dataset.src ? f.addEventListener('load', () => setTimeout(avisar, 300), { once: true }) : avisar();
 }
 
-// ─── SESIÓN EXPIRADA (avisada por un módulo) ─────────────────────────────
+/* ── Sesión expirada, avisada por un módulo ───────────────────────────── */
 window.addEventListener('message', e => {
-  if (e.origin !== location.origin) return;              // sólo mensajes del propio portal
+  if (e.origin !== location.origin) return;
   if (e.data && e.data.type === 'gd-sesion-expirada') {
-    document.getElementById('portal').classList.add('gd-auth-hidden');
-    document.getElementById('auth').classList.remove('gd-auth-hidden');
-    mostrarError('Tu sesión expiró por inactividad. Vuelve a entrar.');
+    document.getElementById('portal').classList.add('oculto');
+    document.getElementById('auth').style.display = 'flex';
+    error('Tu sesión expiró por inactividad. Vuelve a entrar.');
   }
 });
 
-// ─── ARRANQUE ────────────────────────────────────────────────────────────
-(async function () {
-  const ok = await entrar();
-  if (!ok) setTimeout(() => document.getElementById('auth-user').focus(), 60);
+/* ── Arranque ─────────────────────────────────────────────────────────── */
+construir();
+aplicarTema(temaActual());
+(async () => {
+  if (!await entrar()) setTimeout(() => document.getElementById('auth-user').focus(), 60);
 })();
 </script>
 </body>
