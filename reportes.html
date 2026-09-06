@@ -226,8 +226,16 @@ textarea{resize:vertical;line-height:1.55;}
       </div>
       <div>
         <label>Iniciales del ingeniero</label>
-        <input type="text" id="initials" maxlength="5" value="MAM" placeholder="MAM" oninput="updateFolio()">
+        <input type="text" id="initials" maxlength="5" data-perfil="iniciales" placeholder="MAM" oninput="updateFolio()">
       </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>Ingeniero responsable
+        <button class="gd-i" data-info-title="Ingeniero responsable"
+                data-info="Se toma del nombre de tu perfil y es quien firma el reporte. Puedes cambiarlo para este documento si lo elabora otra persona."></button>
+      </label>
+      <input type="text" id="ingeniero" data-perfil="nombre" placeholder="Se toma de tu perfil">
     </div>
 
     <div style="margin-top:12px;">
@@ -874,11 +882,13 @@ function generarReportePDF() {
   doc.line(PW - ML - colW, y1, PW - ML, y1);
 
   doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-  doc.text('Ing. Marco Antonio Millan Ramirez', ML, y1 + 4.5);
+  // Firma el ingeniero responsable del reporte, tomado del perfil
+  const responsable = (el('ingeniero').value || '').trim() || 'Ing. Marco Antonio Millan Ramirez';
+  doc.text(responsable, ML, y1 + 4.5);
   doc.text('Nombre y firma de conformidad', PW - ML - colW, y1 + 4.5);
 
   doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-  doc.text('Gerente de Ingenieria', ML, y1 + 8.5);
+  doc.text('Departamento de Ingenieria', ML, y1 + 8.5);
   doc.text('GARDNER DENVER Mexico, S.A. de C.V.', ML, y1 + 12);
   doc.text('Representante del cliente', PW - ML - colW, y1 + 8.5);
   doc.text(empresa, PW - ML - colW, y1 + 12);

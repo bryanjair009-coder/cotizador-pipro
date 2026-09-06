@@ -236,7 +236,21 @@ function TI({value,onChange,placeholder,disabled,mono}){return(<input className=
 
 // ─── Formulario nueva requisición ─────────────────────────────────────────────
 function NewForm({companies,onAddCompany,onSave,nextFolio}){
-  const[requester,setRequester]=useState('');
+  // El solicitante se toma del perfil de quien inició sesión
+  const[requester,setRequester]=useState(()=>{
+    const s=window.GD&&GD.sesion&&GD.sesion.actual;
+    return (s&&s.autenticado&&(s.nombre||s.usuario))||'';
+  });
+  const[requesterTocado,setRequesterTocado]=useState(false);
+  useEffect(()=>{
+    if(requesterTocado||requester)return;
+    let vivo=true;
+    (async()=>{
+      const s=await GD.sesion.cargar();
+      if(vivo&&s&&s.autenticado)setRequester(s.nombre||s.usuario||'');
+    })();
+    return()=>{vivo=false;};
+  },[]);
   const[isInternal,setIsInternal]=useState(false);
   const[company,setCompany]=useState('');
   const[ddOpen,setDdOpen]=useState(false);
@@ -262,7 +276,7 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
   function addItem(){setItems(p=>[...p,{qty:'',partNumber:'',description:''}]);}
   function rmItem(i){setItems(p=>p.length===1?p:p.filter((_,j)=>j!==i));}
   function addCo(){const n=newCo.trim();if(!n)return;onAddCompany(n);setCompany(n);setNewCo('');setDdOpen(false);}
-  function reset(){setRequester('');setIsInternal(false);setCompany('');setDelivery(DELIVERY_DEFAULT);setObs('');setDate(todayISO());setItems([{qty:'',partNumber:'',description:''}]);setError('');}
+  function reset(){const s=GD.sesion.actual;setRequester((s&&s.autenticado&&(s.nombre||s.usuario))||'');setRequesterTocado(false);setIsInternal(false);setCompany('');setDelivery(DELIVERY_DEFAULT);setObs('');setDate(todayISO());setItems([{qty:'',partNumber:'',description:''}]);setError('');}
 
   function detectCol(headers,keywords){
     const kw=keywords.map(k=>k.toLowerCase());
@@ -390,7 +404,7 @@ function NewForm({companies,onAddCompany,onSave,nextFolio}){
       <div style={{fontFamily:'var(--gd-font-mono)',fontSize:15,fontWeight:600,color:C.accent,background:C.bg,border:'1px solid '+C.accentDim,padding:'8px 14px',borderRadius:8}}>{nextFolio}</div>
     </div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 24px'}}>
-      <Field label="Solicita – Nombre del Ingeniero"><TI value={requester} onChange={setRequester} placeholder="Ej. Juan Pérez García"/></Field>
+      <Field label="Solicita – Nombre del Ingeniero" hint="(se toma de tu perfil)"><TI value={requester} onChange={v=>{setRequesterTocado(true);setRequester(v);}} placeholder="Ej. Juan Pérez García"/></Field>
       <Field label="Fecha de Solicitud"><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={IS}/></Field>
     </div>
     <div style={{background:C.panel2,border:'1px solid '+C.border,borderRadius:10,padding:16,marginBottom:16}}>

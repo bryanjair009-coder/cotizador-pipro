@@ -77,7 +77,7 @@ body{padding:0;overflow-y:auto}
 
 .btbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
 .btbl th{padding:6px 6px;text-align:left;font-size:10px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gd-border);white-space:nowrap}
-.btbl td{padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.btbl td{padding:5px 4px;border-bottom:1px solid var(--gd-border);vertical-align:middle}
 .btbl tr:last-child td{border-bottom:none}
 .btbl input,.btbl select{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 6px;width:100%;outline:none;font-family:var(--gd-font-sans);}
 .btbl input:focus,.btbl select:focus{border-color:var(--gd-red)}
@@ -99,7 +99,7 @@ body{padding:0;overflow-y:auto}
 
 .ctbl{width:100%;border-collapse:collapse;font-size:12px}
 .ctbl th{padding:7px 8px;text-align:left;font-size:10px;color:var(--gd-text-soft);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gd-border);white-space:nowrap}
-.ctbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.ctbl td{padding:6px 8px;border-bottom:1px solid var(--gd-border);vertical-align:middle}
 .ctbl input{background:var(--gd-bg);border:1px solid var(--gd-border);border-radius:5px;color:var(--gd-text);font-size:12px;padding:4px 7px;outline:none;font-family:var(--gd-font-sans);}
 .ctbl input[type="text"]{width:140px}
 .ctbl input[type="number"]{width:80px}
@@ -219,7 +219,7 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
     <div class="field"><label>Proyecto / Descripción</label>
       <input type="text" id="pdf-proyecto" placeholder="Nombre o número de proyecto"/></div>
     <div class="field"><label>Elaborado por</label>
-      <input type="text" id="pdf-elaborado" placeholder="Nombre del ingeniero"/></div>
+      <input type="text" id="pdf-elaborado" data-perfil="nombre" placeholder="Nombre del ingeniero"/></div>
   </div>
 </div>
 
@@ -349,6 +349,7 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
             data-info="Selecciona el diámetro del cabezal y escribe la longitud total de la tubería principal. Después revisa la velocidad resultante."
             data-formula="Velocidad objetivo: 4 a 6 m/s
 Por encima de 6 m/s → aumenta el diámetro"></button>
+  </div>
   <div class="grid g4">
     <div class="field">
       <label>Diámetro cabezal <span class="tooltip-trigger" onclick="openTooltip('cab-diam')" title="Más información">i</span></label>
@@ -866,7 +867,12 @@ function chAcc(prefix, i, d) {
 
 function togglePanel(id) {
   const el = document.getElementById(id);
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (!el) return;
+  const oculto = el.style.display === 'none';
+  // Una fila de tabla debe volver a `table-row`: con `block` la celda deja de
+  // ser celda, se encoge al contenido y la rejilla de accesorios sale en una
+  // sola columna estrecha.
+  el.style.display = oculto ? (el.tagName === 'TR' ? 'table-row' : 'block') : 'none';
 }
 
 // ── BAJADAS ───────────────────────────────────────────────────────────

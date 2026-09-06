@@ -59,6 +59,10 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 - **Buscador de materiales:** `GD.picker.configurar({...})` + `GD.picker.abrir()`.
   Ctrl+K lo abre. Enter agrega sin cerrar; Shift+Enter agrega y cierra.
 - Tras pintar HTML nuevo, llamar `GD.refrescar(raiz)`.
+- **Datos del perfil:** `<input data-perfil="nombre">` y `data-perfil="iniciales"`
+  se rellenan solos con el nombre de la cuenta que inició sesión
+  (`GD.perfil.aplicar()`). No se pisa lo que la persona escriba a mano.
+  Las iniciales salen de `GD.iniciales()`: omite «Ing.» y partículas, máx. 4.
 
 ## PDF / Word
 

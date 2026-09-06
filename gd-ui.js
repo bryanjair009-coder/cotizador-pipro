@@ -461,7 +461,62 @@ document.addEventListener('keydown', (e) => {
 });
 
 
-/* ── 5. SESIÓN ──────────────────────────────────────────────────────────────*/
+/* ── 5. DATOS DEL PERFIL EN LOS FORMULARIOS ─────────────────────────────────
+   Los campos de «ingeniero responsable» / «elaborado por» y sus iniciales se
+   rellenan con el nombre de la cuenta que inició sesión, en vez de traer un
+   nombre fijo escrito en el HTML.
+
+   En el marcado basta con declarar:
+     <input data-perfil="nombre">      → nombre completo del perfil
+     <input data-perfil="iniciales">   → iniciales de ese nombre
+
+   Nunca pisa lo que la persona haya escrito a mano.                        */
+
+/** Iniciales de un nombre completo, omitiendo partículas. Máximo 4 letras. */
+GD.iniciales = function (nombre) {
+  const omitir = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'dos']);
+  return String(nombre || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')      // sin acentos
+    .replace(/\bing\.?\b/gi, '')                           // el título no cuenta
+    .trim().split(/\s+/)
+    .filter(p => p && !omitir.has(p.toLowerCase()) && /[a-zA-Z]/.test(p[0]))
+    .map(p => p[0].toUpperCase())
+    .join('').slice(0, 4);
+};
+
+GD.perfil = {
+  /** Rellena los campos [data-perfil] con los datos de la sesión. */
+  async aplicar(raiz) {
+    const campos = (raiz || document).querySelectorAll('[data-perfil]');
+    if (!campos.length) return false;
+
+    const s = GD.sesion.actual || await GD.sesion.cargar();
+    if (!s || !s.autenticado) return false;                // sin sesión, se deja vacío
+
+    const completo = (s.nombre || s.usuario || '').trim();
+    if (!completo) return false;
+    const ini = GD.iniciales(completo);
+
+    campos.forEach(c => {
+      if (c.dataset.tocado === '1') return;                // ya lo editó una persona
+      c.value = c.dataset.perfil === 'iniciales' ? ini : completo;
+      c.title = 'Se toma de tu perfil. Puedes cambiarlo para este documento.';
+      // Los folios y las vistas previas se recalculan solos
+      c.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    return true;
+  },
+};
+
+// Un cambio hecho a mano tiene prioridad sobre el perfil.
+// Los eventos que dispara `aplicar` no son de confianza, así que no cuentan.
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (e.isTrusted && t && t.matches && t.matches('[data-perfil]')) t.dataset.tocado = '1';
+}, true);
+
+
+/* ── 6. SESIÓN ──────────────────────────────────────────────────────────────*/
 
 GD.sesion = {
   actual: null,
@@ -497,6 +552,7 @@ window.addEventListener('gd-sesion-expirada', () => {
 function iniciar() {
   info.preparar();
   fields.escanear();
+  GD.perfil.aplicar();          // asíncrono: no bloquea el resto del arranque
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
 else iniciar();

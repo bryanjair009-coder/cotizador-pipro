@@ -210,14 +210,14 @@ textarea{resize:vertical;line-height:1.55;}
       </div>
       <div>
         <label>Ingeniero responsable</label>
-        <input type="text" id="ingeniero" value="Ing. Marco Antonio Millán Ramírez">
+        <input type="text" id="ingeniero" data-perfil="nombre" placeholder="Se toma de tu perfil">
       </div>
     </div>
 
     <div class="grid-2" style="margin-top:12px;">
       <div>
         <label>Iniciales del ingeniero</label>
-        <input type="text" id="initials" maxlength="5" value="MAM" oninput="updateFolio()">
+        <input type="text" id="initials" maxlength="5" data-perfil="iniciales" placeholder="MAM" oninput="updateFolio()">
       </div>
       <div>
         <label>Folio del reporte</label>
