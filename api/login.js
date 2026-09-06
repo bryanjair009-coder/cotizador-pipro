@@ -59,24 +59,25 @@ export default async function handler(req, res) {
       return res.status(429).json({ error: `Cuenta bloqueada temporalmente. Intenta en ${min} min.` });
     }
 
+    const filtro = `usuario=eq.${encodeURIComponent(u.usuario)}`;
+
     if (!verifyPassword(password, u.password_hash)) {
       const intentos = (u.intentos_fallidos || 0) + 1;
       const bloqueo = intentos >= MAX_INTENTOS
         ? new Date(Date.now() + BLOQUEO_MIN * 60_000).toISOString()
         : null;
-      await sb.upsert('usuarios',
-        { usuario: u.usuario, intentos_fallidos: intentos, bloqueado_hasta: bloqueo }, 'usuario');
+      await sb.update('usuarios', filtro,
+        { intentos_fallidos: intentos, bloqueado_hasta: bloqueo });
       await bitacora({ u: user }, 'LOGIN_FALLIDO', 'usuarios', `Intento ${intentos}`, req);
       return res.status(401).json({ error: GENERICO });
     }
 
     // Éxito: limpiar contadores y emitir sesión
-    await sb.upsert('usuarios', {
-      usuario: u.usuario,
+    await sb.update('usuarios', filtro, {
       intentos_fallidos: 0,
       bloqueado_hasta: null,
       ultimo_acceso: new Date().toISOString(),
-    }, 'usuario');
+    });
 
     setSessionCookie(res, signSession({ usuario: u.usuario, rol: u.rol, nombre: u.nombre }));
     await bitacora({ u: u.usuario }, 'LOGIN', 'usuarios', 'Acceso concedido', req);
@@ -91,6 +92,19 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('login:', err);
-    return res.status(err.status || 500).json({ error: 'No se pudo procesar el acceso.' });
+
+    // Errores de instalación: decir exactamente qué falta en vez de un
+    // «no se pudo procesar» que obliga a adivinar.
+    const m = String(err.message || '');
+    if (/relation .*usuarios.* does not exist|PGRST205|42P01/i.test(m)) {
+      return res.status(503).json({
+        error: 'Falta crear las tablas: ejecuta SUPABASE_SEGURIDAD.sql en Supabase.',
+        code: 'SIN_TABLAS',
+      });
+    }
+    if (/SESSION_SECRET/.test(m) || /SUPABASE_(URL|SERVICE_ROLE_KEY)/.test(m)) {
+      return res.status(503).json({ error: m, code: 'SIN_CONFIG' });
+    }
+    return res.status(500).json({ error: 'No se pudo procesar el acceso. Revisa /api/diagnostico.' });
   }
 }

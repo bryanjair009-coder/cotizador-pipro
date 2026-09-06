@@ -51,6 +51,23 @@ export const sb = {
       body: JSON.stringify(data),
     }),
 
+  /**
+   * Actualización PARCIAL de las filas que cumplan el filtro.
+   *
+   * ⚠️  No usar `upsert` para esto. Un upsert de PostgREST ejecuta
+   *     INSERT ... ON CONFLICT, y PostgreSQL valida las restricciones NOT NULL
+   *     ANTES de resolver el conflicto: omitir `password_hash` aborta la
+   *     operación aunque la fila ya exista. Y cuando no aborta, el DO UPDATE
+   *     reescribe con valores por defecto las columnas que no enviaste
+   *     (degradaría el rol a «usuario» y borraría el nombre).
+   */
+  update: (table, rawFilter, data) =>
+    req(`${table}?${rawFilter}`, {
+      method: 'PATCH',
+      headers: headers({ Prefer: 'return=minimal' }),
+      body: JSON.stringify(data),
+    }),
+
   del: (table, rawFilter) =>
     req(`${table}?${rawFilter}`, { method: 'DELETE', headers: headers() }),
 };

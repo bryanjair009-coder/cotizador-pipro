@@ -36,11 +36,10 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'La contraseña actual no es correcta.' });
       }
 
-      await sb.upsert('usuarios', {
-        usuario: s.u,
+      await sb.update('usuarios', `usuario=eq.${encodeURIComponent(s.u)}`, {
         password_hash: hashPassword(nueva),
         debe_cambiar_password: false,
-      }, 'usuario');
+      });
       await bitacora(s, 'CAMBIO_PASSWORD', 'usuarios', s.u, req);
       return res.status(200).json({ ok: true });
     }
@@ -85,7 +84,7 @@ export default async function handler(req, res) {
         const usuario = String(body.usuario || '').trim().toLowerCase();
         if (!usuario) return res.status(400).json({ error: 'Falta el usuario' });
 
-        const cambios = { usuario };
+        const cambios = {};
         if (body.nombre !== undefined) cambios.nombre = String(body.nombre).slice(0, 120);
         if (body.rol !== undefined) {
           if (!['admin', 'usuario'].includes(body.rol)) return res.status(400).json({ error: 'Rol no válido' });
@@ -109,10 +108,11 @@ export default async function handler(req, res) {
           cambios.bloqueado_hasta = null;
         }
         if (body.desbloquear) { cambios.intentos_fallidos = 0; cambios.bloqueado_hasta = null; }
+        if (!Object.keys(cambios).length) return res.status(400).json({ error: 'No hay nada que cambiar' });
 
-        await sb.upsert('usuarios', cambios, 'usuario');
+        await sb.update('usuarios', `usuario=eq.${encodeURIComponent(usuario)}`, cambios);
         await bitacora(s, 'MODIFICA_USUARIO', 'usuarios',
-          `${usuario}: ${Object.keys(cambios).filter(k => k !== 'usuario' && k !== 'password_hash').join(', ')}${body.password ? ', contraseña' : ''}`, req);
+          `${usuario}: ${Object.keys(cambios).filter(k => k !== 'password_hash').join(', ')}${body.password ? ', contraseña' : ''}`, req);
         return res.status(200).json({ ok: true });
       }
 

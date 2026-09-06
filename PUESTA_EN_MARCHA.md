@@ -31,15 +31,33 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 
 ---
 
-## 2. Desplegar el código
+## 2. Desplegar y comprobar
 
 ```bash
 git push origin main
 ```
 
-Espera a que Vercel termine. Comprueba que `https://<tu-dominio>/api/session`
-responde `{"autenticado":false}` — si devuelve 404, las funciones no se
-publicaron y **no debes continuar con el paso 3**.
+Cuando Vercel termine, abre en el navegador:
+
+```
+https://<tu-dominio>/api/diagnostico
+```
+
+Te dice exactamente qué falta, sin revelar ningún valor:
+
+```json
+{
+  "listo": false,
+  "variables": { "SUPABASE_URL": true, "SESSION_SECRET": true, ... },
+  "tablas":    { "usuarios": { "existe": false, "motivo": "La tabla no existe" } },
+  "pistas":    ["Faltan las tablas de seguridad: ejecuta SUPABASE_SEGURIDAD.sql…"]
+}
+```
+
+Si devuelve **404**, las funciones no se publicaron: no continúes al paso 3.
+
+> Este diagnóstico es público sólo mientras no exista ninguna cuenta. En cuanto
+> creas el primer administrador pasa a exigir sesión de admin.
 
 ---
 
@@ -50,6 +68,8 @@ Supabase → **SQL Editor → New query** → pega el contenido de
 
 La última consulta del script debe devolver **cero filas**. Si aparece alguna,
 esa tabla sigue expuesta al público.
+
+Vuelve a abrir `/api/diagnostico`: ahora debe decir `"listo": true`.
 
 ---
 

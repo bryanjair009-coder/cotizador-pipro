@@ -108,3 +108,16 @@ git push origin main
 | `SESSION_SECRET` | Firma de las cookies de sesión (≥32 caracteres) |
 | `ANTHROPIC_API_KEY` | `api/parse-table.js` (OCR de tablas) |
 | `ADMIN_BOOTSTRAP_PASSWORD` | Sólo para crear el primer admin; borrar después |
+
+## Trampa de PostgREST (no repetir)
+
+`SB.upsert` / `sb.upsert` ejecutan `INSERT ... ON CONFLICT`, **no** una
+actualización parcial:
+
+- PostgreSQL valida `NOT NULL` **antes** de resolver el conflicto → omitir
+  `password_hash` aborta la operación aunque la fila ya exista.
+- El `DO UPDATE` reescribe con valores por defecto las columnas que no enviaste
+  (degradaría `rol` a `usuario` y borraría `nombre`).
+
+Para cambiar unos pocos campos de una fila existente usar `sb.update(tabla,
+filtro, datos)` (PATCH). Los upserts del front-end sí mandan la fila completa.
