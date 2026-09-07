@@ -144,6 +144,8 @@ h3{font-size:11px;font-weight:700;color:var(--gd-text-mute);text-transform:upper
 /* Step badges */
 .step-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--gd-red);color:#fff;font-size:11px;font-weight:900;flex-shrink:0}
 .step-label{display:inline-flex;align-items:center;gap:8px}
+.warn-box{background:var(--gd-warning-light);border-left:3px solid var(--gd-warning);border-radius:0 6px 6px 0;padding:10px 13px;font-size:12px;color:var(--gd-text);line-height:1.55}
+.warn-box b{color:var(--gd-warning)}
 .edu-note{background:var(--gd-bg-alt);border:1px solid var(--gd-border);border-radius:7px;padding:8px 12px;margin-top:10px;font-size:11px;color:var(--gd-text-mute);line-height:1.5}
 .edu-note strong{color:var(--gd-info)}
 /* Guide Section */
@@ -467,9 +469,10 @@ Por encima de 6 m/s → aumenta el diámetro"></button>
       <span class="rs">psi</span>
     </div>
     <div class="ri" style="min-width:100px">
-      <span class="rl">ΔP Total Bajadas</span>
+      <span class="rl">ΔP Bajada crítica
+        <span class="tooltip-trigger" onclick="openTooltip('bajada-critica')" title="Más información">i</span></span>
       <span class="rv" id="rsm-dp-baj" style="font-size:18px">—</span>
-      <span class="rs">psi</span>
+      <span class="rs" id="rsm-baj-nombre">—</span>
     </div>
     <div class="ri" style="min-width:100px">
       <span class="rl">ΔP Total Red <span class="tooltip-trigger" onclick="openTooltip('delta-p-total')" title="Más información">i</span></span>
@@ -482,6 +485,9 @@ Por encima de 6 m/s → aumenta el diámetro"></button>
       <span class="rs">límite: 5%</span>
     </div>
   </div>
+
+  <!-- Comprobaciones que antes no se hacían -->
+  <div id="rsm-avisos" style="display:none;margin-bottom:12px;gap:8px"></div>
   <!-- Barra de estado visual -->
   <div style="margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gd-text-soft);margin-bottom:4px">
@@ -886,7 +892,7 @@ function addBajada(preset) {
   const tr = document.createElement('tr');
   tr.id = `br-${id}`;
   tr.innerHTML = `
-    <td><input type="text" value="${preset ? preset.n : 'Punto '+id}" style="width:120px" oninput="recalcBajada(${id})"/></td>
+    <td><input type="text" id="bname-${id}" value="${preset ? preset.n : 'Punto '+id}" style="width:120px" oninput="recalcBajada(${id})"/></td>
     <td><input type="number" id="bcfm-${id}" value="${preset ? preset.cfm : 10}" min="0.1" style="width:65px" oninput="recalcBajada(${id})"/></td>
     <td><input type="number" id="bfs-${id}"  value="0.8" min="0.1" max="1" step="0.05" style="width:58px" oninput="recalcBajada(${id})"/></td>
     <td style="font-weight:700;color:var(--gd-red-ink)"><span id="bcfme-${id}">—</span></td>
@@ -942,6 +948,7 @@ function getBase() {
   // Suma todos los compresores en paralelo
   // SCFM es aditivo (caudal másico a condiciones estándar)
   let totalScfm = 0, totalHp = 0, totalKw = 0;
+  let scfmNom = 0, hpNom = 0;          // de placa, sin aplicar el factor de carga
   let minCompPsi = Infinity;
   const compList = [];
   document.querySelectorAll('[id^="comp-scfm-"]').forEach(el => {
@@ -955,6 +962,8 @@ function getBase() {
     totalScfm += scfmE;
     totalHp   += hp * fc;
     totalKw   += kw;
+    scfmNom   += scfm;
+    hpNom     += hp;
     if (psiC < minCompPsi) minCompPsi = psiC;
     compList.push({scfm, hp, fc, psiC, scfmE, kw});
   });
@@ -969,12 +978,39 @@ function getBase() {
   const rho = P_abs / (287.05 * T_K);
   const mu  = 1.716e-5 * Math.pow(T_K / 273.15, 0.76);
 
-  return {scfm: totalScfm, hp: totalHp, kw: totalKw,
+  return {scfm: totalScfm, hp: totalHp, kw: totalKw, scfmNom, hpNom,
           psiM, minCompPsi, P_atm, P_abs, T_K, Q_act, rho, mu, rugMm, compList};
 }
 
+// Exponente politrópico del aire y su exponente de trabajo (k−1)/k
+const K_AIRE = 1.4;
+const EXP_POLI = (K_AIRE - 1) / K_AIRE;
+
+/**
+ * Potencia adicional que exige al compresor una caída de presión.
+ *
+ * La compresión NO es lineal: el trabajo sigue la ley politrópica
+ *   W ∝ (P₂/P₁)^((k−1)/k) − 1
+ * Repartir la potencia de forma lineal contra la presión absoluta
+ * —como se hacía antes— sobrestima la penalización alrededor de un 70 %.
+ * Con esta fórmula el resultado coincide con la regla del sector:
+ * ~1 % más de energía por cada 2 psi de caída.
+ */
+function potenciaExtraPorDP(kw, P_abs, P_atm, dP_Pa) {
+  if (!(kw > 0) || !(dP_Pa > 0) || !(P_atm > 0) || P_abs <= P_atm) return 0;
+  const w0 = Math.pow(P_abs / P_atm, EXP_POLI) - 1;              // trabajo actual
+  const w1 = Math.pow((P_abs + dP_Pa) / P_atm, EXP_POLI) - 1;    // con la pérdida
+  return w0 > 0 ? kw * (w1 / w0 - 1) : 0;
+}
+
+/** Caída expresada sobre la presión de trabajo manométrica (convención CAGI/DOE). */
+function pctSobreRed(dP_Pa, psiM) {
+  const red = psiM * 6894.76;
+  return red > 0 ? (dP_Pa / red) * 100 : 0;
+}
+
 function calcTramo(Q, diamIdx, longM, accQty, base) {
-  const {P_abs, rho, mu, rugMm, kw} = base;
+  const {P_abs, P_atm, psiM, rho, mu, rugMm, kw} = base;
   const cat = getCatalog();
   const D   = cat[diamIdx].idM;
   const A   = Math.PI * D * D / 4;
@@ -995,13 +1031,16 @@ function calcTramo(Q, diamIdx, longM, accQty, base) {
   const L_eq  = accQty.reduce((s, q, i) => s + (q||0) * (accList[i]?.leD||0) * D, 0);
   const L_tot = longM + L_eq;
   const dP_Pa = f * (L_tot / D) * (rho * v * v / 2);
-  const pct   = (dP_Pa / P_abs) * 100;
 
-  // Extra power due to pressure drop: kW × (ΔP / P_abs)
-  const extraKw = kw * (dP_Pa / P_abs);
+  // Porcentaje sobre la presión de trabajo MANOMÉTRICA. Antes se dividía entre
+  // la absoluta, y el resumen entre la manométrica: el mismo informe daba dos
+  // cifras distintas para la misma pérdida.
+  const pct = pctSobreRed(dP_Pa, psiM);
+
+  const extraKw = potenciaExtraPorDP(kw, P_abs, P_atm, dP_Pa);
   const extraHp = extraKw / 0.7457;
 
-  // Recommended diameter: smallest with %ΔP < 5%
+  // Diámetro recomendado: el menor cuyo %ΔP quede por debajo del 5 %
   let recIdx = cat.length - 1;
   for (let i = 0; i < cat.length; i++) {
     const Dt = cat[i].idM;
@@ -1013,11 +1052,66 @@ function calcTramo(Q, diamIdx, longM, accQty, base) {
     else { const xt = eps/(3.7*Dt)+5.74/Math.pow(Rt,0.9); ft = xt>0?0.25/Math.pow(Math.log10(xt),2):0.02; }
     const leqt = accQty.reduce((s,q,j) => s + (q||0)*(accList[j]?.leD||0)*Dt, 0);
     const dPt  = ft * ((longM+leqt)/Dt) * (rho*vt*vt/2);
-    if (dPt/P_abs*100 < 5) { recIdx = i; break; }
+    if (pctSobreRed(dPt, psiM) < 5) { recIdx = i; break; }
   }
 
+  // Por encima del 10 % la hipótesis de flujo incompresible deja de sostenerse:
+  // el modelo empieza a SUBESTIMAR la pérdida real.
+  const fueraDeRango = pct > 10;
+
   const regime = Re < 2300 ? 'Laminar' : Re < 4000 ? 'Transición' : 'Turbulento';
-  return {v, Re, f, L_eq, L_tot, dP_Pa, dP_psi:dP_Pa/6894.76, dP_bar:dP_Pa/1e5, pct, recIdx, regime, extraKw, extraHp};
+  return {v, Re, f, L_eq, L_tot, dP_Pa, dP_psi:dP_Pa/6894.76, dP_bar:dP_Pa/1e5,
+          pct, recIdx, regime, extraKw, extraHp, fueraDeRango};
+}
+
+/**
+ * Estado hidráulico de TODA la red, en un solo lugar.
+ *
+ * Topología: el cabezal y una bajada están en SERIE; las bajadas entre sí
+ * están en PARALELO. El aire que llega a un punto de uso recorre el cabezal y
+ * una sola bajada, nunca todas. Por eso la pérdida del sistema la fija la
+ * bajada más desfavorable, no la suma de todas.
+ */
+function calcularRed() {
+  const b   = getBase();
+  const cat = getCatalog();
+
+  const dIdx = Math.min(parseInt(document.getElementById('cab_diam')?.value) || 0, cat.length - 1);
+  const L    = parseFloat(document.getElementById('cab_long')?.value) || 0;
+  const cab  = calcTramo(b.Q_act, dIdx, L, cabAcc, b);
+
+  const bajadas = [];
+  document.querySelectorAll('[id^="bcfm-"]').forEach(el => {
+    const id  = el.id.split('-')[1];
+    const cfm = parseFloat(el.value) || 0;
+    const fs  = parseFloat(document.getElementById(`bfs-${id}`)?.value) || 1;
+    const Lb  = parseFloat(document.getElementById(`blong-${id}`)?.value) || 0;
+    const di  = Math.min(parseInt(document.getElementById(`bdiam-${id}`)?.value) || 0, cat.length - 1);
+    const nom = (document.getElementById(`bname-${id}`)?.value || '').trim() || `Punto ${id}`;
+    const Q   = cfm * fs * 4.71947e-4 * (101325 / b.P_abs) * (b.T_K / 293.15);
+    const r   = calcTramo(Q, di, Lb, bAcc[id] || [], b);
+    bajadas.push({ id, nombre: nom, cfmE: cfm * fs, ...r });
+  });
+
+  // Ramal crítico: el de mayor pérdida
+  const peor = bajadas.reduce((m, x) => (!m || x.dP_Pa > m.dP_Pa) ? x : m, null);
+
+  const dP_total_Pa  = cab.dP_Pa + (peor ? peor.dP_Pa : 0);
+  const dP_total_psi = dP_total_Pa / 6894.76;
+  const pctTotal     = pctSobreRed(dP_total_Pa, b.psiM);
+
+  // El compresor debe cubrir la presión de red MÁS las pérdidas del camino
+  const psiNecesaria = b.psiM + dP_total_psi;
+  const descargaOk   = b.minCompPsi >= psiNecesaria;
+
+  return {
+    base: b, cab, bajadas, peor,
+    dP_total_Pa, dP_total_psi, pctTotal,
+    psiNecesaria, descargaOk,
+    margenPsi: b.minCompPsi - psiNecesaria,
+    extraKwTotal: potenciaExtraPorDP(b.kw, b.P_abs, b.P_atm, dP_total_Pa),
+    fueraDeRango: pctTotal > 10,
+  };
 }
 
 function cV(v)   { return v   <  6 ? 'good' : v   < 12 ? 'warn' : 'bad'; }
@@ -1435,7 +1529,9 @@ function generarPDF() {
     const psiVal  = document.getElementById('psi').value;
     const utilPct = (totalCFM / (bData.Q_act * 2118.88) * 100);
     const specsL  = [
-      ['Compresor',          `${fmt(bData.hp,0)} HP, ${fmt(bData.scfm,0)} SCFM nominales`],
+      // Se distingue lo de placa de lo efectivo tras el factor de carga
+      ['Compresor',          `${fmt(bData.hpNom,0)} HP, ${fmt(bData.scfmNom,0)} SCFM de placa`],
+      ['Carga efectiva',     `${fmt(bData.hp,0)} HP, ${fmt(bData.scfm,0)} SCFM (tras factor de carga)`],
       ['Caudal real (ACFM)', `${(bData.Q_act * 2118.88).toFixed(1)} CFM a ${psiVal} psi (condiciones de planta)`],
       ['Presión de red',     `${psiVal} psi man. / ${(bData.P_abs/6894.76).toFixed(1)} psi abs.`],
       ['Consumo total',      `${totalCFM.toFixed(1)} CFM (utilización: ${utilPct.toFixed(1)}%)`],
@@ -1463,25 +1559,35 @@ function generarPDF() {
     doc.setTextColor(...DARK);
     y += 7;
 
-    // Leer ΔP del DOM
-    const cabDpTxt = document.getElementById('cab-dp')?.textContent || '0';
-    const cabDp  = parseFloat(cabDpTxt.replace(/[^\d.]/g,'')) || 0;
-    const bajDp  = Array.from(document.querySelectorAll('[id^="bdp-"]'))
-                     .reduce((s, el) => s + (parseFloat(el.textContent?.replace(/[^\d.]/g,'')) || 0), 0);
-    const totalDp  = cabDp + bajDp;
-    const psiDes   = parseFloat(psiVal) || 100;
-    const pctLoss  = (totalDp / psiDes) * 100;
+    // Los resultados salen del modelo, no de los números pintados en pantalla
+    const red      = calcularRed();
+    const cabDp    = red.cab.dP_psi;
+    const bajDp    = red.peor ? red.peor.dP_psi : 0;      // ramal crítico, no la suma
+    const totalDp  = red.dP_total_psi;
+    const pctLoss  = red.pctTotal;
     const cabDiam  = document.getElementById('cab_diam')?.selectedOptions[0]?.text?.split('—')[0].trim() || 'N/D';
     const cabVel   = document.getElementById('cab-v')?.textContent || 'N/D';
     const cabRec   = document.getElementById('cab_rec')?.textContent || '';
 
     const resL = [
-      ['Cabezal (diámetro)', cabDiam + (cabRec && cabRec !== 'N/D' ? '  (recomendado: ' + cabRec + ')' : '')],
-      ['Velocidad cabezal',  cabVel + ' m/s  (límite: 4–6 m/s)'],
-      ['ΔP cabezal',         cabDp.toFixed(3) + ' psi'],
-      ['ΔP bajadas',         bajDp.toFixed(3) + ' psi'],
-      ['ΔP total red',       totalDp.toFixed(3) + ' psi  (' + pctLoss.toFixed(2) + '% de presión de red)'],
+      ['Cabezal (diametro)', cabDiam + (cabRec && cabRec !== 'N/D' ? '  (recomendado: ' + cabRec + ')' : '')],
+      ['Velocidad cabezal',  cabVel + ' m/s  (limite: 4-6 m/s)'],
+      ['DP cabezal',         cabDp.toFixed(3) + ' psi'],
+      ['DP bajada critica',  red.peor
+          ? `${bajDp.toFixed(3)} psi  (${red.peor.nombre}${red.bajadas.length > 1 ? ', la mas desfavorable de ' + red.bajadas.length : ''})`
+          : 'sin bajadas capturadas'],
+      ['DP total red',       totalDp.toFixed(3) + ' psi  (' + pctLoss.toFixed(2) + '% de la presion de red)'],
+      ['Energia por perdidas', red.extraKwTotal.toFixed(2) + ' kW adicionales  (' +
+          (red.extraKwTotal / 0.7457).toFixed(2) + ' HP)'],
     ];
+    if (!red.descargaOk) {
+      resL.push(['AVISO', `La descarga minima de planta (${red.base.minCompPsi.toFixed(1)} psi man.) no cubre los ` +
+        `${red.psiNecesaria.toFixed(1)} psi que exige el punto mas desfavorable. Faltan ${Math.abs(red.margenPsi).toFixed(2)} psi.`]);
+    }
+    if (red.fueraDeRango) {
+      resL.push(['AVISO', `Con ${pctLoss.toFixed(1)}% de caida el modelo incompresible subestima la perdida real. ` +
+        `Resultado orientativo: redimensionar por debajo del 10%.`]);
+    }
     resL.forEach(([lbl, val]) => {
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(90, 90, 100);
       doc.text(lbl + ':', ML, y);
@@ -1532,7 +1638,12 @@ function generarPDF() {
 
     const recoms = [
       `Diámetro de cabezal seleccionado: ${cabDiam}. Mantener dentro del rango 4–6 m/s de velocidad.`,
-      `ΔP total en red: ${totalDp.toFixed(3)} psi (${pctLoss.toFixed(2)}%). Límite recomendado: 5% de la presión de trabajo.`,
+      `ΔP total en red: ${totalDp.toFixed(3)} psi (${pctLoss.toFixed(2)}% de la presión de trabajo manométrica). ` +
+        `Se toma el camino más desfavorable: cabezal más la bajada crítica, ya que las bajadas trabajan en paralelo. ` +
+        `Límite recomendado: 5%.`,
+      red.peor
+        ? `Ramal crítico: "${red.peor.nombre}" con ${red.peor.dP_psi.toFixed(3)} psi. Redimensionar este primero si hace falta bajar la pérdida.`
+        : `No hay bajadas capturadas: el resultado sólo refleja el cabezal.`,
       `Puntos de uso: verificar diámetros de bajada para mantener velocidad entre 2–4 m/s.`,
       `Accesorios: se incluye longitud equivalente en el cálculo. Minimizar codos y tees innecesarios.`,
       `Validación en campo: medir ΔP entre compresor y punto de uso más lejano. Comparar con valor calculado.`,
@@ -1807,24 +1918,13 @@ function recalcAll() {
 }
 
 function updateResumen() {
-  // Leer ΔP del cabezal
-  const cabDpEl  = document.getElementById('cab-dp');
-  const psiNetEl = document.getElementById('psi');
-  const psiNet   = parseFloat(psiNetEl?.value) || 100;
+  // Se calcula desde el modelo, no leyendo los números ya pintados en pantalla
+  const red = calcularRed();
 
-  // ΔP cabezal — extraer número del texto "X.XX psi"
-  const cabDpText = cabDpEl?.textContent?.replace(/[^\d.]/g, '') || '0';
-  const dpCab = parseFloat(cabDpText) || 0;
-
-  // ΔP de todas las bajadas — sumar span#bdp-N
-  let dpBaj = 0;
-  document.querySelectorAll('[id^="bdp-"]').forEach(el => {
-    const v = parseFloat(el.textContent?.replace(/[^\d.]/g, '')) || 0;
-    dpBaj += v;
-  });
-
-  const dpTotal = dpCab + dpBaj;
-  const pctLoss = psiNet > 0 ? (dpTotal / psiNet * 100) : 0;
+  const dpCab   = red.cab.dP_psi;
+  const dpBaj   = red.peor ? red.peor.dP_psi : 0;   // el ramal crítico, no la suma
+  const dpTotal = red.dP_total_psi;
+  const pctLoss = red.pctTotal;
 
   // Actualizar elementos
   const rsmCab   = document.getElementById('rsm-dp-cab');
@@ -1839,10 +1939,15 @@ function updateResumen() {
 
   if (!rsmCab) return;
 
+  const rsmBajNom = document.getElementById('rsm-baj-nombre');
+  const rsmAvisos = document.getElementById('rsm-avisos');
+
   if (dpTotal < 0.01) {
     // Sin datos
     rsmCab.textContent = '—'; rsmBaj.textContent = '—';
     rsmTotal.textContent = '—'; rsmPct.textContent = '—';
+    if (rsmBajNom) rsmBajNom.textContent = '—';
+    if (rsmAvisos) rsmAvisos.style.display = 'none';
     rsmBar.style.width = '0%';
     rsmBadge.textContent = '— Agrega datos para ver resultado';
     rsmBadge.style.background = 'var(--gd-invert-bg)';
@@ -1854,6 +1959,40 @@ function updateResumen() {
   rsmBaj.textContent   = dpBaj.toFixed(3);
   rsmTotal.textContent = dpTotal.toFixed(3);
   rsmPct.textContent   = pctLoss.toFixed(1) + '%';
+  if (rsmBajNom) {
+    rsmBajNom.textContent = red.peor
+      ? `psi · ${red.peor.nombre}${red.bajadas.length > 1 ? ` (de ${red.bajadas.length})` : ''}`
+      : 'psi · sin bajadas';
+  }
+
+  // ── Comprobaciones ──────────────────────────────────────────────────
+  if (rsmAvisos) {
+    const avisos = [];
+
+    // El compresor tiene que cubrir la presión de red MÁS las pérdidas
+    if (!red.descargaOk) {
+      avisos.push(`<div class="warn-box" style="margin:0">
+        <b>⚠️ La descarga del compresor no alcanza.</b>
+        El equipo con menor descarga entrega <b>${fmt(red.base.minCompPsi,1)} psi man.</b>,
+        y el punto de uso más desfavorable necesita
+        <b>${fmt(red.psiNecesaria,1)} psi</b> (${fmt(red.base.psiM,1)} de red + ${fmt(red.dP_total_psi,2)} de pérdidas).
+        Faltan <b>${fmt(Math.abs(red.margenPsi),2)} psi</b>.
+      </div>`);
+    }
+
+    // Fuera del rango donde la hipótesis incompresible se sostiene
+    if (red.fueraDeRango) {
+      avisos.push(`<div class="warn-box" style="margin:0">
+        <b>⚠️ Resultado sólo orientativo.</b>
+        Con una caída del ${fmt(pctLoss,1)}% el modelo de flujo incompresible deja de ser
+        válido y <b>subestima</b> la pérdida real (a 16% el error ronda el 9%).
+        Redimensiona la tubería para bajar del 10% y vuelve a calcular.
+      </div>`);
+    }
+
+    rsmAvisos.innerHTML = avisos.join('');
+    rsmAvisos.style.display = avisos.length ? 'grid' : 'none';
+  }
 
   // Barra de estado — escala: 0% = 0, 5% = 50% de la barra, 10% = 100%
   const barPct = Math.min(pctLoss / 10 * 100, 100);
@@ -2003,10 +2142,18 @@ const TOOLTIPS = {
     range: "Varía según diseño; cabezales típicamente 20–50 m, bajadas 5–20 m",
     warning: "Longitudes excesivas sin justificación → ΔP grande innecesariamente. Optimizar rutas de tuberías en diseño."
   },
+  "bajada-critica": {
+    title: "Bajada crítica",
+    explanation: "Las bajadas cuelgan del cabezal en PARALELO: el aire que llega a un punto de uso recorre el cabezal y una sola bajada, nunca todas. Por eso la pérdida del sistema la fija el ramal más desfavorable —el de mayor ΔP— y no la suma de todos. Aquí se muestra ese ramal, que es justo el que conviene redimensionar primero.",
+    formula: "ΔP_red = ΔP_cabezal + máx(ΔP_bajadas)",
+    sources: ["Cálculo automático (esta herramienta)"],
+    range: "Si esta bajada domina el total, aumenta su diámetro antes que el del cabezal",
+    warning: "Sumar todas las bajadas sobrestima la pérdida y el error crece con el número de puntos de uso."
+  },
   "delta-p-total": {
     title: "Caída de Presión Total (ΔP)",
-    explanation: "Suma de todas las caídas de presión en la red: en el cabezal, en cada bajada, en accesorios. Se calcula mediante la ecuación de Darcy-Weisbach. La pérdida total debe ser <5% de la presión de diseño.",
-    formula: "ΔP = f × (L/D) × (ρv²/2) [Darcy-Weisbach]",
+    explanation: "Pérdida acumulada en el camino más desfavorable: el cabezal más la bajada crítica. Se calcula mediante la ecuación de Darcy-Weisbach y se expresa como porcentaje de la presión de trabajo manométrica. La pérdida total debe ser <5% de la presión de diseño.",
+    formula: "ΔP = f × (L/D) × (ρv²/2)   [Darcy-Weisbach]\nΔP_red = ΔP_cabezal + máx(ΔP_bajadas)\n%ΔP = ΔP_red / presión de red (manométrica)",
     sources: ["Cálculo automático (esta herramienta)", "Manual de ingeniería neumática", "Software especializado"],
     range: "Ideal: <2% de presión de red. Aceptable: <5%. Crítico: >5%",
     warning: "ΔP >5% → compresores trabajando excesivamente, energía desperdiciada, equipos no operan a presión nominal. Redimensionar tuberías."

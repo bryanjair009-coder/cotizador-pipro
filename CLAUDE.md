@@ -86,6 +86,22 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 - Columna "Disp." es INTERNA — no aparece en PDF ni Word del cliente
 - `fechaEntrega` es texto libre ("3 a 7 días", "2 a 4 semanas")
 
+## Caídas de presión — criterios de cálculo (auditoría 2026-09)
+
+- **Topología:** cabezal y bajada en SERIE; las bajadas entre sí en PARALELO.
+  . **Nunca sumar las bajadas**: el aire
+  recorre el cabezal y una sola bajada.
+- **Porcentaje:** siempre sobre la presión de trabajo MANOMÉTRICA (),
+  nunca sobre la absoluta. Convención CAGI/DOE.
+- **Energía:**  usa la ley politrópica (k=1.4). Repartir la
+  potencia de forma lineal contra P_abs sobrestima ~70%.
+-  es la única fuente de verdad: pantalla y PDF leen de ahí, no
+  del texto ya pintado.
+- Avisos automáticos: descarga insuficiente (P_desc < P_red + ΔP) y ΔP > 10%
+  (el modelo incompresible subestima a partir de ahí).
+- Validez verificada contra la ecuación isoterma compresible: por debajo del 5%
+  de caída el error es < 2%.
+
 ## Paleta de estado (presiones.html)
 
 | Rango ΔP | Color | Hex |
