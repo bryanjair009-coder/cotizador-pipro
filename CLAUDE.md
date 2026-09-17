@@ -85,6 +85,39 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 - `disponibilidad < cantidad` → fila amarilla en UI y en PDF/Word
 - Columna "Disp." es INTERNA — no aparece en PDF ni Word del cliente
 - `fechaEntrega` es texto libre ("3 a 7 días", "2 a 4 semanas")
+- `esPipro`: decide si la partida entra sola a la requisición
+
+## Requisición automática (cotizador.html)
+
+Toda partida con `disponibilidad < cantidad` entra sola a la sección **5b**.
+
+- **PIPRO queda FUERA** salvo solicitud especial: botón + `confirm()` explícito.
+  `state.incluirPipro` guarda esa decisión y se serializa con la cotización.
+- Clasificación PIPRO: `detectarPipro()` — descripción con pipro/airwyn/aluminio
+  azul, o pertenecer a `state.materiales`. Lo capturado a mano (`TEMP-*`) es
+  externo. Es sólo el valor inicial: `item.esPipro` (clic en la pastilla) manda.
+- `generateAll()` agrega 2 pasos cuando `getReqItems().length > 0`, y el botón
+  pasa a decir "los 5 archivos".
+
+### Quién ve qué — NO revertir
+
+**Quien cotiza no tiene acceso a costos ni a proveedores.** La aplicación no los
+pide en ningún lado y el carrito no los guarda.
+
+- **PDF** (`generateRequisicionPDF`): sólo `#, No. de Parte, Descripción,
+  Cantidad` + total de piezas. Se manda por correo al equipo de compras. Nunca
+  lleva precio de venta, costo ni margen. Marca "NO ENVIAR AL CLIENTE".
+- **Excel** (`generateRequisicionExcel`): las columnas **Proveedor** y **Costo
+  unitario** salen **vacías**, en amarillo (`capFill`), para llenarlas fuera de
+  la aplicación. Las fórmulas ya están puestas: al capturar un costo ahí dentro,
+  costo total, utilidad, margen y el balance de la hoja 2 se calculan solos.
+- `xlFormula(valor, formula, …)` escribe valor calculado + fórmula. Los totales
+  usan `SUMIF(rango,">0",…)`, nunca `"<>"`: una celda con cadena vacía cuenta
+  como no-vacía y ensuciaría la suma.
+- Importes **siempre en MXN** (`fmtMXN`) aunque la cotización se entregue en USD:
+  es la moneda en que se le paga al proveedor.
+- El bloque B del balance NO calcula utilidad global — el material en almacén
+  tampoco tiene costo aquí; sólo ubica el peso de la requisición sobre el total.
 
 ## Caídas de presión — criterios de cálculo (auditoría 2026-09)
 

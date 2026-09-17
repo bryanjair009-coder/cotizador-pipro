@@ -318,6 +318,49 @@ summary::-webkit-details-marker{display:none;}
 .cart-total-row.grand .amount{color:var(--gd-red-ink);font-size:1.1rem;}
 .cart-empty{text-align:center;color:var(--gd-text-soft);padding:24px;font-size:.95rem;}
 
+/* ── REQUISICIÓN DE MATERIAL FALTANTE ────────────────────────────────────────
+   Sólo aparece cuando hay partidas con disponibilidad menor a la cantidad.
+   Es un documento interno: aquí sí se ven costos de compra y margen, que
+   nunca salen en el PDF ni en el Word del cliente. */
+.req-resumen{
+  display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;
+  padding:12px 14px;margin-bottom:12px;
+  background:var(--gd-bg-alt);border:1px solid var(--gd-border);border-radius:var(--radius);
+}
+.req-cifra{display:flex;flex-direction:column;gap:2px;}
+.req-cifra b{font-size:1.15rem;line-height:1;color:var(--gd-text);font-variant-numeric:tabular-nums;}
+.req-cifra span{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gd-text-soft);}
+.req-cifra.alerta b{color:var(--gd-warning);}
+
+.req-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+.req-table th{
+  background:var(--gd-blue);color:#fff;padding:7px 9px;text-align:left;
+  font-size:.78rem;white-space:nowrap;
+}
+.req-table td{padding:6px 9px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
+.req-table tr:nth-child(even) td{background:var(--gd-bg-alt);}
+.req-table .c-falta{text-align:center;font-weight:700;color:var(--gd-warning);}
+.req-table .c-part{color:var(--gd-red-ink);font-size:.78rem;white-space:nowrap;}
+.req-table .c-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.req-table tr.req-fuera td{opacity:.5;}
+
+.req-pill{
+  display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;
+  font-size:.66rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  border:1px solid var(--gd-border);background:var(--gd-bg-elev);color:var(--gd-text-soft);
+  cursor:pointer;white-space:nowrap;
+}
+.req-pill.es-pipro{border-color:var(--gd-blue);color:var(--gd-blue);}
+.req-pill:hover{border-color:var(--gd-text-mute);color:var(--gd-text);}
+
+.req-nota{
+  margin-top:12px;padding:11px 14px;
+  border:1px solid var(--gd-border);border-left:3px solid var(--gd-blue);
+  border-radius:var(--radius);background:var(--gd-bg-alt);
+  font-size:.83rem;line-height:1.5;color:var(--gd-text-mute);
+}
+.req-nota b{color:var(--gd-text);}
+
 /* ── ADMIN TABLE ─────────────────────────────────────────────────────────────── */
 .admin-table{width:100%;border-collapse:collapse;font-size:.85rem;}
 .admin-table th{background:var(--gd-blue);color:#fff;padding:7px 10px;text-align:left;}
@@ -1120,6 +1163,45 @@ Descuento = Base × %"></button>
     </div>
   </div>
 
+  <!-- 5b. REQUISICIÓN DE MATERIAL FALTANTE ──────────────────────────────────────
+       Aparece sola en cuanto una partida tiene disponibilidad menor a la cantidad.
+       De aquí salen el PDF que se le manda por correo a compras y el Excel de
+       control, cuyas columnas de proveedor y costo van en blanco: quien cotiza
+       no tiene acceso a esa información y el control se lleva por fuera. -->
+  <div id="req-seccion" style="display:none;">
+    <div class="sec-title" style="display:flex;align-items:center;">
+      5b. Requisición de material faltante
+      <button class="gd-i" type="button"
+              data-info-title="Requisición automática"
+              data-info="Toda partida cuya <b>disponibilidad</b> sea menor a la <b>cantidad</b> entra aquí por sí sola. El <b>material PIPRO queda fuera</b> salvo que lo pidas con el botón de solicitud especial.<br><br>El <b>PDF</b> lleva sólo número de parte, descripción y cantidad: es el que se le manda por correo al equipo de compras.<br><br>El <b>Excel</b> trae las columnas de proveedor y costo unitario <b>en blanco</b>, para llenarlas fuera de la aplicación. En cuanto se capturan, el balance de utilidad se calcula solo."
+              data-formula="Cantidad a solicitar = Cantidad − Disponible"></button>
+    </div>
+    <div class="card">
+      <div class="req-resumen" id="req-resumen"></div>
+      <div id="req-pipro-aviso"></div>
+      <div style="overflow-x:auto;">
+        <table class="req-table" id="req-table">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th>Descripción</th>
+              <th>No. Parte</th>
+              <th title="Cantidad que falta en almacén">Cantidad a solicitar</th>
+              <th title="Precio unitario ofrecido al cliente">P. cotizado</th>
+              <th title="Valor cotizado de las piezas faltantes">Importe cotizado</th>
+            </tr>
+          </thead>
+          <tbody id="req-tbody"></tbody>
+        </table>
+      </div>
+      <div class="req-nota" id="req-nota"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="generateRequisicionPDF()">🖨 PDF para compras</button>
+        <button class="btn btn-secondary btn-sm" onclick="generateRequisicionExcel()">📊 Excel de control de costos</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 6. GENERAR ──────────────────────────────────────────────────────────────── -->
   <div class="sec-title">6. Generar Cotización</div>
   <div class="card">
@@ -1738,6 +1820,9 @@ const state = {
   // Modo edición: si está activo, los archivos descargados llevan "-EDITADO"
   editandoFolio: null,  // folio original del archivo subido
   editandoVersion: 0,   // contador de revisiones (1, 2, 3…)
+  // Requisición: el material PIPRO queda FUERA salvo solicitud especial
+  // explícita del usuario (botón + confirmación).
+  incluirPipro: false,
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -1898,6 +1983,7 @@ function serializeCotizacion() {
     descuento_pct_ip: el('descuento_pct_ip') ? (+el('descuento_pct_ip').value || 0) : 0,
     mo: moInputs,
     carrito: state.carrito,
+    incluirPipro: !!state.incluirPipro,
   };
 }
 
@@ -1956,6 +2042,7 @@ function restoreCotizacion(data) {
   }
   // Carrito
   state.carrito = data.carrito || {};
+  state.incluirPipro = !!data.incluirPipro;
   // Marcar modo edición
   state.editandoFolio = data.editandoFolio || (typeof getFolio === 'function' ? getFolio() : null);
   state.editandoVersion = (data.editandoVersion || 0) + 1;
@@ -2381,7 +2468,8 @@ function addToCart(m, qty) {
       precio: m.precio,
       cantidad: qty,
       disponibilidad: qty,   // por defecto: asumimos que hay stock
-      fechaEntrega: ''       // ISO YYYY-MM-DD para material faltante
+      fechaEntrega: '',      // ISO YYYY-MM-DD para material faltante
+      esPipro: detectarPipro(m)   // decide si entra sola a la requisición
     };
   }
   renderCart();
@@ -2583,7 +2671,7 @@ function renderCart() {
   el('cart-content').style.display = items.length ? '' : 'none';
   const emptyBtn = el('cart-add-prod-empty');
   if (emptyBtn) emptyBtn.style.display = items.length ? 'none' : 'block';
-  if (!items.length) return;
+  if (!items.length) { renderRequisicion(); return; }
 
   let html = '';
   items.forEach(([k,item],i) => {
@@ -2620,6 +2708,7 @@ function renderCart() {
   });
   el('cart-tbody').innerHTML = html;
   updateTotales();
+  renderRequisicion();
 }
 
 function updateQtyFromInput(input) {
@@ -2636,6 +2725,7 @@ function updateQtyFromInput(input) {
     updateTotales();
     // Si cambió la condición de stock insuficiente, re-render para repintar la fila
     if (prevInsuf !== nowInsuf) renderCart();
+    else renderRequisicion();   // cambió el faltante aunque siga habiendo faltante
   }
 }
 
@@ -2648,6 +2738,7 @@ function updateDispFromInput(input) {
     state.carrito[k].disponibilidad = d;
     const nowInsuf = d < (+state.carrito[k].cantidad||0);
     if (prevInsuf !== nowInsuf) renderCart();
+    else renderRequisicion();
   }
 }
 
@@ -2663,6 +2754,176 @@ function removeFromCartBtn(btn) {
   delete state.carrito[k];
   renderCart();
   updateTotales();
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   REQUISICIÓN DE MATERIAL FALTANTE — documento interno
+
+   Toda partida cuya disponibilidad no cubra la cantidad pedida entra sola a la
+   requisición. El material PIPRO es la excepción: se queda fuera hasta que la
+   persona lo pida por solicitud especial y confirme, porque no se surte por el
+   mismo canal que el material de proveedor externo.
+
+   Quien cotiza NO tiene acceso a costos ni a proveedores, así que esos datos no
+   se piden en la aplicación: el Excel de control sale con esas dos columnas en
+   blanco, ya con las fórmulas puestas, y el control se lleva fuera. El PDF va
+   al equipo de compras por correo y sólo lleva parte, descripción y cantidad.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* El catálogo de la aplicación es la línea PIPRO/Airwyn de aluminio, así que
+   pertenecer al catálogo es la señal por defecto; lo capturado a mano (Material
+   Rápido, importación exprés) se asume de proveedor externo. La detección es
+   sólo un valor inicial: cada partida se reclasifica con un clic en su pastilla
+   y esa decisión manda sobre la automática. */
+const RE_PIPRO = /(pipro|airwyn|aluminio\s+azul)/i;
+
+function detectarPipro(item) {
+  if (RE_PIPRO.test(item.descripcion || '')) return true;
+  const np = String(item.numero_parte || '');
+  if (!np || /^TEMP-/.test(np)) return false;
+  return state.materiales.some(m => String(m.numero_parte) === np);
+}
+
+function esMaterialPipro(item) {
+  return (typeof item.esPipro === 'boolean') ? item.esPipro : detectarPipro(item);
+}
+
+/* Los costos de compra siempre van en pesos, aunque la cotización se entregue
+   en dólares: es la moneda en que realmente se le paga al proveedor. */
+function fmtMXN(n) {
+  return new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN', minimumFractionDigits:2 })
+    .format(+n || 0);
+}
+
+/** Partidas del carrito cuyo almacén no cubre la cantidad pedida. */
+function getFaltantes() {
+  return Object.entries(state.carrito).map(([k, it]) => {
+    const qty  = +it.cantidad || 0;
+    const disp = (typeof it.disponibilidad === 'number') ? it.disponibilidad : qty;
+    return { k, it, falta: Math.max(0, qty - (+disp || 0)), pipro: esMaterialPipro(it) };
+  }).filter(f => f.falta > 0);
+}
+
+/** Las que de verdad entran al documento (PIPRO sólo si se solicitó). */
+function getReqItems() {
+  return getFaltantes().filter(f => !f.pipro || state.incluirPipro);
+}
+
+/* Lo cotizado al cliente por las piezas que faltan. El costo de compra NO se
+   calcula aquí: quien cotiza no tiene acceso a costos ni a proveedores, así que
+   esas dos columnas salen en blanco en el Excel y se llenan por fuera. */
+function getReqResumen() {
+  const items = getReqItems();
+  return {
+    partidas: items.length,
+    piezas:   items.reduce((s, f) => s + f.falta, 0),
+    cotizado: items.reduce((s, f) => s + (+f.it.precio || 0) * f.falta, 0),
+  };
+}
+
+function reqTogglePipro(btn) {
+  const k = decodeURIComponent(btn.dataset.key);
+  if (!state.carrito[k]) return;
+  state.carrito[k].esPipro = !esMaterialPipro(state.carrito[k]);
+  renderRequisicion();
+}
+
+function reqSolicitudEspecialPipro() {
+  const n = getFaltantes().filter(f => f.pipro).length;
+  if (!n) return;
+  const ok = confirm(
+    `Solicitud especial de material PIPRO\n\n` +
+    `Hay ${n === 1 ? '1 partida' : n + ' partidas'} de material PIPRO sin disponibilidad suficiente.\n` +
+    `Normalmente el PIPRO no entra a la requisición porque no se surte por el ` +
+    `mismo canal que el material de proveedor externo.\n\n` +
+    `¿Deseas agregar el material PIPRO al documento de requisición?`
+  );
+  if (!ok) return;
+  state.incluirPipro = true;
+  renderRequisicion();
+  toast('🔵 Material PIPRO agregado a la requisición');
+}
+
+function reqQuitarPipro() {
+  state.incluirPipro = false;
+  renderRequisicion();
+  toast('Material PIPRO excluido de la requisición');
+}
+
+// ── Pintado ──────────────────────────────────────────────────────────────────
+function renderRequisicion() {
+  const sec = el('req-seccion');
+  if (!sec) return;
+  const faltantes = getFaltantes();
+  sec.style.display = faltantes.length ? '' : 'none';
+  actualizarBotonGenerar();
+  if (!faltantes.length) return;
+
+  const incluidas  = getReqItems();
+  const piproTotal = faltantes.filter(f => f.pipro).length;
+  const piezas     = incluidas.reduce((s, f) => s + f.falta, 0);
+
+  el('req-resumen').innerHTML =
+    `<div class="req-cifra alerta"><b>${faltantes.length}</b><span>Partidas sin stock</span></div>` +
+    `<div class="req-cifra"><b>${incluidas.length}</b><span>Entran a requisición</span></div>` +
+    `<div class="req-cifra"><b>${piezas.toLocaleString('es-MX')}</b><span>Piezas a solicitar</span></div>` +
+    (piproTotal && !state.incluirPipro
+      ? `<div class="req-cifra"><b>${piproTotal}</b><span>PIPRO excluidas</span></div>` : '');
+
+  // Aviso y botón de solicitud especial
+  const aviso = el('req-pipro-aviso');
+  if (!piproTotal) {
+    aviso.innerHTML = '';
+  } else if (state.incluirPipro) {
+    aviso.innerHTML =
+      `<div class="info-box" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+         <span style="flex:1;min-width:240px;">🔵 <b>Solicitud especial activa.</b> ${piproTotal === 1
+            ? 'La partida de material PIPRO va incluida'
+            : `Las ${piproTotal} partidas de material PIPRO van incluidas`} en la requisición.</span>
+         <button class="btn btn-secondary btn-sm" onclick="reqQuitarPipro()">Quitar PIPRO</button>
+       </div>`;
+  } else {
+    aviso.innerHTML =
+      `<div class="info-box" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;border-left:3px solid var(--gd-warning);">
+         <span style="flex:1;min-width:240px;">El material PIPRO <b>no entra a la requisición de forma automática</b>. Hay ${piproTotal === 1 ? '1 partida PIPRO' : piproTotal + ' partidas PIPRO'} sin disponibilidad.</span>
+         <button class="btn btn-secondary btn-sm" onclick="reqSolicitudEspecialPipro()">🔵 Solicitud especial: incluir PIPRO</button>
+       </div>`;
+  }
+
+  el('req-tbody').innerHTML = faltantes.map((f, i) => {
+    const fuera = f.pipro && !state.incluirPipro;
+    const sk = encodeURIComponent(f.k);
+    return `<tr class="${fuera ? 'req-fuera' : ''}">
+      <td class="col-num">${i + 1}</td>
+      <td>${GD.esc(shortDesc(f.it.descripcion, 48))}
+        <button type="button" class="req-pill ${f.pipro ? 'es-pipro' : ''}" data-key="${sk}"
+          onclick="reqTogglePipro(this)"
+          title="${f.pipro ? 'Clasificada como PIPRO. Clic para tratarla como material de proveedor externo.'
+                           : 'Clasificada como material externo. Clic para tratarla como PIPRO.'}"
+        >${f.pipro ? 'PIPRO' : 'Externo'}</button></td>
+      <td class="c-part">${GD.esc(f.it.numero_parte)}</td>
+      <td class="c-falta">${f.falta}</td>
+      <td class="c-num">${fmtMXN(f.it.precio)}</td>
+      <td class="c-num">${fmtMXN((+f.it.precio || 0) * f.falta)}</td>
+    </tr>`;
+  }).join('');
+
+  const res = getReqResumen();
+  el('req-nota').innerHTML =
+    `<b>Valor cotizado del material a solicitar: ${fmtMXN(res.cotizado)}.</b><br>` +
+    `El <b>PDF para compras</b> lleva sólo número de parte, descripción y cantidad, listo para enviarse por correo. ` +
+    `El <b>Excel de control</b> trae las columnas de <b>proveedor</b> y <b>costo unitario</b> en blanco: se llenan fuera de ` +
+    `la aplicación y el balance de utilidad contra lo cotizado se calcula solo dentro del archivo.`;
+}
+
+/** El botón de «generar todo» dice cuántos archivos va a bajar de verdad. */
+function actualizarBotonGenerar() {
+  const btn = el('btn-gen-todo');
+  if (!btn) return;
+  const n = getReqItems().length;
+  btn.innerHTML = n
+    ? '📦 Generar los 5 archivos · PDF + Word + Excel + Requisición'
+    : '📦 Generar los 3 archivos · PDF + Word + Excel';
 }
 
 function getCartSubtotal() {
@@ -3822,6 +4083,361 @@ ${(() => {
 </div></body></html>`;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   ENTREGABLES DE LA REQUISICIÓN
+   Los dos son internos. El PDF va a compras; el Excel es el control de costos
+   unitarios y el balance de utilidad contra lo cotizado al cliente.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function _reqEncabezadoDatos() {
+  const folioCot = getFolio() || 'S/F';
+  const fechaRaw = el('fecha').value || '';
+  return {
+    folioCot,
+    folioReq: folioCot + '-REQ',
+    fechaStr: fechaRaw ? formatDateES(fechaRaw)
+                       : new Date().toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' }),
+    empresa:  (el('empresa').value || '').trim() || 'Sin especificar',
+    proyecto: (el('desc_proy') ? el('desc_proy').value : '').trim(),
+    solicita: (GD.sesion && GD.sesion.actual && (GD.sesion.actual.nombre || GD.sesion.actual.usuario)) || '',
+  };
+}
+
+function generateRequisicionPDF() {
+  if (!validateForm()) return;
+  const reqs = getReqItems();
+  if (!reqs.length) { toast('No hay material faltante para requisitar'); return; }
+
+  const D = _reqEncabezadoDatos();
+  const llevaPipro = state.incluirPipro && reqs.some(f => f.pipro);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();
+  const ML = 13, HTOP = 24, FBOT = PH - 12;
+  const RED = [200, 16, 46], DARK = [30, 30, 38], GRAY = [150, 150, 160], LGRAY = [220, 220, 225];
+
+  function drawHeader() {
+    doc.setFillColor(...RED); doc.rect(0, 0, PW, 1.5, 'F');
+    const logo = window.LOGO_GD || null;
+    if (logo) { try { doc.addImage(logo, 'PNG', ML, 4, 30, 11); } catch(e) {} }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text('Requisición de Material', ML + 33, 9);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text('Gardner Denver México  ·  Documento interno de compras', ML + 33, 14);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(D.folioReq, PW - ML, 9, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(D.fechaStr, PW - ML, 14, { align: 'right' });
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3); doc.line(ML, 20, PW - ML, 20);
+  }
+  function drawFooter() {
+    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+    doc.text('USO INTERNO  ·  GARDNER DENVER México, S.A. DE C.V.', ML, FBOT);
+    doc.text(D.folioReq, PW - ML, FBOT, { align: 'right' });
+  }
+  const pagesReady = new Set();
+  function setupPage() {
+    const pg = doc.internal.getCurrentPageInfo().pageNumber;
+    if (pagesReady.has(pg)) return;
+    pagesReady.add(pg);
+    drawHeader(); drawFooter();
+  }
+  function secTitle(txt, yy) {
+    if (yy + 14 > FBOT - 10) { doc.addPage(); setupPage(); yy = HTOP + 5; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...RED);
+    doc.text(txt, ML, yy);
+    doc.setDrawColor(...RED); doc.setLineWidth(0.4); doc.line(ML, yy + 1, PW - ML, yy + 1);
+    doc.setTextColor(...DARK);
+    return yy + 7;
+  }
+
+  setupPage();
+  let y = HTOP + 2;
+
+  // Marca de documento interno: evita que termine enviado al cliente por error
+  doc.setFillColor(255, 244, 245);
+  doc.setDrawColor(...RED); doc.setLineWidth(0.4);
+  doc.roundedRect(ML, y, PW - ML * 2, 8, 1, 1, 'FD');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...RED);
+  doc.text('PARA EL EQUIPO DE COMPRAS  ·  NO ENVIAR AL CLIENTE', ML + 3, y + 5.3);
+  y += 13;
+
+  y = secTitle('DATOS DE LA SOLICITUD', y);
+  doc.setFontSize(8.5);
+  const campos = [
+    ['Cliente / Proyecto:', D.empresa + (D.proyecto ? '  ·  ' + D.proyecto : '')],
+    ['Cotización relacionada:', D.folioCot],
+    ['Fecha:', D.fechaStr],
+    ['Solicita:', D.solicita || 'Departamento de Ingeniería'],
+    ['Motivo:', 'Material sin disponibilidad suficiente en almacén'],
+  ];
+  campos.forEach(([lbl, val]) => {
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(...GRAY);
+    doc.text(lbl, ML, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...DARK);
+    doc.text(doc.splitTextToSize(String(val), PW - ML * 2 - 42), ML + 42, y);
+    y += 5.2;
+  });
+  y += 3;
+
+  y = secTitle('MATERIAL SOLICITADO', y);
+
+  /* Sólo número de parte, descripción y cantidad: este PDF se le manda por
+     correo al equipo de compras y no debe llevar precios de venta ni costos. */
+  const totalPiezas = reqs.reduce((s, f) => s + f.falta, 0);
+  const body = reqs.map((f, i) => [
+    String(i + 1),
+    f.it.numero_parte,
+    f.it.descripcion,
+    String(f.falta),
+  ]);
+
+  doc.autoTable({
+    startY: y,
+    head: [['#', 'No. de Parte', 'Descripción', 'Cantidad']],
+    body,
+    foot: [['', '', 'TOTAL DE PIEZAS', String(totalPiezas)]],
+    margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
+    theme: 'plain',
+    styles: { font: 'helvetica', fontSize: 9, cellPadding: 2.8, textColor: [40, 40, 40] },
+    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 8.5, fontStyle: 'bold' },
+    footStyles: { fillColor: [214, 228, 240], textColor: [30, 30, 38], fontStyle: 'bold', fontSize: 8.5 },
+    alternateRowStyles: { fillColor: [237, 244, 251] },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 11 },
+      1: { font: 'courier', fontSize: 8.5, cellWidth: 38 },
+      2: { cellWidth: 'auto' },
+      3: { halign: 'center', cellWidth: 26 },
+    },
+    didParseCell: (data) => {
+      // Las partidas PIPRO entraron por solicitud especial: se señalan
+      if (data.section === 'body' && reqs[data.row.index] && reqs[data.row.index].pipro) {
+        data.cell.styles.fillColor = [226, 239, 250];
+      }
+      if (data.section === 'foot' && data.column.index === 2) data.cell.styles.halign = 'right';
+    },
+    didDrawPage: () => setupPage(),
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  if (llevaPipro) {
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    const t = doc.splitTextToSize(
+      'Las partidas sombreadas en azul son material PIPRO y se incluyeron por solicitud especial del solicitante.',
+      PW - ML * 2);
+    doc.text(t, ML, y); y += t.length * 4 + 3;
+  }
+
+  // Firmas
+  if (y + 30 > FBOT - 10) { doc.addPage(); setupPage(); y = HTOP + 5; }
+  y = Math.max(y + 8, FBOT - 34);
+  const anchoF = (PW - ML * 2 - 16) / 3;
+  ['Solicita', 'Autoriza', 'Recibe compras'].forEach((rol, i) => {
+    const x = ML + i * (anchoF + 8);
+    doc.setDrawColor(...GRAY); doc.setLineWidth(0.3);
+    doc.line(x, y + 12, x + anchoF, y + 12);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+    doc.text(rol.toUpperCase(), x, y + 16);
+    if (i === 0 && D.solicita) {
+      doc.setFontSize(7.5); doc.setTextColor(...DARK);
+      doc.text(D.solicita, x, y + 10.5);
+    }
+  });
+
+  const suf = state.editandoFolio ? '-EDITADO' : '';
+  doc.save(('Requisicion_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.pdf');
+  toast('🖨 PDF de requisición descargado');
+}
+
+/* Celda con fórmula. Lleva también el valor ya calculado: así el número se ve
+   correcto en cuanto se abre el archivo, y si alguien corrige un costo dentro
+   de Excel, la fórmula recalcula el balance sola. */
+function xlFormula(valor, formula, bold, fillRgb, fontColor, numFmt, hAlign) {
+  const cell = xlCell(Number(valor) || 0, bold, fillRgb, fontColor, numFmt, hAlign);
+  cell.f = formula;
+  cell.t = 'n';
+  return cell;
+}
+
+function generateRequisicionExcel() {
+  if (!validateForm()) return;
+  const reqs = getReqItems();
+  if (!reqs.length) { toast('No hay material faltante para requisitar'); return; }
+
+  const D = _reqEncabezadoDatos();
+  const d = collectData();
+  const wb = XLSX.utils.book_new();
+  const hdrFill = '1F3864', altFill = 'EBF5FB', lblFill = 'D6E4F0',
+        totFill = 'D6E4F0', capFill = 'FFF59D';   // amarillo = celda a capturar
+
+  // ── Hoja 1: la requisición con su control de costos ────────────────────────
+  const ws = {}, merges = [];
+  const set = (row, col, cell) => { ws[XLSX.utils.encode_cell({ r: row, c: col })] = cell; };
+  const merge = (sr, sc, er, ec) => merges.push({ s: { r: sr, c: sc }, e: { r: er, c: ec } });
+  let r = 0;
+
+  set(r, 0, xlCell('REQUISICIÓN DE MATERIAL  ·  CONTROL DE COSTOS  ·  USO INTERNO', true, hdrFill, 'FFFFFF', null, 'center'));
+  merge(r, 0, r, 10); r++;
+
+  [['Cliente:', D.empresa],
+   ['Proyecto:', D.proyecto],
+   ['Cotización:', D.folioCot],
+   ['Requisición:', D.folioReq],
+   ['Fecha:', D.fechaStr],
+   ['Solicita:', D.solicita],
+  ].forEach(([lbl, val]) => {
+    set(r, 0, xlCell(lbl, true, lblFill, null, null, 'right'));
+    set(r, 1, xlCell(val || '', false, null, null, null, 'left'));
+    merge(r, 1, r, 10); r++;
+  });
+  r++;
+
+  const hdrs = ['#', 'Descripción', 'No. de Parte', 'Cantidad', 'Proveedor',
+                'Costo unitario', 'Costo total', 'Precio cotizado', 'Total cotizado',
+                'Utilidad', 'Margen %'];
+  const aligns = ['center','center','center','center','center','right','right','right','right','right','center'];
+  hdrs.forEach((h, c) => set(r, c, xlCell(h, true, hdrFill, 'FFFFFF', null, aligns[c])));
+  r++;
+
+  /* Proveedor y costo unitario salen EN BLANCO, marcados en amarillo: quien
+     cotiza no tiene acceso a esa información, así que el control se lleva fuera
+     de la aplicación. Las fórmulas ya están puestas, de modo que al capturar un
+     costo aquí dentro la utilidad, el margen y el balance se calculan solos. */
+  const primeraFila = r + 1;                 // 1-based, para las fórmulas
+  reqs.forEach((f, i) => {
+    const fila = r + 1;
+    const fill = f.pipro ? 'E2EFFA' : (i % 2 === 0 ? altFill : 'FFFFFF');
+    const pc = +f.it.precio || 0;
+    const tc = pc * f.falta;
+    set(r, 0, xlCell(i + 1, false, fill, null, null, 'center'));
+    set(r, 1, xlCell(f.it.descripcion + (f.pipro ? '  [PIPRO · solicitud especial]' : ''), false, fill, null, null, 'left'));
+    set(r, 2, xlCell(f.it.numero_parte, false, fill, null, null, 'center'));
+    set(r, 3, xlCell(f.falta, false, fill, null, '#,##0', 'center'));
+    set(r, 4, xlCell('', false, capFill, null, null, 'left'));                    // ← capturar
+    set(r, 5, xlCell('', false, capFill, null, '$#,##0.00', 'right'));            // ← capturar
+    set(r, 6, xlFormula(0, `IF(F${fila}="","",D${fila}*F${fila})`, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 7, xlCell(pc, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 8, xlFormula(tc, `D${fila}*H${fila}`, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 9, xlFormula(0, `IF(F${fila}="","",I${fila}-G${fila})`, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 10, xlFormula(0, `IF(OR(F${fila}="",I${fila}=0),"",J${fila}/I${fila})`, false, fill, null, '0.0%', 'center'));
+    // Las celdas de utilidad y margen nacen vacías: no hay costo todavía
+    ws[XLSX.utils.encode_cell({ r, c: 6 })].v = '';  ws[XLSX.utils.encode_cell({ r, c: 6 })].t = 's';
+    ws[XLSX.utils.encode_cell({ r, c: 9 })].v = '';  ws[XLSX.utils.encode_cell({ r, c: 9 })].t = 's';
+    ws[XLSX.utils.encode_cell({ r, c: 10 })].v = ''; ws[XLSX.utils.encode_cell({ r, c: 10 })].t = 's';
+    r++;
+  });
+  const ultimaFila = r;                      // 1-based de la última partida
+  const cotizadoTotal = reqs.reduce((s, f) => s + (+f.it.precio || 0) * f.falta, 0);
+  const rangoCosto = `$F$${primeraFila}:$F$${ultimaFila}`;
+
+  // Totales — el costo sólo suma lo que ya se haya capturado
+  set(r, 0, xlCell('TOTALES', true, totFill, null, null, 'right'));
+  merge(r, 0, r, 5);
+  const totFila = r + 1;
+  set(r, 6,  xlFormula(0, `SUM($G$${primeraFila}:$G$${ultimaFila})`, true, totFill, null, '$#,##0.00', 'right'));
+  set(r, 7,  xlCell('', true, totFill, null, null, 'right'));
+  // ">0" excluye las celdas vacías sin ambigüedad: sólo cuenta lo ya capturado
+  set(r, 8,  xlFormula(0, `SUMIF(${rangoCosto},">0",$I$${primeraFila}:$I$${ultimaFila})`, true, totFill, null, '$#,##0.00', 'right'));
+  set(r, 9,  xlFormula(0, `I${totFila}-G${totFila}`, true, totFill, null, '$#,##0.00', 'right'));
+  set(r, 10, xlFormula(0, `IF(I${totFila}=0,0,J${totFila}/I${totFila})`, true, totFill, null, '0.0%', 'center'));
+  r++;
+
+  set(r, 0, xlCell(
+    'Captura el PROVEEDOR y el COSTO UNITARIO en las celdas amarillas. El costo total, la utilidad, ' +
+    'el margen y el balance de la segunda hoja se calculan solos conforme los vayas llenando. ' +
+    'La columna «Total cotizado» sólo suma las partidas que ya tienen costo, para que el margen ' +
+    'compare cosas equivalentes.',
+    true, capFill, null, null, 'left'));
+  merge(r, 0, r, 10); r++;
+  r += 1;
+
+  set(r, 0, xlCell('Los importes están en pesos (MXN). El costo unitario es lo que se le paga al proveedor; el precio cotizado es el ofrecido al cliente en su valor base en MXN, aunque la cotización se entregue en otra moneda.', false, null, '777777', null, 'left'));
+  merge(r, 0, r, 10); r++;
+
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:4},{wch:44},{wch:15},{wch:10},{wch:22},{wch:14},{wch:14},{wch:15},{wch:15},{wch:14},{wch:10}];
+  ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:r, c:10} });
+  XLSX.utils.book_append_sheet(wb, ws, 'Requisición');
+
+  // ── Hoja 2: balance de utilidad ───────────────────────────────────────────
+  const bs = {}, bmerges = [];
+  const bset = (row, col, cell) => { bs[XLSX.utils.encode_cell({ r: row, c: col })] = cell; };
+  const bmerge = (sr, sc, er, ec) => bmerges.push({ s:{r:sr,c:sc}, e:{r:er,c:ec} });
+  let br = 0;
+
+  bset(br, 0, xlCell('BALANCE DE UTILIDAD  ·  COSTO DE COMPRA CONTRA PRECIO COTIZADO', true, hdrFill, 'FFFFFF', null, 'center'));
+  bmerge(br, 0, br, 3); br += 2;
+
+  /* `linea` escribe en la fila `br` y avanza. La fila de Excel (1-based) de la
+     línea que se va a escribir es siempre br+1: por eso las referencias se
+     capturan ANTES de llamar. */
+  const filaActual = () => br + 1;
+  const linea = (lbl, valor, formula, fmtN, destaca) => {
+    const fill = destaca ? lblFill : null;
+    bset(br, 0, xlCell(lbl, !!destaca, fill, null, null, 'left'));
+    bmerge(br, 0, br, 2);
+    bset(br, 3, formula
+      ? xlFormula(valor, formula, !!destaca, fill, null, fmtN || '$#,##0.00', 'right')
+      : xlCell(valor, !!destaca, fill, null, fmtN || '$#,##0.00', 'right'));
+    br++;
+  };
+  const titulo = (t) => {
+    bset(br, 0, xlCell(t, true, hdrFill, 'FFFFFF', null, 'left'));
+    bmerge(br, 0, br, 3); br++;
+  };
+
+  const HR = "'Requisición'!";   // el nombre de hoja con acento va entrecomillado
+
+  bset(br, 0, xlCell('Este balance se llena solo conforme se capturen los costos en la hoja «Requisición». Hasta entonces las cifras salen en cero.', false, capFill, null, null, 'left'));
+  bmerge(br, 0, br, 3); br += 2;
+
+  titulo('A. Material que entra a requisición');
+  linea('Costo de compra (capturado)', 0, `${HR}G${totFila}`);
+  const filaCotA = filaActual();
+  linea('Precio cotizado de ese material', 0, `${HR}I${totFila}`);
+  const filaUtilA = filaActual();
+  linea('Utilidad', 0, `${HR}J${totFila}`, null, true);
+  linea('Margen', 0, `IF(D${filaCotA}=0,0,D${filaUtilA}/D${filaCotA})`, '0.0%', true);
+  br++;
+
+  /* El bloque B ubica el peso de la requisición dentro de la cotización.
+     No se calcula una utilidad global porque el material que sí hay en almacén
+     tampoco tiene costo capturado aquí: eso daría un número inventado. */
+  const subtotalMat = getCartSubtotal();
+  const esIP        = d.tipo === 'ip';
+  const costoMO     = esIP ? (d.costo_mo || 0) : 0;
+  const brutoTotal  = subtotalMat + costoMO;
+  const descMonto   = brutoTotal * (d.descuento || 0);
+  const netoTotal   = brutoTotal - descMonto;
+  const cotizadoReq = getReqResumen().cotizado;
+
+  titulo('B. La cotización completa, para ubicar el bloque A');
+  linea('Subtotal material cotizado', subtotalMat);
+  if (esIP) linea('Mano de obra y viáticos', costoMO);
+  if (d.descuento > 0) linea(`Descuento (${(d.descuento * 100).toFixed(0)} %)`, -descMonto);
+  const filaNeto = filaActual();
+  linea('Total sin IVA', netoTotal, null, null, true);
+  const filaReq = filaActual();
+  linea('Material que va a requisición', cotizadoReq);
+  linea('Peso sobre el total cotizado', netoTotal ? cotizadoReq / netoTotal : 0,
+        `IF(D${filaNeto}=0,0,D${filaReq}/D${filaNeto})`, '0.0%', true);
+  br++;
+
+  bset(br, 0, xlCell('Importes en pesos (MXN). El precio cotizado va en su valor base en MXN aunque la cotización se entregue en otra moneda, porque al proveedor se le paga en pesos.', false, null, '777777', null, 'left'));
+  bmerge(br, 0, br, 3); br++;
+
+  bs['!merges'] = bmerges;
+  bs['!cols'] = [{wch:36},{wch:10},{wch:10},{wch:18}];
+  bs['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:br, c:3} });
+  XLSX.utils.book_append_sheet(wb, bs, 'Balance de utilidad');
+
+  const suf = state.editandoFolio ? '-EDITADO' : '';
+  XLSX.writeFile(wb, ('Requisicion_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
+  toast('📊 Excel de control de costos descargado');
+}
+
 /**
  * Genera los tres entregables en una sola acción.
  * Se separan en el tiempo porque el navegador descarta descargas simultáneas
@@ -3836,6 +4452,12 @@ async function generateAll() {
     ['Word',  generateWord],
     ['Excel', generateExcel],
   ];
+  // Si hay material sin disponibilidad, la requisición y su control de costos
+  // salen en el mismo paquete: es justo el trabajo manual que se quiere evitar.
+  if (getReqItems().length) {
+    pasos.push(['PDF de requisición',  generateRequisicionPDF]);
+    pasos.push(['Excel de requisición', generateRequisicionExcel]);
+  }
 
   btn.disabled = true;
   prog.style.display = 'block';
@@ -3855,7 +4477,7 @@ async function generateAll() {
     await new Promise(r => setTimeout(r, 900));   // el navegador encola las descargas
   }
 
-  prog.innerHTML = `<div class="success-box">✅ Los 3 archivos se descargaron: PDF, Word y Excel.</div>`;
+  prog.innerHTML = `<div class="success-box">✅ Se descargaron ${listos.length} archivos: ${GD.esc(listos.join(', '))}.</div>`;
   btn.disabled = false;
   setTimeout(() => { prog.style.display = 'none'; }, 6000);
 }
