@@ -40,6 +40,72 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 - **Nunca** volver a poner una contraseña o llave en el HTML/JS del cliente.
 - Puesta en marcha: ver `PUESTA_EN_MARCHA.md`; SQL en `SUPABASE_SEGURIDAD.sql`.
 
+## Categorías y costo de compra (2026-09)
+
+- `materiales` tiene `categoria` (`pipro`, `electrico`, `galvanizado`,
+  `acero_carbon`, `inoxidable`, `pvc`, `consumible`, `otros`). **Migración:
+  `SUPABASE_CATEGORIAS.sql`, que debe correrse ANTES de desplegar** — si no, el
+  panel manda columnas inexistentes y PostgREST rechaza la escritura.
+- `CATEGORIAS` en cotizador.html y el `CHECK` del SQL tienen que coincidir.
+- `detectarPipro()` ya NO adivina por descripción: lee `categoriaDe(m)`.
+  `clasificarMaterial()` sólo se usa cuando el material aún no tiene categoría,
+  y replica las reglas del SQL.
+- **`filaMaterial(m)` es obligatoria en todo upsert de materiales.** Un upsert de
+  PostgREST reescribe con valores por defecto las columnas que no se mandan:
+  omitir `categoria` o `costo_compra` las borraría en cada edición en línea.
+- **Costo de compra** (`costo_compra`, `costo_origen`, `costo_fuentes`,
+  `costo_fecha`). Tres orígenes:
+  - `lista` → Excel de precios de compra (admin → Catálogo), cruzado por
+    `numero_parte`. Es la vía para PIPRO.
+  - `internet` → `api/precio-mercado.js`: **Haiku 4.5** (`claude-haiku-4-5`) +
+    `web_search_20250305` busca distribuidores mexicanos y el **servidor**
+    promedia los **3 más caros** (criterio de la casa, conservador). El modelo
+    no calcula el promedio; su salida se sanea (duplicados por distribuidor,
+    precios no finitos, URLs no http) antes de usarse.
+  - `manual` → capturado a mano; siempre gana.
+
+### Estado actual (2026-09-18): búsqueda con IA APAGADA
+
+- Por decisión del departamento, para no gastar tokens. El precio al cliente se
+  captura **a mano, ya con la utilidad incluida** — el portal no le suma nada.
+- Doble candado, ambos necesarios para encenderla:
+  1. `BUSQUEDA_PRECIOS = true` en cotizador.html (muestra los botones).
+  2. `PRECIO_MERCADO_ACTIVO=1` en Vercel. **El endpoint responde 503 antes de
+     crear el cliente de Anthropic** si falta; ocultar el botón no bastaría,
+     porque el endpoint se puede llamar directo.
+- Botón `$` de cada partida → **Precio al cliente** (principal) y costo de
+  compra (opcional, dentro de un `<details>`, sólo para el margen).
+- Un precio cambiado a mano es **de esa cotización**: no toca el catálogo.
+  `item.precioManual = true` y `item.precioCatalogo` guarda el original para
+  «Volver al del catálogo». La celda se marca en rojo con ✎.
+- Fuentes gratuitas evaluadas: la API pública de Mercado Libre (MLM) ya exige
+  OAuth (responde 403 sin token, verificado el 2026-09-18).
+
+### Precio de venta desde el costo de mercado (cuando se encienda)
+
+- `precioDesdeCosto(costo) = costo × (1 + UTIL_MERCADO_PCT)`, por omisión +50 %.
+  Configurable en **Administrador → Utilidades** y guardado en `meta.utilidades`.
+- Ojo con la aritmética: **+50 % sobre el costo = 33.3 % de margen sobre el
+  precio de venta**. No son lo mismo.
+- En **Material Rápido** la descripción hace de buscador: llena el precio de
+  venta ya con la utilidad y deja el costo registrado en la partida.
+
+### Costo de las consultas (no es gratis)
+
+- Modelo barato a propósito: **Haiku 4.5** ($1 / $5 por millón). No existe modelo
+  gratuito de Anthropic.
+- **Lo caro es la búsqueda web: $10 por millar ($0.01 cada una)**, más de la
+  mitad del gasto. Por eso `MAX_BUSQUEDAS = 4`; subirlo encarece proporcional.
+- Consulta típica (3 búsquedas, ~19 k entrada + ~900 salida): **≈ $0.054 USD**.
+- **Caché en `localStorage` (`pipro_precios_mercado`, 30 días)**, con clave doble
+  por descripción **y** número de parte: un material rápido recibe su número de
+  parte DESPUÉS de la búsqueda, así que guardar sólo por parte dejaba la caché
+  inservible. Es el mayor ahorro del sistema.
+- El endpoint devuelve `gasto` (tokens, búsquedas, `costoUSD`) y lo escribe en la
+  bitácora: para el gasto real, consultar ahí en vez de estimar.
+- El costo **no sale nunca** al PDF ni al Word del cliente. El PDF de requisición
+  lleva sólo parte, descripción y cantidad.
+
 ## Supabase
 
 - **Tablas:** `materiales` (catálogo), `clientes`, `requisiciones`, `meta`,

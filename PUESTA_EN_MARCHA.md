@@ -73,6 +73,25 @@ Vuelve a abrir `/api/diagnostico`: ahora debe decir `"listo": true`.
 
 ---
 
+## 3-bis. Categorías y costos de compra
+
+**Hazlo ANTES de desplegar la versión con categorías**, o el panel de
+administración fallará al guardar: mandará columnas que la tabla todavía no
+tiene y PostgREST rechazará la escritura.
+
+Supabase → **SQL Editor → New query** → pega
+[`SUPABASE_CATEGORIAS.sql`](SUPABASE_CATEGORIAS.sql) → **Run**.
+
+Agrega a `materiales` la categoría del material (`pipro`, `electrico`,
+`galvanizado`, `acero_carbon`, …) y el costo de compra, y clasifica de arranque
+los 254 materiales por su descripción. Es idempotente: se puede correr de nuevo.
+
+Después, en el portal: **Administrador → Catálogo**. Revisa la columna
+*Categoría* y corrige lo que haya quedado mal — esa clasificación decide, entre
+otras cosas, qué entra solo a la requisición.
+
+---
+
 ## 4. Crear el primer administrador
 
 1. Abre el portal. Verás la pantalla de acceso.

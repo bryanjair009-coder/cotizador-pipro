@@ -318,6 +318,80 @@ summary::-webkit-details-marker{display:none;}
 .cart-total-row.grand .amount{color:var(--gd-red-ink);font-size:1.1rem;}
 .cart-empty{text-align:center;color:var(--gd-text-soft);padding:24px;font-size:.95rem;}
 
+/* ── COSTO DE COMPRA ─────────────────────────────────────────────────────────
+   Botón discreto en la píldora de cada pieza cotizada: abre el costo de compra
+   con sus páginas de referencia. Interno — nunca sale al cliente. */
+.btn-costo{
+  margin-left:6px;width:19px;height:19px;padding:0;line-height:1;
+  border:1px solid var(--gd-border);border-radius:var(--gd-radius-sm);
+  background:var(--gd-bg-elev);color:var(--gd-text-soft);
+  font-size:11px;font-weight:700;cursor:pointer;vertical-align:middle;
+}
+.btn-costo:hover{border-color:var(--gd-text-mute);color:var(--gd-text);}
+.btn-costo.hay{border-color:var(--gd-blue);color:var(--gd-blue);background:var(--gd-bg-alt);}
+.btn-costo.manual{border-color:var(--gd-red);color:var(--gd-red-ink);background:var(--gd-bg-alt);}
+/* Precio al cliente cambiado a mano en esta cotización */
+.cart-table .col-price.manual{color:var(--gd-red-ink);font-weight:600;}
+.cart-table .col-price.manual::after{content:' ✎';font-size:.75em;opacity:.7;}
+.costo-venta{border-color:var(--gd-red);}
+.costo-venta label{color:var(--gd-text);font-weight:600;}
+.costo-det{margin-bottom:12px;}
+.costo-det > summary{
+  cursor:pointer;font-size:.82rem;font-weight:600;color:var(--gd-text-mute);
+  padding:4px 0 8px;list-style:revert;
+}
+.costo-det > summary span{font-weight:400;color:var(--gd-text-soft);font-size:.76rem;margin-left:4px;}
+
+.costo-pieza{padding-bottom:12px;border-bottom:1px solid var(--gd-border);margin-bottom:14px;}
+.costo-desc{font-size:.95rem;font-weight:600;color:var(--gd-text);line-height:1.4;}
+.costo-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;}
+.costo-part{font-size:.8rem;color:var(--gd-red-ink);}
+
+.costo-cifras{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px;}
+.costo-cifras > div{padding:10px 12px;border:1px solid var(--gd-border);border-radius:var(--radius);background:var(--gd-bg-alt);}
+.costo-cifras span{display:block;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gd-text-soft);margin-bottom:4px;}
+.costo-cifras b{font-size:1.05rem;font-variant-numeric:tabular-nums;color:var(--gd-text);}
+.costo-cifras b.falta{color:var(--gd-text-soft);font-weight:500;font-size:.9rem;}
+.costo-cifras em{display:block;margin-top:3px;font-size:.7rem;font-style:normal;color:var(--gd-text-soft);}
+
+.costo-acciones{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.costo-ayuda{font-size:.78rem;color:var(--gd-text-soft);}
+.costo-manual{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 12px;border:1px solid var(--gd-border);border-radius:var(--radius);
+  background:var(--gd-bg-alt);margin-bottom:12px;
+}
+.costo-manual label{font-size:.78rem;color:var(--gd-text-mute);margin:0;}
+.costo-manual input{width:120px;padding:5px 8px;text-align:right;}
+
+.costo-res{border:1px solid var(--gd-blue);border-radius:var(--radius);padding:12px;margin-bottom:12px;background:var(--gd-bg-alt);}
+.costo-res-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.costo-res-cab > div{flex:1;min-width:160px;}
+.costo-res-cab span{display:block;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gd-text-soft);}
+.costo-res-cab b{font-size:1.3rem;color:var(--gd-blue);font-variant-numeric:tabular-nums;}
+.costo-res-cab b.venta{color:var(--gd-red-ink);}
+.costo-res-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.costo-res-nota{margin:8px 0 0;font-size:.82rem;color:var(--gd-text-mute);line-height:1.45;}
+.costo-aviso{margin-top:8px;font-size:.8rem;color:var(--gd-warning);}
+
+.costo-fuentes-t{
+  font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gd-text-soft);
+  margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;
+}
+.costo-fuentes-t span{text-transform:none;letter-spacing:0;font-size:.75rem;opacity:.85;}
+.costo-fuentes ol{margin:0;padding:0;list-style:none;display:grid;gap:6px;}
+.costo-fuentes li{
+  display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+  padding:8px 10px;border:1px solid var(--gd-border);border-radius:var(--radius);
+  background:var(--gd-bg-elev);font-size:.82rem;
+}
+.costo-fuentes li.usada{border-color:var(--gd-blue);}
+.cf-precio{font-weight:700;color:var(--gd-text);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.cf-dist{font-weight:600;color:var(--gd-text);}
+.cf-tit{flex-basis:100%;color:var(--gd-text-soft);font-size:.76rem;line-height:1.35;}
+.cf-nota{flex-basis:100%;color:var(--gd-warning);font-size:.74rem;}
+.costo-fuentes a{color:var(--gd-blue);font-size:.78rem;white-space:nowrap;}
+
 /* ── REQUISICIÓN DE MATERIAL FALTANTE ────────────────────────────────────────
    Sólo aparece cuando hay partidas con disponibilidad menor a la cantidad.
    Es un documento interno: aquí sí se ven costos de compra y margen, que
@@ -1371,6 +1445,23 @@ Descuento = Base × %"></button>
 
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL — COSTO DE COMPRA DE UNA PARTIDA
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="costo-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarCosto()">
+  <div class="gd-modal is-lg" role="dialog" aria-modal="true" aria-labelledby="costo-title">
+    <div class="gd-modal-header">
+      <h3 id="costo-title">💲 Precio al cliente y costo</h3>
+      <button class="gd-modal-close" onclick="cerrarCosto()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="gd-modal-body" id="costo-cuerpo"></div>
+    <div class="gd-modal-foot">
+      <span style="flex:1;font-size:.8rem;color:var(--gd-text-soft);">El costo de compra es interno: no aparece en el PDF ni en el Word del cliente.</span>
+      <button class="btn btn-secondary btn-sm" onclick="cerrarCosto()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
      MODAL — MATERIAL RÁPIDO (temporal, NO se guarda en el catálogo/Supabase)
      ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="quickmat-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)closeQuickMatModal()">
@@ -1390,17 +1481,23 @@ Descuento = Base × %"></button>
       <div class="grid-4">
         <div style="grid-column:span 2;">
           <label>Descripción</label>
-          <input type="text" id="qm-desc" placeholder="Descripción del material">
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="qm-desc" placeholder="Ej. Abrazadera omega 2&quot; acero galvanizado" style="flex:1;min-width:0;">
+            <!-- Sólo visible si se enciende la búsqueda con IA (BUSQUEDA_PRECIOS) -->
+            <button class="btn btn-secondary btn-sm" id="qm-buscar" onclick="buscarPrecioQuickMat()" hidden
+                    style="white-space:nowrap;" title="Buscar el precio en internet y calcular el de venta">🌐 Buscar precio</button>
+          </div>
         </div>
         <div>
           <label>No. Parte <span style="font-weight:normal;color:var(--gd-text-mute);">(opcional)</span></label>
           <input type="text" id="qm-part" placeholder="Ej. TEMP-01">
         </div>
         <div>
-          <label>Precio Unit. MXN</label>
-          <input type="number" id="qm-price" min="0" step="10" placeholder="0.00">
+          <label title="Ya con la utilidad incluida: el portal no le suma nada">Precio al cliente MXN</label>
+          <input type="number" id="qm-price" min="0" step="0.01" placeholder="con utilidad">
         </div>
       </div>
+      <div id="qm-busqueda" style="margin-top:10px;"></div>
       <div class="grid-2" style="margin-top:10px;">
         <div>
           <label>Cantidad</label>
@@ -1559,6 +1656,16 @@ Descuento = Base × %"></button>
           </div>
           <div class="util-preview" id="util-movilidad-preview"></div>
         </div>
+
+        <div class="util-card" id="util-card-mercado">
+          <div class="util-card-head">🌐 Material buscado en internet</div>
+          <div class="util-card-help">% de utilidad sobre el costo de compra para fijar el precio de venta al cliente</div>
+          <div class="util-input-row">
+            <input type="number" id="util-mercado" step="1" min="0" max="500" value="50" oninput="updateUtilPreviews()">
+            <span class="util-symbol">%</span>
+          </div>
+          <div class="util-preview" id="util-mercado-preview"></div>
+        </div>
       </div>
 
       <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -1584,12 +1691,36 @@ Descuento = Base × %"></button>
       <div id="upload-status"></div>
     </div>
 
+    <!-- Lista de precios de COMPRA (lo que nos cuesta) ───────────────────── -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">
+        💲 Cargar precios de compra
+        <button class="gd-i" type="button"
+                data-info-title="Precios de compra"
+                data-info="Es lo que <b>nos cuesta</b> la pieza, no lo que se le cobra al cliente. Se usa para el margen y nunca sale al PDF ni al Word.<br><br>Pensado para la <b>lista PIPRO del fabricante</b>. Para material de proveedor externo, el costo se puede sacar desde el carrito con la búsqueda de precio en internet."
+                data-fuente="Se cruza por número de parte"></button>
+      </div>
+      <div class="info-box" style="margin-bottom:10px;">
+        Sube un Excel con dos columnas: <b>número de parte</b> y <b>costo unitario en MXN</b>.
+        Se detectan solas por el encabezado; los materiales que no estén en el catálogo se informan y se omiten.
+      </div>
+      <label class="upload-area" for="costos-file">
+        <input type="file" id="costos-file" accept=".xls,.xlsx" onchange="cargarCostosCompra(this)">
+        <div>📂 Haz clic o arrastra la lista de precios de compra</div>
+        <div style="color:var(--gd-text-soft);font-size:.82rem;margin-top:4px;">No. de parte + costo MXN</div>
+      </label>
+      <div id="costos-status"></div>
+    </div>
+
     <!-- Stats -->
     <div class="card">
       <div class="sec-title" style="margin-top:0;">📋 Base de Datos</div>
       <div style="margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <span id="admin-mat-count" style="font-weight:700;"></span>
         <input type="text" id="admin-search" placeholder="Filtrar..." style="width:200px;" oninput="renderAdminTable()">
+        <select id="admin-cat-filtro" style="width:190px;" onchange="renderAdminTable()">
+          <option value="">Todas las categorías</option>
+        </select>
         <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇️ Exportar CSV</button>
       </div>
       <div style="font-size:.78rem;color:var(--gd-text-mute);margin-bottom:6px;">
@@ -1600,8 +1731,10 @@ Descuento = Base × %"></button>
           <thead><tr>
             <th style="width:42px;">#</th>
             <th>Descripción</th>
-            <th style="width:160px;">No. Parte</th>
-            <th style="width:130px;text-align:right;">Precio MXN</th>
+            <th style="width:150px;">No. Parte</th>
+            <th style="width:150px;">Categoría</th>
+            <th style="width:120px;text-align:right;">Precio venta</th>
+            <th style="width:130px;text-align:right;" title="Lo que nos cuesta. Interno.">Costo compra</th>
             <th style="width:90px;text-align:center;">Acciones</th>
           </tr></thead>
           <tbody id="admin-tbody"></tbody>
@@ -1706,11 +1839,19 @@ Descuento = Base × %"></button>
 let GANANCIA_VIATICOS_PCT = 0.30;  // 30% sobre comidas + hospedaje
 let UTIL_MOVILIDAD_PCT    = 0.40;  // 40% sobre movilidad total (automóvil + vuelo)
 let UTIL_MO_FACTOR        = 2.5;   // ×2.5 utilidad sobre mano de obra (cobrado al cliente)
+// Utilidad sobre el costo de compra de material, para fijar el precio de venta
+let UTIL_MERCADO_PCT      = 0.50;  // +50% sobre el costo de mercado
 const UTIL_DEFAULTS = {
   GANANCIA_VIATICOS_PCT: 0.30,
   UTIL_MOVILIDAD_PCT:    0.40,
-  UTIL_MO_FACTOR:        2.5
+  UTIL_MO_FACTOR:        2.5,
+  UTIL_MERCADO_PCT:      0.50
 };
+
+/** Precio de venta a partir del costo de compra. */
+function precioDesdeCosto(costo) {
+  return Math.round(((+costo || 0) * (1 + UTIL_MERCADO_PCT)) * 100) / 100;
+}
 
 const SUELDO_TECNICO    = 25723.065720;
 const SUELDO_AYUDANTE   = 15005.121670;
@@ -2385,6 +2526,65 @@ function getMOResult() {
   return calcularMO(getMOInputs());
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   CATEGORÍAS DE MATERIAL
+
+   Antes el catálogo no distinguía familias y el cotizador adivinaba si algo era
+   PIPRO leyendo la descripción. Ahora la categoría es un dato del material
+   (columna `categoria` en Supabase, ver SUPABASE_CATEGORIAS.sql) y de ella
+   dependen el filtro del buscador, la agrupación del catálogo y si una partida
+   entra sola a la requisición.
+   ════════════════════════════════════════════════════════════════════════════ */
+const CATEGORIAS = [
+  { valor: 'pipro',        etiqueta: 'PIPRO aluminio',  icono: '🔵' },
+  { valor: 'electrico',    etiqueta: 'Eléctrico',       icono: '⚡' },
+  { valor: 'galvanizado',  etiqueta: 'Galvanizado',     icono: '⚙️' },
+  { valor: 'acero_carbon', etiqueta: 'Acero al carbón', icono: '🛠️' },
+  { valor: 'inoxidable',   etiqueta: 'Inoxidable',      icono: '✨' },
+  { valor: 'pvc',          etiqueta: 'PVC',             icono: '⚪' },
+  { valor: 'consumible',   etiqueta: 'Consumibles',     icono: '🧴' },
+  { valor: 'otros',        etiqueta: 'Otros',           icono: '📦' },
+];
+const CAT_MAP = Object.fromEntries(CATEGORIAS.map(c => [c.valor, c]));
+const catEtiqueta = v => (CAT_MAP[v] || CAT_MAP.otros).etiqueta;
+const catIcono    = v => (CAT_MAP[v] || CAT_MAP.otros).icono;
+
+/* Reglas de arranque, las mismas que siembra SUPABASE_CATEGORIAS.sql. Sólo se
+   aplican cuando el material todavía no trae categoría guardada. El orden
+   importa: gana la primera que coincide. */
+const REGLAS_CAT = [
+  [/galvaniz/i,                                                  'galvanizado'],
+  [/inoxidable|acero inox/i,                                     'inoxidable'],
+  [/\bc?pvc\b/i,                                                 'pvc'],
+  [/cable|condulet|breaker|contactor|solenoid|tablero|conduit/i, 'electrico'],
+  [/aluminio|pipro|airwyn/i,                                     'pipro'],
+  [/acero al carb|cedula 40|ced\.? ?40|brida/i,                  'acero_carbon'],
+  [/teflon|silic[oó]n|lija|pintura|estopa/i,                     'consumible'],
+];
+function clasificarMaterial(m) {
+  const d = String((m && m.descripcion) || '');
+  for (const [re, cat] of REGLAS_CAT) if (re.test(d)) return cat;
+  return 'pipro';   // el catálogo es, en su mayoría, la línea PIPRO de aluminio
+}
+/** Categoría efectiva: manda la guardada; si no hay, se deduce de la descripción. */
+function categoriaDe(m) {
+  const c = m && m.categoria;
+  return (c && CAT_MAP[c]) ? c : clasificarMaterial(m);
+}
+/** Sólo las categorías que de verdad existen en el catálogo, con su conteo. */
+function categoriasPresentes() {
+  const n = {};
+  state.materiales.forEach(m => { const c = categoriaDe(m); n[c] = (n[c] || 0) + 1; });
+  return CATEGORIAS
+    .filter(c => n[c.valor])
+    .map(c => ({ valor: c.valor, etiqueta: `${c.icono} ${c.etiqueta} (${n[c.valor]})` }));
+}
+/** Busca en el catálogo por número de parte. */
+function materialDeCatalogo(numeroParte) {
+  const np = String(numeroParte || '');
+  return state.materiales.find(m => String(m.numero_parte) === np) || null;
+}
+
 // ── DIAMETER FILTER ───────────────────────────────────────────────────────────
 function extractDiam(desc) {
   const m = desc.match(/^(\d+)\s*mm/i);
@@ -2429,8 +2629,8 @@ GD.picker.configurar({
   carrito:     () => state.carrito,
   claveDe:     m => cartKey(m),
   precio:      m => fmt(m.precio),
-  categorias:  () => categoriasMateriales(),
-  categoriaDe: m => extractDiam(m.descripcion),
+  categorias:  () => categoriasPresentes(),
+  categoriaDe: m => categoriaDe(m),
   onAgregar:   (m, qty) => {
     addToCart(m, qty);
     toast(`✅ ${qty}× ${shortDesc(m.descripcion, 34)} agregado al carrito`);
@@ -2469,7 +2669,12 @@ function addToCart(m, qty) {
       cantidad: qty,
       disponibilidad: qty,   // por defecto: asumimos que hay stock
       fechaEntrega: '',      // ISO YYYY-MM-DD para material faltante
-      esPipro: detectarPipro(m)   // decide si entra sola a la requisición
+      categoria: categoriaDe(m),
+      // Costo de compra: de la lista para PIPRO, de internet o manual para el resto.
+      // Nunca sale al PDF ni al Word del cliente.
+      costoCompra:  +m.costo_compra || 0,
+      costoOrigen:  m.costo_origen || '',
+      costoFuentes: Array.isArray(m.costo_fuentes) ? m.costo_fuentes : null,
     };
   }
   renderCart();
@@ -2510,6 +2715,9 @@ function openQuickMatModal() {
   el('qm-qty').value = 1;
   el('qm-ok').classList.add('hidden');
   el('qm-preview').style.display = 'none';
+  el('qm-busqueda').innerHTML = '';
+  _qmCosto = 0; _qmFuentes = null;
+  el('qm-buscar').hidden = !BUSQUEDA_PRECIOS;
   el('qm-file').value = '';
   el('qm-fname').textContent = '';
   setTimeout(() => el('qm-desc') && el('qm-desc').focus(), 100);
@@ -2519,6 +2727,57 @@ function closeQuickMatModal() {
   if (m) m.style.display = 'none';
 }
 
+/* La descripción hace de buscador: se consulta el precio de mercado y se llena
+   el precio de venta ya con la utilidad. El costo queda guardado para que la
+   partida llegue costeada al carrito. */
+let _qmCosto = 0, _qmFuentes = null;
+
+async function buscarPrecioQuickMat() {
+  const desc = el('qm-desc').value.trim();
+  const caja = el('qm-busqueda');
+  if (desc.length < 4) { toast('Escribe primero la descripción del material'); return; }
+
+  const btn = el('qm-buscar');
+  btn.disabled = true; btn.textContent = '⏳ Buscando…';
+  caja.innerHTML = `<div class="info-box">Consultando distribuidores… puede tardar hasta medio minuto.</div>`;
+  try {
+    const d = await consultarPrecioMercado(desc, el('qm-part').value.trim());
+    if (!d.promedio) {
+      caja.innerHTML = `<div class="error-box">No se encontraron precios publicados. Captura el precio a mano.</div>`;
+      return;
+    }
+    _qmCosto = d.promedio;
+    _qmFuentes = d.candidatos;
+    const venta = precioDesdeCosto(d.promedio);
+    el('qm-price').value = venta;
+
+    caja.innerHTML = `
+      <div class="costo-res">
+        <div class="costo-res-cab">
+          <div><span>Costo · promedio de los ${d.usados.length} más caros</span><b>${fmtMXN(d.promedio)}</b></div>
+          <div><span>Precio de venta · +${(UTIL_MERCADO_PCT * 100).toFixed(0)} %</span><b class="venta">${fmtMXN(venta)}</b></div>
+        </div>
+        ${d._cache ? `<p class="costo-res-nota">Resultado guardado hace ${d._dias === 0 ? 'menos de un día' : d._dias + ' día(s)'}; no se gastó una búsqueda nueva.</p>` : ''}
+        ${d.resumen ? `<p class="costo-res-nota">${GD.esc(d.resumen)}</p>` : ''}
+        ${d.coincidencia !== 'exacta' ? `<div class="costo-aviso">⚠️ Coincidencia <b>${GD.esc(d.coincidencia)}</b>: revisa las páginas antes de darlo por bueno.</div>` : ''}
+      </div>
+      <div class="costo-fuentes" style="margin-top:8px;">
+        <div class="costo-fuentes-t">Páginas de referencia <span>las ${d.usados.length} primeras son las que se promedian</span></div>
+        <ol>${d.candidatos.map((f, i) => `
+          <li class="${i < d.usados.length ? 'usada' : ''}">
+            <span class="cf-precio">${fmtMXN(f.precio)}</span>
+            <span class="cf-dist">${GD.esc(f.distribuidor)}</span>
+            ${f.url ? `<a href="${GD.esc(f.url)}" target="_blank" rel="noopener noreferrer nofollow">abrir ↗</a>` : ''}
+            ${f.titulo ? `<span class="cf-tit">${GD.esc(f.titulo)}</span>` : ''}
+          </li>`).join('')}</ol>
+      </div>`;
+  } catch (e) {
+    caja.innerHTML = `<div class="error-box">${GD.esc(e.message || 'No hay conexión con el servidor.')}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '🌐 Buscar precio';
+  }
+}
+
 function addQuickMaterial() {
   const desc = el('qm-desc').value.trim();
   let part = el('qm-part').value.trim();
@@ -2526,11 +2785,20 @@ function addQuickMaterial() {
   const qty = Math.max(1, parseInt(el('qm-qty').value) || 1);
   if (!desc || price <= 0) { alert('Ingresa al menos la descripción y un precio mayor a 0.'); return; }
   if (!part) part = _qmTempPart();
-  addToCart({ descripcion: desc, numero_parte: part, precio: price }, qty);
+  addToCart({
+    descripcion: desc, numero_parte: part, precio: price,
+    // Si el precio salió del buscador, la partida llega ya costeada
+    costo_compra:  _qmCosto || 0,
+    costo_origen:  _qmCosto ? 'internet' : '',
+    costo_fuentes: _qmFuentes,
+  }, qty);
   el('qm-ok').classList.remove('hidden');
-  el('qm-ok').textContent = `✅ ${qty}× "${shortDesc(desc,40)}" agregado al carrito (temporal — no se guardó en el catálogo).`;
+  el('qm-ok').textContent = `✅ ${qty}× "${shortDesc(desc,40)}" agregado al carrito (temporal — no se guardó en el catálogo).` +
+    (_qmCosto ? ` Costo de compra ${fmtMXN(_qmCosto)} registrado.` : '');
   toast('⚡ Material rápido agregado al carrito');
+  _qmCosto = 0; _qmFuentes = null;
   el('qm-desc').value = ''; el('qm-part').value = ''; el('qm-price').value = ''; el('qm-qty').value = 1;
+  el('qm-busqueda').innerHTML = '';
   el('qm-desc').focus();
 }
 
@@ -2685,7 +2953,13 @@ function renderCart() {
     html += `<tr class="${rowClass}">
       <td class="col-num">${i+1}</td>
       <td>${GD.esc(shortDesc(item.descripcion,45))}</td>
-      <td class="col-part">${GD.esc(item.numero_parte)}</td>
+      <td class="col-part">${GD.esc(item.numero_parte)}
+        <button type="button" class="btn-costo${item.precioManual ? ' manual' : costoDe(item) ? ' hay' : ''}" data-key="${safeKey}"
+                onclick="abrirCosto(this)"
+                title="${item.precioManual
+                  ? 'Precio al cliente capturado a mano · clic para cambiarlo'
+                  : 'Cambiar el precio al cliente de esta pieza'}"
+                aria-label="Precio al cliente">$</button></td>
       <td class="col-qty"><input type="number" value="${item.cantidad}" min="1" max="9999"
         data-key="${safeKey}"
         oninput="updateQtyFromInput(this)"
@@ -2700,7 +2974,8 @@ function renderCart() {
         oninput="updateFechaFromInput(this)"
         title="Tiempo estimado de entrega (ej. '3 a 7 días', '2 a 4 semanas')"
         ${insuf ? '' : 'style="opacity:.5;"'}></td>
-      <td class="col-price">${fmt(item.precio)}</td>
+      <td class="col-price${item.precioManual ? ' manual' : ''}"
+          ${item.precioManual ? 'title="Precio capturado a mano para esta cotización"' : ''}>${fmt(item.precio)}</td>
       <td class="col-total" id="tot-${safeKey}">${fmt(tot)}</td>
       <td class="col-rm"><button class="btn btn-danger btn-sm" data-key="${safeKey}"
         onclick="removeFromCartBtn(this)" style="padding:4px 8px;">✕</button></td>
@@ -2775,17 +3050,14 @@ function removeFromCartBtn(btn) {
    Rápido, importación exprés) se asume de proveedor externo. La detección es
    sólo un valor inicial: cada partida se reclasifica con un clic en su pastilla
    y esa decisión manda sobre la automática. */
-const RE_PIPRO = /(pipro|airwyn|aluminio\s+azul)/i;
-
+/* Ya no se adivina por la descripción: manda la categoría del material. */
 function detectarPipro(item) {
-  if (RE_PIPRO.test(item.descripcion || '')) return true;
-  const np = String(item.numero_parte || '');
-  if (!np || /^TEMP-/.test(np)) return false;
-  return state.materiales.some(m => String(m.numero_parte) === np);
+  return categoriaDe(item) === 'pipro';
 }
 
 function esMaterialPipro(item) {
-  return (typeof item.esPipro === 'boolean') ? item.esPipro : detectarPipro(item);
+  if (typeof item.esPipro === 'boolean') return item.esPipro;   // reclasificación manual
+  return detectarPipro(item);
 }
 
 /* Los costos de compra siempre van en pesos, aunque la cotización se entregue
@@ -2793,6 +3065,324 @@ function esMaterialPipro(item) {
 function fmtMXN(n) {
   return new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN', minimumFractionDigits:2 })
     .format(+n || 0);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   COSTO DE COMPRA DE UNA PARTIDA
+
+   De dónde sale, según de qué sea la pieza:
+     · PIPRO      → de la lista del fabricante, cargada por un administrador.
+     · No PIPRO   → promedio de los 3 distribuidores MÁS CAROS que publiquen el
+                    precio en internet. Es el criterio de la casa y es
+                    conservador: si el costo real resulta menor, el margen
+                    mejora; nunca al revés.
+     · Cualquiera → precio manual, que siempre gana sobre los dos anteriores.
+
+   El costo no sale nunca al PDF ni al Word del cliente.
+   ════════════════════════════════════════════════════════════════════════════ */
+const ORIGEN_TXT = {
+  lista:    'Lista de compra PIPRO',
+  internet: 'Promedio de los 3 más caros en internet',
+  manual:   'Capturado a mano',
+};
+
+/* Búsqueda de precios con IA: APAGADA por decisión del departamento, para no
+   gastar tokens. Mientras esté en false no aparece ningún botón de búsqueda y
+   el precio al cliente se captura a mano, ya con la utilidad incluida.
+   Para encenderla hacen falta DOS cosas: esto en true y la variable
+   PRECIO_MERCADO_ACTIVO=1 en Vercel. El servidor rechaza la consulta si falta
+   la segunda, así que olvidar una no puede costar dinero. */
+const BUSQUEDA_PRECIOS = false;
+
+let _costoKey = null;      // partida abierta en el modal
+let _costoBusq = null;     // último resultado de búsqueda, sin aplicar todavía
+
+function costoDe(item) { return +item.costoCompra || 0; }
+
+/* ── Caché de búsquedas ──────────────────────────────────────────────────────
+   Cada búsqueda cuesta dinero de verdad (la búsqueda web se cobra por millar,
+   y ahí está el grueso del gasto). Guardar el resultado por descripción evita
+   pagar dos veces por la misma pieza. Caduca en 30 días porque los precios de
+   lista se mueven. */
+const CACHE_PRECIOS = 'pipro_precios_mercado';
+const CACHE_DIAS = 30;
+
+function _cacheLeer() {
+  try { return JSON.parse(localStorage.getItem(CACHE_PRECIOS) || '{}'); } catch (e) { return {}; }
+}
+/* Dos claves por resultado: la descripción y, si lo hay, el número de parte.
+   La descripción es la que siempre existe — un material rápido recibe su
+   número de parte DESPUÉS de la búsqueda, así que guardar sólo por parte
+   dejaba la caché inservible justo en el caso más común. */
+function _cacheClaves(desc, parte) {
+  const claves = [];
+  const d = String(desc || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 90);
+  const p = String(parte || '').trim().toUpperCase();
+  if (p && !/^TEMP-/.test(p)) claves.push('p:' + p);
+  if (d) claves.push('d:' + d);
+  return claves;
+}
+function cachePrecio(desc, parte) {
+  const c = _cacheLeer();
+  for (const k of _cacheClaves(desc, parte)) {
+    const e = c[k];
+    if (!e || !e.ts) continue;
+    const dias = (Date.now() - e.ts) / 86400000;
+    if (dias > CACHE_DIAS) continue;
+    return { ...e.dato, _cache: true, _dias: Math.floor(dias) };
+  }
+  return null;
+}
+function cacheGuardar(desc, parte, dato) {
+  try {
+    const c = _cacheLeer();
+    const ahora = Date.now();
+    _cacheClaves(desc, parte).forEach(k => { c[k] = { ts: ahora, dato }; });
+    // No dejar que crezca sin fin: se conservan las 300 más recientes
+    const claves = Object.keys(c);
+    if (claves.length > 300) {
+      claves.sort((a, b) => c[b].ts - c[a].ts).slice(300).forEach(k => delete c[k]);
+    }
+    localStorage.setItem(CACHE_PRECIOS, JSON.stringify(c));
+  } catch (e) {}
+}
+
+/** Consulta el precio de mercado. Usa la caché salvo que se pida forzar. */
+async function consultarPrecioMercado(descripcion, numeroParte, forzar) {
+  if (!forzar) {
+    const c = cachePrecio(descripcion, numeroParte);
+    if (c) return c;
+  }
+  const r = await fetch('/api/precio-mercado', {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ descripcion, numeroParte }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'No se pudo consultar el precio.');
+  if (d.promedio > 0) cacheGuardar(descripcion, numeroParte, d);
+  return d;
+}
+
+function abrirCosto(btn) {
+  const k = decodeURIComponent(btn.dataset.key);
+  const it = state.carrito[k];
+  if (!it) return;
+  _costoKey = k;
+  // Si ya se buscó antes esta pieza, se muestra sin volver a pagar la búsqueda
+  _costoBusq = (BUSQUEDA_PRECIOS && !esMaterialPipro(it)) ? cachePrecio(it.descripcion, it.numero_parte) : null;
+  el('costo-modal').style.display = 'flex';
+  renderCostoModal();
+}
+function cerrarCosto() {
+  el('costo-modal').style.display = 'none';
+  _costoKey = null; _costoBusq = null;
+}
+
+function renderCostoModal(cargando, error) {
+  const it = state.carrito[_costoKey];
+  if (!it) return;
+  const cuerpo = el('costo-cuerpo');
+  const pipro  = esMaterialPipro(it);
+  const costo  = costoDe(it);
+  const fuentes = _costoBusq ? _costoBusq.candidatos : (it.costoFuentes || []);
+
+  const cabecera = `
+    <div class="costo-pieza">
+      <div class="costo-desc">${GD.esc(it.descripcion)}</div>
+      <div class="costo-meta">
+        <span class="costo-part">${GD.esc(it.numero_parte)}</span>
+        <span class="req-pill ${pipro ? 'es-pipro' : ''}">${catIcono(it.categoria)} ${GD.esc(catEtiqueta(it.categoria))}</span>
+      </div>
+    </div>
+    <div class="costo-cifras">
+      <div><span>Precio al cliente</span><b>${fmtMXN(it.precio)}</b>
+        ${it.precioManual ? `<em>Capturado a mano${it.precioCatalogo ? ' · catálogo ' + fmtMXN(it.precioCatalogo) : ''}</em>` : ''}</div>
+      <div><span>Costo de compra</span><b class="${costo ? 'hay' : 'falta'}">${costo ? fmtMXN(costo) : 'Sin definir'}</b>
+        ${costo && it.costoOrigen ? `<em>${GD.esc(ORIGEN_TXT[it.costoOrigen] || it.costoOrigen)}</em>` : ''}</div>
+      <div><span>Margen de la partida</span><b>${costo ? (((it.precio - costo) / (it.precio || 1)) * 100).toFixed(1) + ' %' : '—'}</b></div>
+    </div>`;
+
+  /* El precio al cliente es lo principal: se captura a mano, ya con la
+     utilidad incluida — el portal no le suma nada encima. */
+  const precioCliente = `
+    <div class="costo-manual costo-venta">
+      <label for="precio-cliente-val">Precio al cliente (MXN, con utilidad)</label>
+      <input type="number" id="precio-cliente-val" min="0" step="0.01" placeholder="0.00"
+             value="${+it.precio || ''}" onkeydown="if(event.key==='Enter')guardarPrecioCliente()">
+      <button class="btn btn-primary btn-sm" onclick="guardarPrecioCliente()">Aplicar</button>
+      ${it.precioManual && it.precioCatalogo
+        ? `<button class="btn btn-secondary btn-sm" onclick="restaurarPrecioCatalogo()">Volver al del catálogo</button>` : ''}
+    </div>`;
+
+  const busqueda = (BUSQUEDA_PRECIOS && !pipro) ? `
+    <div class="costo-acciones">
+      <button class="btn btn-secondary btn-sm" onclick="buscarPrecioMercado()" ${cargando ? 'disabled' : ''}>
+        ${cargando ? '⏳ Buscando…' : '🌐 Buscar precio en internet'}
+      </button>
+      <span class="costo-ayuda">Promedia los 3 distribuidores más caros que publiquen precio.</span>
+    </div>` : '';
+
+  const acciones = precioCliente + busqueda + `
+    <details class="costo-det"${costo ? ' open' : ''}>
+      <summary>Costo de compra <span>opcional · sólo para calcular el margen</span></summary>
+      <div class="costo-manual">
+        <label for="costo-manual-val">Costo (MXN)</label>
+        <input type="number" id="costo-manual-val" min="0" step="0.01" placeholder="0.00"
+               value="${it.costoOrigen === 'manual' && costo ? costo : ''}">
+        <button class="btn btn-secondary btn-sm" onclick="guardarCostoManual()">Guardar</button>
+        ${costo ? `<button class="btn btn-secondary btn-sm" onclick="limpiarCosto()">Quitar costo</button>` : ''}
+      </div>
+      ${pipro ? `<div class="costo-ayuda" style="margin-top:-4px;">Material PIPRO: el costo también puede venir de la lista de compra que carga un administrador.</div>` : ''}
+    </details>`;
+
+  let resultado = '';
+  if (error) {
+    resultado = `<div class="error-box">${GD.esc(error)}</div>`;
+  } else if (cargando) {
+    resultado = `<div class="info-box">Consultando distribuidores… puede tardar hasta medio minuto.</div>`;
+  } else if (_costoBusq) {
+    const b = _costoBusq;
+    const venta = precioDesdeCosto(b.promedio);
+    resultado = b.candidatos.length
+      ? `<div class="costo-res">
+           <div class="costo-res-cab">
+             <div><span>Costo · promedio de los ${b.usados.length} más caros</span><b>${fmtMXN(b.promedio)}</b></div>
+             <div><span>Precio de venta · +${(UTIL_MERCADO_PCT * 100).toFixed(0)} % de utilidad</span><b class="venta">${fmtMXN(venta)}</b></div>
+           </div>
+           <div class="costo-res-btns">
+             <button class="btn btn-primary btn-sm" onclick="aplicarPrecioMercado(true)">Usar costo y precio de venta</button>
+             <button class="btn btn-secondary btn-sm" onclick="aplicarPrecioMercado(false)">Sólo el costo</button>
+             ${b._cache ? `<button class="btn btn-secondary btn-sm" onclick="buscarPrecioMercado(true)">Buscar de nuevo</button>` : ''}
+           </div>
+           ${b._cache ? `<p class="costo-res-nota">Resultado guardado hace ${b._dias === 0 ? 'menos de un día' : b._dias + ' día(s)'}; no se gastó una búsqueda nueva.</p>` : ''}
+           ${b.resumen ? `<p class="costo-res-nota">${GD.esc(b.resumen)}</p>` : ''}
+           ${b.coincidencia !== 'exacta' ? `<div class="costo-aviso">⚠️ La coincidencia es <b>${GD.esc(b.coincidencia)}</b>: revisa las páginas antes de tomar el precio como bueno.</div>` : ''}
+         </div>`
+      : `<div class="info-box">No se encontraron precios publicados para esta descripción. Captura el precio a mano.</div>`;
+  }
+
+  const lista = fuentes && fuentes.length ? `
+    <div class="costo-fuentes">
+      <div class="costo-fuentes-t">Páginas de referencia
+        <span>${_costoBusq ? 'los ' + _costoBusq.usados.length + ' primeros son los que se promedian' : 'usadas para el costo guardado'}</span>
+      </div>
+      <ol>
+        ${fuentes.map((f, i) => `
+          <li class="${_costoBusq && i < _costoBusq.usados.length ? 'usada' : ''}">
+            <span class="cf-precio">${fmtMXN(f.precio)}</span>
+            <span class="cf-dist">${GD.esc(f.distribuidor)}</span>
+            ${f.url ? `<a href="${GD.esc(f.url)}" target="_blank" rel="noopener noreferrer nofollow">abrir ↗</a>` : ''}
+            ${f.titulo ? `<span class="cf-tit">${GD.esc(f.titulo)}</span>` : ''}
+            ${f.nota ? `<span class="cf-nota">${GD.esc(f.nota)}</span>` : ''}
+          </li>`).join('')}
+      </ol>
+    </div>` : '';
+
+  cuerpo.innerHTML = cabecera + acciones + resultado + lista;
+}
+
+async function buscarPrecioMercado(forzar) {
+  const it = state.carrito[_costoKey];
+  if (!it) return;
+  renderCostoModal(true);
+  try {
+    _costoBusq = await consultarPrecioMercado(it.descripcion, it.numero_parte, forzar);
+    renderCostoModal();
+  } catch (e) {
+    renderCostoModal(false, e.message || 'No hay conexión con el servidor.');
+  }
+}
+
+/** `conVenta` fija además el precio que se le cotiza al cliente. */
+function aplicarPrecioMercado(conVenta) {
+  const it = state.carrito[_costoKey];
+  if (!it || !_costoBusq || !_costoBusq.promedio) return;
+  if (conVenta) {
+    it.precio = precioDesdeCosto(_costoBusq.promedio);
+    toast(`🌐 Precio de venta ${fmtMXN(it.precio)} · costo + ${(UTIL_MERCADO_PCT * 100).toFixed(0)} %`);
+  } else {
+    toast('🌐 Costo tomado del promedio de mercado');
+  }
+  fijarCosto(it, _costoBusq.promedio, 'internet', _costoBusq.candidatos);
+  updateTotales();
+  renderCostoModal();
+}
+
+/* Precio al cliente capturado a mano. Es un precio DE ESTA COTIZACIÓN: no
+   toca el catálogo, porque un precio negociado para un cliente no debe
+   cambiarle el precio a todos los demás. Se recuerda el del catálogo para
+   poder volver a él. */
+function guardarPrecioCliente() {
+  const it = state.carrito[_costoKey];
+  const v = Math.round((parseFloat(el('precio-cliente-val').value) || 0) * 100) / 100;
+  if (!it) return;
+  if (v <= 0) { toast('Escribe un precio mayor a 0'); return; }
+  if (v === +it.precio) { toast('Es el mismo precio'); return; }
+  const cat = materialDeCatalogo(it.numero_parte);
+  if (cat && !it.precioManual) it.precioCatalogo = +cat.precio;
+  it.precio = v;
+  it.precioManual = !cat || v !== +cat.precio;
+  if (!it.precioManual) delete it.precioCatalogo;
+  renderCart();
+  updateTotales();
+  renderCostoModal();
+  toast(`Precio al cliente: ${fmtMXN(v)}`);
+}
+
+function restaurarPrecioCatalogo() {
+  const it = state.carrito[_costoKey];
+  if (!it || !it.precioCatalogo) return;
+  it.precio = it.precioCatalogo;
+  it.precioManual = false;
+  delete it.precioCatalogo;
+  renderCart();
+  updateTotales();
+  renderCostoModal();
+  toast('Se restauró el precio del catálogo');
+}
+
+function guardarCostoManual() {
+  const it = state.carrito[_costoKey];
+  const v = Math.max(0, parseFloat(el('costo-manual-val').value) || 0);
+  if (!it || v <= 0) { toast('Escribe un precio mayor a 0'); return; }
+  fijarCosto(it, v, 'manual', it.costoFuentes);
+  toast('Costo capturado a mano');
+  renderCostoModal();
+}
+
+function limpiarCosto() {
+  const it = state.carrito[_costoKey];
+  if (!it) return;
+  fijarCosto(it, 0, '', null);
+  _costoBusq = null;
+  renderCostoModal();
+}
+
+/** Fija el costo en la partida y, si es de catálogo y hay permiso, lo guarda. */
+function fijarCosto(it, valor, origen, fuentes) {
+  it.costoCompra  = +valor || 0;
+  it.costoOrigen  = it.costoCompra ? origen : '';
+  it.costoFuentes = it.costoCompra ? (fuentes || null) : null;
+  renderCart();
+  guardarCostoEnCatalogo(it);
+}
+
+/** El costo aprendido se queda en el catálogo, para no volver a buscarlo. */
+async function guardarCostoEnCatalogo(it) {
+  if (!GD.sesion.esAdmin) return;                          // sólo un admin escribe catálogo
+  const m = materialDeCatalogo(it.numero_parte);
+  if (!m) return;                                          // material rápido: no va al catálogo
+  m.costo_compra  = it.costoCompra || null;
+  m.costo_origen  = it.costoOrigen || null;
+  m.costo_fuentes = it.costoFuentes || null;
+  m.costo_fecha   = new Date().toISOString();
+  try {
+    await SB.upsert('materiales', [filaMaterial(m)], 'numero_parte');
+    renderAdminTable();
+  } catch (e) {
+    console.warn('No se pudo guardar el costo en el catálogo:', e.message);
+  }
 }
 
 /** Partidas del carrito cuyo almacén no cubre la cantidad pedida. */
@@ -4154,15 +4744,7 @@ function generateRequisicionPDF() {
   }
 
   setupPage();
-  let y = HTOP + 2;
-
-  // Marca de documento interno: evita que termine enviado al cliente por error
-  doc.setFillColor(255, 244, 245);
-  doc.setDrawColor(...RED); doc.setLineWidth(0.4);
-  doc.roundedRect(ML, y, PW - ML * 2, 8, 1, 1, 'FD');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...RED);
-  doc.text('PARA EL EQUIPO DE COMPRAS  ·  NO ENVIAR AL CLIENTE', ML + 3, y + 5.3);
-  y += 13;
+  let y = HTOP + 4;
 
   y = secTitle('DATOS DE LA SOLICITUD', y);
   doc.setFontSize(8.5);
@@ -4664,6 +5246,7 @@ async function loadUtilidades() {
     if (typeof saved.GANANCIA_VIATICOS_PCT === 'number') GANANCIA_VIATICOS_PCT = saved.GANANCIA_VIATICOS_PCT;
     if (typeof saved.UTIL_MOVILIDAD_PCT    === 'number') UTIL_MOVILIDAD_PCT    = saved.UTIL_MOVILIDAD_PCT;
     if (typeof saved.UTIL_MO_FACTOR        === 'number') UTIL_MO_FACTOR        = saved.UTIL_MO_FACTOR;
+    if (typeof saved.UTIL_MERCADO_PCT      === 'number') UTIL_MERCADO_PCT      = saved.UTIL_MERCADO_PCT;
   }
 }
 
@@ -4672,6 +5255,9 @@ function renderUtilForm() {
   el('util-mo').value = UTIL_MO_FACTOR;
   el('util-viaticos').value = +(GANANCIA_VIATICOS_PCT * 100).toFixed(2);
   el('util-movilidad').value = +(UTIL_MOVILIDAD_PCT * 100).toFixed(2);
+  el('util-mercado').value = +(UTIL_MERCADO_PCT * 100).toFixed(2);
+  // Sin búsqueda en internet esta utilidad no se aplica a nada: se oculta
+  el('util-card-mercado').hidden = !BUSQUEDA_PRECIOS;
   updateUtilPreviews();
 }
 
@@ -4685,16 +5271,21 @@ function updateUtilPreviews() {
     `Ej: comidas + hospedaje $1,000 + ${(vi * 100).toFixed(1)}% = ${fmt(1000 * (1 + vi))} cobrado al cliente`;
   el('util-movilidad-preview').textContent =
     `Ej: auto + vuelo $5,000 + ${(mv * 100).toFixed(1)}% = ${fmt(5000 * (1 + mv))} cobrado al cliente`;
+  const mk = (+el('util-mercado').value || 0) / 100;
+  el('util-mercado-preview').textContent =
+    `Ej: costo de mercado $100 + ${(mk * 100).toFixed(1)}% = ${fmtMXN(100 * (1 + mk))} de precio de venta`;
 }
 
 async function guardarUtilidades() {
   const mo = +el('util-mo').value;
   const vi = +el('util-viaticos').value;
   const mv = +el('util-movilidad').value;
+  const mk = +el('util-mercado').value;
 
   if (!(mo > 0)) { toast('❌ El factor de M.O. debe ser mayor a 0'); return; }
   if (vi < 0 || vi > 500) { toast('❌ Ganancia de viáticos fuera de rango (0-500%)'); return; }
   if (mv < 0 || mv > 300) { toast('❌ Utilidad de movilidad fuera de rango (0-300%)'); return; }
+  if (mk < 0 || mk > 500) { toast('❌ Utilidad de material fuera de rango (0-500%)'); return; }
 
   const ok = await confirmModal('Confirmar cambios de utilidad', `
     <p>Estos valores se aplicarán inmediatamente a <b>todas las cotizaciones futuras</b>:</p>
@@ -4705,6 +5296,8 @@ async function guardarUtilidades() {
           <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">+${vi.toFixed(1)}%</td></tr>
       <tr><td>🚗✈️ Utilidad Movilidad (Auto + Vuelo)</td>
           <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">+${mv.toFixed(1)}%</td></tr>
+      <tr><td>🌐 Utilidad sobre material buscado en internet</td>
+          <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">+${mk.toFixed(1)}%</td></tr>
     </table>
     <p style="margin-top:10px;font-size:.82rem;color:var(--gd-text-mute);">Se guardarán en Supabase (todos los dispositivos) y en local.</p>
   `);
@@ -4713,11 +5306,13 @@ async function guardarUtilidades() {
   UTIL_MO_FACTOR = mo;
   GANANCIA_VIATICOS_PCT = vi / 100;
   UTIL_MOVILIDAD_PCT = mv / 100;
+  UTIL_MERCADO_PCT = mk / 100;
 
   const data = {
     UTIL_MO_FACTOR,
     GANANCIA_VIATICOS_PCT,
-    UTIL_MOVILIDAD_PCT
+    UTIL_MOVILIDAD_PCT,
+    UTIL_MERCADO_PCT
   };
 
   try { localStorage.setItem('pipro_utilidades', JSON.stringify(data)); } catch(e) {}
@@ -4881,7 +5476,7 @@ async function addProduct() {
     state.materiales[existing].precio = price;
     el('add-prod-ok').textContent = `✅ Producto ${part} actualizado.${conversionNote}`;
   } else {
-    state.materiales.push({descripcion:desc,numero_parte:part,precio:price});
+    state.materiales.push({descripcion:desc,numero_parte:part,precio:price,categoria:clasificarMaterial({descripcion:desc})});
     el('add-prod-ok').textContent = `✅ Producto ${part} agregado.${conversionNote}`;
   }
   // Guardar en caché local siempre
@@ -4889,7 +5484,7 @@ async function addProduct() {
   // Sincronizar este material con Supabase
   if (window.SB && window.SB.configured) {
     try {
-      await window.SB.upsert('materiales', [{numero_parte: part, descripcion: desc, precio: price}], 'numero_parte');
+      await window.SB.upsert('materiales', [filaMaterial(state.materiales[state.materiales.length - 1])], 'numero_parte');
       el('add-prod-ok').textContent += ' ☁️ Sincronizado.';
     } catch(e) {
       console.warn('Supabase sync individual:', e.message);
@@ -5318,22 +5913,49 @@ function _attrEsc(s) {
 
 function renderAdminTable() {
   const q = (el('admin-search')||{value:''}).value.trim().toLowerCase();
+  const cat = (el('admin-cat-filtro')||{value:''}).value;
+
+  // El selector de categorías se arma con lo que hay en el catálogo
+  const sel = el('admin-cat-filtro');
+  if (sel && sel.options.length <= 1) {
+    const cuenta = {};
+    state.materiales.forEach(m => { const c = categoriaDe(m); cuenta[c] = (cuenta[c]||0)+1; });
+    sel.innerHTML = '<option value="">Todas las categorías</option>' +
+      CATEGORIAS.filter(c => cuenta[c.valor])
+        .map(c => `<option value="${c.valor}">${c.icono} ${GD.esc(c.etiqueta)} (${cuenta[c.valor]})</option>`).join('');
+    sel.value = cat;
+  }
+
   const mats = state.materiales.filter(m =>
-    !q || m.descripcion.toLowerCase().includes(q) || m.numero_parte.toLowerCase().includes(q)
+    (!q || m.descripcion.toLowerCase().includes(q) || m.numero_parte.toLowerCase().includes(q)) &&
+    (!cat || categoriaDe(m) === cat)
   );
-  el('admin-mat-count').textContent = `${state.materiales.length} materiales`;
+  const conCosto = state.materiales.filter(m => +m.costo_compra > 0).length;
+  el('admin-mat-count').textContent =
+    `${state.materiales.length} materiales · ${conCosto} con costo de compra` +
+    (mats.length !== state.materiales.length ? ` · ${mats.length} mostrados` : '');
+
   el('admin-tbody').innerHTML = mats.map((m,i) => {
     const np = _attrEsc(m.numero_parte);
     const desc = _attrEsc(m.descripcion);
     const statusId = 'save-' + encodeURIComponent(m.numero_parte);
+    const c = categoriaDe(m);
+    const costo = +m.costo_compra || 0;
     return `<tr>
       <td style="color:var(--gd-text-mute);text-align:center;">${i+1}</td>
       <td><input class="admin-edit" data-part="${np}" data-field="descripcion"
                  value="${desc}" onchange="updateMatField(this)" placeholder="Descripción"></td>
       <td><input class="admin-edit admin-part" data-part="${np}" data-field="numero_parte"
                  value="${np}" onchange="updateMatField(this)" placeholder="No. Parte"></td>
+      <td><select class="admin-edit" data-part="${np}" data-field="categoria" onchange="updateMatField(this)">
+            ${CATEGORIAS.map(x => `<option value="${x.valor}"${x.valor===c?' selected':''}>${x.icono} ${GD.esc(x.etiqueta)}</option>`).join('')}
+          </select></td>
       <td><input class="admin-edit admin-price" data-part="${np}" data-field="precio"
                  type="number" min="0" step="0.01" value="${m.precio}" onchange="updateMatField(this)"></td>
+      <td><input class="admin-edit admin-price admin-costo" data-part="${np}" data-field="costo_compra"
+                 type="number" min="0" step="0.01" value="${costo || ''}" placeholder="—"
+                 title="${m.costo_origen ? 'Origen: ' + GD.esc(ORIGEN_TXT[m.costo_origen] || m.costo_origen) : 'Sin capturar'}"
+                 onchange="updateMatField(this)"></td>
       <td class="admin-actions">
         <span class="admin-save-status" id="${statusId}"></span>
         <button class="btn-icon-del" onclick="deleteMat(this)" data-part="${np}" title="Eliminar este material">🗑</button>
@@ -5355,11 +5977,28 @@ function _showSaveStatus(numeroParte, status, message) {
   }
 }
 
+/* Fila completa del material para el upsert.
+   OJO: un upsert de PostgREST reescribe con valores por defecto las columnas
+   que no se mandan, así que omitir `categoria` o `costo_compra` aquí las
+   borraría en cada edición en línea. Ver «Trampa de PostgREST» en CLAUDE.md. */
+function filaMaterial(m) {
+  return {
+    numero_parte:  m.numero_parte,
+    descripcion:   m.descripcion,
+    precio:        +m.precio || 0,
+    categoria:     categoriaDe(m),
+    costo_compra:  (+m.costo_compra > 0) ? +m.costo_compra : null,
+    costo_origen:  m.costo_origen  || null,
+    costo_fuentes: m.costo_fuentes || null,
+    costo_fecha:   m.costo_fecha   || null,
+  };
+}
+
 async function updateMatField(input) {
   const oldPart = input.dataset.part;
   const field   = input.dataset.field;
   let value     = input.value.trim();
-  if (field === 'precio') value = parseFloat(value) || 0;
+  if (field === 'precio' || field === 'costo_compra') value = parseFloat(value) || 0;
 
   const idx = state.materiales.findIndex(m => m.numero_parte === oldPart);
   if (idx < 0) { _showSaveStatus(oldPart, 'err', 'Material no encontrado'); return; }
@@ -5382,9 +6021,13 @@ async function updateMatField(input) {
       return;
     }
   }
-  if (field === 'precio' && value < 0) {
-    input.value = state.materiales[idx].precio;
+  if ((field === 'precio' || field === 'costo_compra') && value < 0) {
+    input.value = state.materiales[idx][field] || '';
     _showSaveStatus(oldPart, 'err', 'El precio no puede ser negativo');
+    return;
+  }
+  if (field === 'categoria' && !CAT_MAP[value]) {
+    _showSaveStatus(oldPart, 'err', 'Categoría no válida');
     return;
   }
 
@@ -5392,6 +6035,11 @@ async function updateMatField(input) {
   _showSaveStatus(oldPart, 'saving', 'Guardando...');
   const newPart = field === 'numero_parte' ? value : state.materiales[idx].numero_parte;
   state.materiales[idx][field] = value;
+  if (field === 'costo_compra') {
+    // Un costo escrito a mano aquí es, precisamente, un costo manual
+    state.materiales[idx].costo_origen = value > 0 ? 'manual' : null;
+    state.materiales[idx].costo_fecha  = value > 0 ? new Date().toISOString() : null;
+  }
 
   // Guardar respaldo local
   try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
@@ -5402,17 +6050,9 @@ async function updateMatField(input) {
       if (field === 'numero_parte' && value !== oldPart) {
         // Cambio de PK: borrar la fila vieja e insertar la nueva
         await window.SB.delete('materiales', { numero_parte: oldPart });
-        await window.SB.upsert('materiales', [{
-          numero_parte: value,
-          descripcion: state.materiales[idx].descripcion,
-          precio:      state.materiales[idx].precio
-        }], 'numero_parte');
+        await window.SB.upsert('materiales', [filaMaterial(state.materiales[idx])], 'numero_parte');
       } else {
-        await window.SB.upsert('materiales', [{
-          numero_parte: state.materiales[idx].numero_parte,
-          descripcion:  state.materiales[idx].descripcion,
-          precio:       state.materiales[idx].precio
-        }], 'numero_parte');
+        await window.SB.upsert('materiales', [filaMaterial(state.materiales[idx])], 'numero_parte');
       }
       _showSaveStatus(newPart, 'ok', 'Guardado');
       // Si cambió el numero_parte, hay que re-renderizar para refrescar data-part
@@ -5426,6 +6066,87 @@ async function updateMatField(input) {
   }
 
   actualizarContadorMateriales();
+}
+
+/* ── Carga masiva de precios de COMPRA ───────────────────────────────────────
+   Cruza por número de parte contra el catálogo. Lo que no existe se informa y
+   se omite: un costo sin material al que colgarse no sirve de nada, y crear el
+   material a ciegas desde una lista de precios ensuciaría el catálogo. */
+function cargarCostosCompra(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  const est = el('costos-status');
+  est.innerHTML = '<div class="info-box">Leyendo archivo…</div>';
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const hoja = wb.SheetNames.find(s => /costo|compra|precio|lista/i.test(s)) || wb.SheetNames[0];
+      const filas = XLSX.utils.sheet_to_json(wb.Sheets[hoja], { header: 1, defval: '' });
+
+      // Encabezado: primera fila que tenga algo parecido a parte y a costo
+      let cParte = -1, cCosto = -1, inicio = 0;
+      for (let i = 0; i < Math.min(filas.length, 10); i++) {
+        (filas[i] || []).forEach((cel, j) => {
+          const t = String(cel || '').toLowerCase().trim();
+          if (cParte < 0 && /parte|part|c[oó]digo|codigo|clave|sku|n[uú]mero/.test(t)) cParte = j;
+          if (cCosto < 0 && /costo|compra|cost|unitario|precio/.test(t))              cCosto = j;
+        });
+        if (cParte >= 0 && cCosto >= 0) { inicio = i + 1; break; }
+      }
+      if (cParte < 0 || cCosto < 0) {
+        est.innerHTML = '<div class="error-box">No encontré las columnas de número de parte y costo. Revisa que el archivo tenga encabezados.</div>';
+        return;
+      }
+
+      const ahora = new Date().toISOString();
+      const cambiados = [], sinMaterial = [];
+      let invalidos = 0;
+
+      for (let i = inicio; i < filas.length; i++) {
+        const f = filas[i] || [];
+        const parte = String(f[cParte] || '').trim();
+        const costo = parseFloat(String(f[cCosto] || '').replace(/[^0-9.\-]/g, ''));
+        if (!parte) continue;
+        if (!Number.isFinite(costo) || costo <= 0) { invalidos++; continue; }
+        const m = materialDeCatalogo(parte);
+        if (!m) { sinMaterial.push(parte); continue; }
+        m.costo_compra = costo;
+        m.costo_origen = 'lista';
+        m.costo_fecha  = ahora;
+        m.costo_fuentes = null;
+        cambiados.push(m);
+      }
+
+      if (!cambiados.length) {
+        est.innerHTML = `<div class="error-box">No se actualizó ningún costo.` +
+          (sinMaterial.length ? ` ${sinMaterial.length} número(s) de parte no existen en el catálogo.` : '') +
+          (invalidos ? ` ${invalidos} fila(s) con costo no numérico.` : '') + `</div>`;
+        return;
+      }
+
+      est.innerHTML = `<div class="info-box">Guardando ${cambiados.length} costos…</div>`;
+      try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(err) {}
+      if (window.SB && window.SB.configured) {
+        // En bloques, para no mandar un cuerpo enorme de una sola vez
+        for (let i = 0; i < cambiados.length; i += 200) {
+          await window.SB.upsert('materiales', cambiados.slice(i, i + 200).map(filaMaterial), 'numero_parte');
+        }
+      }
+
+      est.innerHTML = `<div class="success-box">✅ ${cambiados.length} costos de compra actualizados.` +
+        (sinMaterial.length ? `<br><b>${sinMaterial.length} sin material en el catálogo</b> (se omitieron): ${GD.esc(sinMaterial.slice(0, 8).join(', '))}${sinMaterial.length > 8 ? '…' : ''}` : '') +
+        (invalidos ? `<br>${invalidos} fila(s) con costo no numérico.` : '') + `</div>`;
+      renderAdminTable();
+
+    } catch (err) {
+      est.innerHTML = `<div class="error-box">Error al leer el archivo: ${GD.esc(err.message)}</div>`;
+    } finally {
+      inp.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 async function deleteMat(btn) {
@@ -5453,7 +6174,8 @@ async function deleteMat(btn) {
 }
 
 function exportCSV() {
-  const rows = [['Descripcion','Numero_Parte','Precio_Unitario_MXN'],...state.materiales.map(m=>[m.descripcion,m.numero_parte,m.precio])];
+  const rows = [['Descripcion','Numero_Parte','Categoria','Precio_Venta_MXN','Costo_Compra_MXN','Origen_Costo'],
+    ...state.materiales.map(m=>[m.descripcion,m.numero_parte,catEtiqueta(categoriaDe(m)),m.precio,m.costo_compra||'',m.costo_origen||''])];
   const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
