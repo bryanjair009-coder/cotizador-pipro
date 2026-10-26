@@ -273,20 +273,25 @@ const V = '20260906';
 
 /* Los módulos, agrupados por lo que hace la persona con ellos.
    El orden no es alfabético: es el del flujo de trabajo real. */
+/* La ruta de cada módulo va escrita completa y literal, no armada con
+   plantillas a partir del identificador. Así ninguna cadena que venga de
+   fuera (localStorage, un mensaje, la URL) puede terminar convertida en la
+   ruta de un archivo: el único origen posible es esta lista. Es la corrección
+   al hallazgo «Client Dangerous File Inclusion» del análisis de seguridad. */
 const GRUPOS = [
   { grupo: 'Comercial', modulos: [
-    { id: 'cotizador',     ico: '📋', nombre: 'Cotizador',        titulo: 'Cotizador PIPRO' },
-    { id: 'requisiciones', ico: '📦', nombre: 'Requisiciones',    titulo: 'Requisiciones' },
+    { id: 'cotizador',     ruta: 'cotizador.html',     ico: '📋', nombre: 'Cotizador',        titulo: 'Cotizador PIPRO' },
+    { id: 'requisiciones', ruta: 'requisiciones.html', ico: '📦', nombre: 'Requisiciones',    titulo: 'Requisiciones' },
   ]},
   { grupo: 'Ingeniería', modulos: [
-    { id: 'presiones',     ico: '🔵', nombre: 'Caídas de presión', titulo: 'Caídas de Presión' },
-    { id: 'electrico',     ico: '⚡', nombre: 'Selección eléctrica', titulo: 'Selección Eléctrica' },
+    { id: 'presiones',     ruta: 'presiones.html',     ico: '🔵', nombre: 'Caídas de presión', titulo: 'Caídas de Presión' },
+    { id: 'electrico',     ruta: 'electrico.html',     ico: '⚡', nombre: 'Selección eléctrica', titulo: 'Selección Eléctrica' },
   ]},
   { grupo: 'Entregables', modulos: [
-    { id: 'reportes',      ico: '📄', nombre: 'Reportes de entrega', titulo: 'Reportes de Entrega' },
-    { id: 'fugas',         ico: '🔍', nombre: 'Reporte de fugas',    titulo: 'Reporte de Fugas' },
+    { id: 'reportes',      ruta: 'reportes.html',      ico: '📄', nombre: 'Reportes de entrega', titulo: 'Reportes de Entrega' },
+    { id: 'fugas',         ruta: 'fugas.html',         ico: '🔍', nombre: 'Reporte de fugas',    titulo: 'Reporte de Fugas' },
   ]},
-];
+].map(g => Object.freeze({ ...g, modulos: g.modulos.map(Object.freeze) }));
 const MODULOS = GRUPOS.flatMap(g => g.modulos);
 const buscarModulo = id => MODULOS.find(m => m.id === id);
 
@@ -307,7 +312,7 @@ function construir() {
   MODULOS.forEach(m => {
     const f = document.createElement('iframe');
     f.id = 'f-' + m.id;
-    f.dataset.src = `${m.id}.html?v=${V}`;
+    f.dataset.src = m.ruta + '?v=' + V;   // ruta literal de la lista, no construida
     f.title = m.titulo;
     lienzo.insertBefore(f, cargador);
     f.addEventListener('load', () => enviarTema(f));
@@ -317,9 +322,11 @@ function construir() {
 function ir(id) {
   const m = buscarModulo(id);
   if (!m) return;
-  document.querySelectorAll('.gd-rail-item').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+  /* A partir de aquí se usa SIEMPRE `m.id`, nunca el `id` que entró: el valor
+     válido es el de la lista, no el que llegó de fuera. */
+  document.querySelectorAll('.gd-rail-item').forEach(b => b.classList.toggle('active', b.dataset.id === m.id));
 
-  const f = document.getElementById('f-' + id);
+  const f = document.getElementById('f-' + m.id);
   if (f.dataset.src) {
     mostrarCargador('Cargando ' + m.nombre.toLowerCase() + '…');
     let hecho = false;
@@ -330,11 +337,11 @@ function ir(id) {
     delete f.dataset.src;
   }
 
-  document.querySelectorAll('iframe').forEach(x => x.classList.toggle('activo', x.id === 'f-' + id));
+  document.querySelectorAll('iframe').forEach(x => x.classList.toggle('activo', x.id === 'f-' + m.id));
   document.title = m.titulo + ' · Gardner Denver';
   document.getElementById('movil-modulo').textContent = m.nombre;
   cerrarRail();
-  try { localStorage.setItem('gd-tab', id); } catch(e) {}
+  try { localStorage.setItem('gd-tab', m.id); } catch(e) {}
 }
 
 /* ── Carril deslizante (sólo móvil) ───────────────────────────────────── */

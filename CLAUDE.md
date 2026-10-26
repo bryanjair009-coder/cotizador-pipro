@@ -106,6 +106,31 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 - El costo **no sale nunca** al PDF ni al Word del cliente. El PDF de requisición
   lleva sólo parte, descripción y cantidad.
 
+## Análisis de vulnerabilidades (AppScan, 2026-09-10) — NO revertir
+
+- **Client Dangerous File Inclusion.** Causa de fondo: 19 recursos externos
+  (jsPDF, SheetJS, React, Babel, Leaflet, Tesseract) se cargaban **sin
+  verificación de integridad**. Corregido con **SRI `sha384` + `crossorigin`
+  en los 19**, incluido el `<script>` que se inyecta en caliente para el OCR.
+  - Los hashes se calculan del archivo real descargado — uno inventado bloquea
+    la carga. Script: `scratchpad/sri.js` en la sesión; rehacerlo al subir
+    cualquier versión de librería, o el navegador rechazará el archivo.
+  - **Nunca usar versión flotante con SRI.** `tesseract.js@4` redirigía a
+    `@4.1.4`; queda fijado, porque una versión que cambia sola rompe el hash.
+  - Las rutas de los módulos van **literales** en `GRUPOS[].ruta` (lista
+    congelada), no armadas con plantilla desde el id. Tras `buscarModulo()`,
+    `ir()` usa sólo `m.id` / `m.ruta`, nunca el argumento que entró.
+- **HTTP Only Cookie Flag / Missing HSTS:** ya estaban resueltos desde el
+  commit `5854e2c` (2026-09-05), anterior al escaneo. Cookie de sesión
+  `HttpOnly; Secure; SameSite=Strict` en `api/_lib/auth.js`; HSTS
+  `max-age=63072000; includeSubDomains; preload` en `vercel.json`, verificado
+  en la respuesta de producción. Si el reporte los marca, se escaneó un
+  despliegue anterior: hay que **re-escanear**.
+- Pendiente real, no cerrado: la CSP conserva `'unsafe-inline'` y
+  `'unsafe-eval'` en `script-src` porque todo el código va en línea y
+  requisiciones compila JSX con Babel en el navegador. Quitarlos exige sacar
+  el JS a archivos y precompilar el JSX.
+
 ## Supabase
 
 - **Tablas:** `materiales` (catálogo), `clientes`, `requisiciones`, `meta`,
