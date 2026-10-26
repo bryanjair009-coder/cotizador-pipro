@@ -165,25 +165,51 @@ Toda partida con `disponibilidad < cantidad` entra sola a la sección **5b**.
 - `generateAll()` agrega 2 pasos cuando `getReqItems().length > 0`, y el botón
   pasa a decir "los 5 archivos".
 
-### Quién ve qué — NO revertir
+### Control de material y control de costos (2026-10) — NO revertir
 
-**Quien cotiza no tiene acceso a costos ni a proveedores.** La aplicación no los
-pide en ningún lado y el carrito no los guarda.
+**Los dos documentos cubren TODO el proyecto**, no sólo lo que falta: cada
+partida de la cotización con su número de parte **más la soportería**.
+Fuentes: `getMaterialControl()` (carrito completo, con `almacen` / `falta` /
+`compras`) y `getSoporteria()` (tabla de soportería; devuelve `[]` si la tabla
+está oculta, porque sus campos conservan el último valor aunque no haya
+abrazaderas). La sección 5b aparece con `hayMaterialControl()` y `generateAll()`
+genera siempre los 5 archivos cuando hay material.
 
-- **PDF** (`generateRequisicionPDF`): sólo `#, No. de Parte, Descripción,
-  Cantidad` + total de piezas. Se manda por correo al equipo de compras. Nunca
-  lleva precio de venta, costo ni margen. Marca "NO ENVIAR AL CLIENTE".
-- **Excel** (`generateRequisicionExcel`): las columnas **Proveedor** y **Costo
-  unitario** salen **vacías**, en amarillo (`capFill`), para llenarlas fuera de
-  la aplicación. Las fórmulas ya están puestas: al capturar un costo ahí dentro,
-  costo total, utilidad, margen y el balance de la hoja 2 se calculan solos.
+- **PDF de control de material** (`generateRequisicionPDF`) → compras. Secciones
+  A (cotización: Cantidad, En almacén, Por surtir) y B (soportería: Cantidad,
+  Unidad). **Sin precios ni costos.** El faltante PIPRO sale como «Canal PIPRO»
+  salvo solicitud especial (`state.incluirPipro`).
+- **Excel de control de costos** (`generateRequisicionExcel`), hoja «Control de
+  costos» con secciones A y B y, por sección, dos totales: venta total y
+  **comparable** (sólo partidas con costo). Hoja «Balance de utilidad»: A, B y
+  C (proyecto) apuntan a los renglones comparables.
+- El balance incluye **D. Mano de obra, viáticos y movilidad** (sólo IP), con
+  costo real vs cobrado tomados de `getMOResult()` — ahí el costo sí se conoce,
+  así que su margen es exacto — y **E. Todo lo estimado de la cotización**
+  (material con costo capturado + M.O.). Si hay descuento, una nota avisa que los
+  márgenes son ANTES de descuento.
+- **Excel de control de entregas** (`generateEntregasExcel`,
+  `Control_Entregas_<folio>.xlsx`): todo lo cotizado + soportería con
+  No. de parte, descripción y cantidad cotizada; columnas amarillas para
+  cantidad entregada (acumulada), fecha, recibió y observaciones. Pendiente
+  `MAX(0,D-N(E))` y estado (Pendiente/Parcial/Entregado) por fórmula; avance por
+  sección y del proyecto. `N()` es a propósito: trata la celda vacía como cero.
+- `generateAll()` genera **6 archivos** cuando hay material: cotización (3) +
+  control de material (PDF) + control de costos + control de entregas.
+- Las fórmulas de los dos Excel se verificaron recalculando en Excel real
+  (COM), capturando entregas y costos: no basta con que SheetJS las escriba.
+- **Quién ve qué costo** (`_costoVisible`): lo capturado a mano por la persona
+  (`costoOrigen === 'manual'`) sale; lista PIPRO e internet sólo para admin. Si
+  no, la celda va vacía en amarillo (`capFill`) para capturarse por fuera.
+- Soportería: costo = `_SOP_MAT.precio`; venta = costo × (1 + `UTIL_SOPORTERIA`)
+  = +40 %. Una sola constante para la tabla, su PDF y el Excel.
 - `xlFormula(valor, formula, …)` escribe valor calculado + fórmula. Los totales
-  usan `SUMIF(rango,">0",…)`, nunca `"<>"`: una celda con cadena vacía cuenta
-  como no-vacía y ensuciaría la suma.
-- Importes **siempre en MXN** (`fmtMXN`) aunque la cotización se entregue en USD:
-  es la moneda en que se le paga al proveedor.
-- El bloque B del balance NO calcula utilidad global — el material en almacén
-  tampoco tiene costo aquí; sólo ubica el peso de la requisición sobre el total.
+  comparables usan `SUMIF(rango,">0",…)`, nunca `"<>"`: una celda con cadena
+  vacía cuenta como no-vacía y ensuciaría la suma.
+- Importes **siempre en MXN** (`fmtMXN`) aunque la cotización se entregue en USD.
+- `clasificarMaterial()`: sin regla que coincida, sólo lo que está en el
+  catálogo se asume PIPRO; un material rápido (`TEMP-…`) cae en `otros`. Antes
+  un tornillo capturado a mano se iba por «Canal PIPRO» y no lo compraba nadie.
 
 ## Caídas de presión — criterios de cálculo (auditoría 2026-09)
 

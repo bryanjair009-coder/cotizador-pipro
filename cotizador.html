@@ -1237,18 +1237,18 @@ Descuento = Base × %"></button>
     </div>
   </div>
 
-  <!-- 5b. REQUISICIÓN DE MATERIAL FALTANTE ──────────────────────────────────────
-       Aparece sola en cuanto una partida tiene disponibilidad menor a la cantidad.
-       De aquí salen el PDF que se le manda por correo a compras y el Excel de
-       control, cuyas columnas de proveedor y costo van en blanco: quien cotiza
-       no tiene acceso a esa información y el control se lleva por fuera. -->
+  <!-- 5b. CONTROL DE MATERIAL Y COSTOS ───────────────────────────────────────────
+       Aparece en cuanto hay material en la cotización o soportería. Los dos
+       documentos cubren TODO el proyecto (cada partida con su número de parte +
+       la soportería); la tabla de aquí abajo sólo destaca lo que falta. -->
   <div id="req-seccion" style="display:none;">
     <div class="sec-title" style="display:flex;align-items:center;">
-      5b. Requisición de material faltante
+      5b. Control de material y costos
       <button class="gd-i" type="button"
-              data-info-title="Requisición automática"
-              data-info="Toda partida cuya <b>disponibilidad</b> sea menor a la <b>cantidad</b> entra aquí por sí sola. El <b>material PIPRO queda fuera</b> salvo que lo pidas con el botón de solicitud especial.<br><br>El <b>PDF</b> lleva sólo número de parte, descripción y cantidad: es el que se le manda por correo al equipo de compras.<br><br>El <b>Excel</b> trae las columnas de proveedor y costo unitario <b>en blanco</b>, para llenarlas fuera de la aplicación. En cuanto se capturan, el balance de utilidad se calcula solo."
-              data-formula="Cantidad a solicitar = Cantidad − Disponible"></button>
+              data-info-title="Control de material y costos"
+              data-info="Los dos documentos incluyen <b>todas las partidas de la cotización</b> con su número de parte <b>y la soportería</b> del proyecto.<br><br>El <b>PDF de control de material</b> va a compras: marca cuánto sale de almacén y cuánto hay que surtir, sin precios. El faltante de <b>material PIPRO</b> se surte por su propio canal, salvo solicitud especial.<br><br>El <b>Excel de control de costos</b> lleva proveedor y costo unitario de cada pieza para capturar; la utilidad y el margen se calculan solos."
+              data-formula="Por surtir = Cantidad − En almacén
+Precio de venta soportería = costo × 1.40"></button>
     </div>
     <div class="card">
       <div class="req-resumen" id="req-resumen"></div>
@@ -1270,8 +1270,9 @@ Descuento = Base × %"></button>
       </div>
       <div class="req-nota" id="req-nota"></div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-secondary btn-sm" onclick="generateRequisicionPDF()">🖨 PDF para compras</button>
+        <button class="btn btn-secondary btn-sm" onclick="generateRequisicionPDF()">🖨 PDF de control de material</button>
         <button class="btn btn-secondary btn-sm" onclick="generateRequisicionExcel()">📊 Excel de control de costos</button>
+        <button class="btn btn-secondary btn-sm" onclick="generateEntregasExcel()">📦 Excel de control de entregas</button>
       </div>
     </div>
   </div>
@@ -2564,7 +2565,14 @@ const REGLAS_CAT = [
 function clasificarMaterial(m) {
   const d = String((m && m.descripcion) || '');
   for (const [re, cat] of REGLAS_CAT) if (re.test(d)) return cat;
-  return 'pipro';   // el catálogo es, en su mayoría, la línea PIPRO de aluminio
+  /* Sin regla que coincida: el catálogo es, en su mayoría, la línea PIPRO de
+     aluminio, así que lo que viene del catálogo se asume PIPRO. Lo capturado a
+     mano (Material Rápido, `TEMP-…`) NO: un tornillo de ferretería no debe
+     irse por el canal PIPRO y quedar fuera de lo que compra compras. */
+  const np = String((m && m.numero_parte) || '');
+  const enCatalogo = np && !/^TEMP-/i.test(np) &&
+    state.materiales.some(x => String(x.numero_parte) === np);
+  return enCatalogo ? 'pipro' : 'otros';
 }
 /** Categoría efectiva: manda la guardada; si no hay, se deduce de la descripción. */
 function categoriaDe(m) {
@@ -3399,6 +3407,61 @@ function getReqItems() {
   return getFaltantes().filter(f => !f.pipro || state.incluirPipro);
 }
 
+/* ── Control de material: TODO lo cotizado, no sólo lo que falta ─────────────
+   Cada partida de la cotización con lo que sale de almacén y lo que hay que
+   surtir. `compras` indica si el faltante lo compra compras: el PIPRO va por su
+   propio canal salvo solicitud especial. */
+function getMaterialControl() {
+  return Object.entries(state.carrito).map(([k, it]) => {
+    const cantidad = +it.cantidad || 0;
+    const disp     = (typeof it.disponibilidad === 'number') ? +it.disponibilidad || 0 : cantidad;
+    const almacen  = Math.min(disp, cantidad);
+    const falta    = cantidad - almacen;
+    const pipro    = esMaterialPipro(it);
+    return { k, it, cantidad, almacen, falta, pipro,
+             compras: falta > 0 && (!pipro || state.incluirPipro) };
+  });
+}
+
+/* ── Soportería del proyecto ─────────────────────────────────────────────────
+   Se lee de su propia tabla (incluye los ajustes a mano). Si no hay abrazaderas
+   capturadas la tabla queda oculta pero sus campos siguen en la página con el
+   último valor: por eso se descarta todo cuando la tabla no está visible. */
+const UTIL_SOPORTERIA = 0.40;   // precio de venta = costo + 40 %
+
+function getSoporteria() {
+  const wrap = el('sop-table-wrap');
+  if (!wrap || wrap.style.display === 'none') return [];
+  return _SOP_MAT.map((m, i) => {
+    const inp = document.getElementById(`sop-qty-${i}`);
+    const cantidad = inp ? Math.max(0, parseInt(inp.value) || 0) : 0;
+    return {
+      np: m.np, desc: m.desc, unidad: m.unidad, cantidad,
+      costo: +m.precio || 0,
+      venta: Math.round((+m.precio || 0) * (1 + UTIL_SOPORTERIA) * 100) / 100,
+      consumible: m.cat === 'consumible',
+    };
+  }).filter(s => s.cantidad > 0);
+}
+
+function getControlResumen() {
+  const mats = getMaterialControl(), sop = getSoporteria();
+  return {
+    partidas:        mats.length,
+    piezas:          mats.reduce((s, p) => s + p.cantidad, 0),
+    piezasAlmacen:   mats.reduce((s, p) => s + p.almacen, 0),
+    piezasSurtirMat: mats.reduce((s, p) => s + (p.compras ? p.falta : 0), 0),
+    sopPartidas:     sop.length,
+    sopPiezas:       sop.reduce((s, x) => s + x.cantidad, 0),
+    get piezasSurtir() { return this.piezasSurtirMat + this.sopPiezas; },
+  };
+}
+
+/** ¿Hay algo que documentar en el control de material y costos? */
+function hayMaterialControl() {
+  return Object.keys(state.carrito).length > 0 || getSoporteria().length > 0;
+}
+
 /* Lo cotizado al cliente por las piezas que faltan. El costo de compra NO se
    calcula aquí: quien cotiza no tiene acceso a costos ni a proveedores, así que
    esas dos columnas salen en blanco en el Excel y se llenan por fuera. */
@@ -3444,21 +3507,22 @@ function reqQuitarPipro() {
 function renderRequisicion() {
   const sec = el('req-seccion');
   if (!sec) return;
-  const faltantes = getFaltantes();
-  sec.style.display = faltantes.length ? '' : 'none';
+  const hay = hayMaterialControl();
+  sec.style.display = hay ? '' : 'none';
   actualizarBotonGenerar();
-  if (!faltantes.length) return;
+  if (!hay) return;
 
-  const incluidas  = getReqItems();
+  const faltantes  = getFaltantes();
   const piproTotal = faltantes.filter(f => f.pipro).length;
-  const piezas     = incluidas.reduce((s, f) => s + f.falta, 0);
+  const R = getControlResumen();
 
   el('req-resumen').innerHTML =
-    `<div class="req-cifra alerta"><b>${faltantes.length}</b><span>Partidas sin stock</span></div>` +
-    `<div class="req-cifra"><b>${incluidas.length}</b><span>Entran a requisición</span></div>` +
-    `<div class="req-cifra"><b>${piezas.toLocaleString('es-MX')}</b><span>Piezas a solicitar</span></div>` +
+    `<div class="req-cifra"><b>${R.partidas}</b><span>Partidas cotizadas</span></div>` +
+    (R.sopPartidas ? `<div class="req-cifra"><b>${R.sopPartidas}</b><span>De soportería</span></div>` : '') +
+    `<div class="req-cifra${faltantes.length ? ' alerta' : ''}"><b>${faltantes.length}</b><span>Partidas sin stock</span></div>` +
+    `<div class="req-cifra"><b>${R.piezasSurtir.toLocaleString('es-MX')}</b><span>Piezas por surtir</span></div>` +
     (piproTotal && !state.incluirPipro
-      ? `<div class="req-cifra"><b>${piproTotal}</b><span>PIPRO excluidas</span></div>` : '');
+      ? `<div class="req-cifra"><b>${piproTotal}</b><span>PIPRO por su canal</span></div>` : '');
 
   // Aviso y botón de solicitud especial
   const aviso = el('req-pipro-aviso');
@@ -3480,7 +3544,11 @@ function renderRequisicion() {
        </div>`;
   }
 
-  el('req-tbody').innerHTML = faltantes.map((f, i) => {
+  el('req-tbody').innerHTML = !faltantes.length
+    ? `<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--gd-text-soft);">
+         Todo el material de la cotización está cubierto con almacén. Los documentos de control lo incluyen igual.
+       </td></tr>`
+    : faltantes.map((f, i) => {
     const fuera = f.pipro && !state.incluirPipro;
     const sk = encodeURIComponent(f.k);
     return `<tr class="${fuera ? 'req-fuera' : ''}">
@@ -3500,19 +3568,20 @@ function renderRequisicion() {
 
   const res = getReqResumen();
   el('req-nota').innerHTML =
-    `<b>Valor cotizado del material a solicitar: ${fmtMXN(res.cotizado)}.</b><br>` +
-    `El <b>PDF para compras</b> lleva sólo número de parte, descripción y cantidad, listo para enviarse por correo. ` +
-    `El <b>Excel de control</b> trae las columnas de <b>proveedor</b> y <b>costo unitario</b> en blanco: se llenan fuera de ` +
-    `la aplicación y el balance de utilidad contra lo cotizado se calcula solo dentro del archivo.`;
+    (res.cotizado ? `<b>Valor cotizado del material sin stock: ${fmtMXN(res.cotizado)}.</b><br>` : '') +
+    `Los dos documentos incluyen <b>todo el material de la cotización</b> con su número de parte` +
+    (R.sopPartidas ? ` <b>y la soportería</b> (${R.sopPartidas} partidas, ${R.sopPiezas.toLocaleString('es-MX')} piezas)` : '') +
+    `, no sólo lo que falta. El <b>PDF de control de material</b> marca qué sale de almacén y qué hay que surtir, sin precios. ` +
+    `El <b>Excel de control de costos</b> lleva proveedor y costo unitario por pieza y calcula solo la utilidad y el margen, mano de obra incluida. ` +
+    `El <b>Excel de control de entregas</b> lista lo cotizado para ir registrando lo entregado en obra.`;
 }
 
 /** El botón de «generar todo» dice cuántos archivos va a bajar de verdad. */
 function actualizarBotonGenerar() {
   const btn = el('btn-gen-todo');
   if (!btn) return;
-  const n = getReqItems().length;
-  btn.innerHTML = n
-    ? '📦 Generar los 5 archivos · PDF + Word + Excel + Requisición'
+  btn.innerHTML = hayMaterialControl()
+    ? '📦 Generar los 6 archivos · Cotización (PDF + Word + Excel) + Control de material, costos y entregas'
     : '📦 Generar los 3 archivos · PDF + Word + Excel';
 }
 
@@ -4674,9 +4743,12 @@ ${(() => {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   ENTREGABLES DE LA REQUISICIÓN
-   Los dos son internos. El PDF va a compras; el Excel es el control de costos
-   unitarios y el balance de utilidad contra lo cotizado al cliente.
+   CONTROL DE MATERIAL Y CONTROL DE COSTOS
+   Los dos documentos cubren TODO el material del proyecto: cada partida de la
+   cotización con su número de parte, más la soportería. Se marca qué sale de
+   almacén y qué hay que surtir, pero ya no se omite nada.
+   Son internos: el PDF va a compras; el Excel es el control de costos de cada
+   pieza y el balance de utilidad contra lo cotizado al cliente.
    ════════════════════════════════════════════════════════════════════════════ */
 
 function _reqEncabezadoDatos() {
@@ -4693,13 +4765,21 @@ function _reqEncabezadoDatos() {
   };
 }
 
+/** Texto de la columna «Por surtir» de una partida de la cotización. */
+function _porSurtirTxt(p) {
+  if (!p.falta) return '—';
+  if (p.pipro && !state.incluirPipro) return 'Canal PIPRO';
+  return String(p.falta);
+}
+
 function generateRequisicionPDF() {
   if (!validateForm()) return;
-  const reqs = getReqItems();
-  if (!reqs.length) { toast('No hay material faltante para requisitar'); return; }
+  const mats = getMaterialControl();
+  const sop  = getSoporteria();
+  if (!mats.length && !sop.length) { toast('No hay material en la cotización'); return; }
 
   const D = _reqEncabezadoDatos();
-  const llevaPipro = state.incluirPipro && reqs.some(f => f.pipro);
+  const R = getControlResumen();
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'letter' });
@@ -4712,9 +4792,9 @@ function generateRequisicionPDF() {
     const logo = window.LOGO_GD || null;
     if (logo) { try { doc.addImage(logo, 'PNG', ML, 4, 30, 11); } catch(e) {} }
     doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
-    doc.text('Requisición de Material', ML + 33, 9);
+    doc.text('Control de Material', ML + 33, 9);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    doc.text('Gardner Denver México  ·  Documento interno de compras', ML + 33, 14);
+    doc.text('Gardner Denver México  ·  Requisición y lista completa del proyecto', ML + 33, 14);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
     doc.text(D.folioReq, PW - ML, 9, { align: 'right' });
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
@@ -4734,86 +4814,129 @@ function generateRequisicionPDF() {
     pagesReady.add(pg);
     drawHeader(); drawFooter();
   }
+  function nuevaPaginaSi(yy, falta) {
+    if (yy + falta > FBOT - 10) { doc.addPage(); setupPage(); return HTOP + 5; }
+    return yy;
+  }
   function secTitle(txt, yy) {
-    if (yy + 14 > FBOT - 10) { doc.addPage(); setupPage(); yy = HTOP + 5; }
+    yy = nuevaPaginaSi(yy, 20);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...RED);
     doc.text(txt, ML, yy);
     doc.setDrawColor(...RED); doc.setLineWidth(0.4); doc.line(ML, yy + 1, PW - ML, yy + 1);
     doc.setTextColor(...DARK);
     return yy + 7;
   }
+  const estiloTabla = {
+    margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
+    theme: 'plain',
+    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.4, textColor: [40, 40, 40] },
+    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+    footStyles: { fillColor: [214, 228, 240], textColor: [30, 30, 38], fontStyle: 'bold', fontSize: 8 },
+    alternateRowStyles: { fillColor: [237, 244, 251] },
+    didDrawPage: () => setupPage(),
+  };
 
   setupPage();
   let y = HTOP + 4;
 
-  y = secTitle('DATOS DE LA SOLICITUD', y);
+  y = secTitle('DATOS DEL PROYECTO', y);
   doc.setFontSize(8.5);
-  const campos = [
+  [
     ['Cliente / Proyecto:', D.empresa + (D.proyecto ? '  ·  ' + D.proyecto : '')],
     ['Cotización relacionada:', D.folioCot],
     ['Fecha:', D.fechaStr],
     ['Solicita:', D.solicita || 'Departamento de Ingeniería'],
-    ['Motivo:', 'Material sin disponibilidad suficiente en almacén'],
-  ];
-  campos.forEach(([lbl, val]) => {
+    ['Resumen:', `${R.partidas} partidas de cotización` +
+                 (R.sopPartidas ? ` + ${R.sopPartidas} de soportería` : '') +
+                 ` · ${R.piezasSurtir.toLocaleString('es-MX')} piezas por surtir vía compras`],
+  ].forEach(([lbl, val]) => {
     doc.setFont('helvetica', 'bold'); doc.setTextColor(...GRAY);
     doc.text(lbl, ML, y);
     doc.setFont('helvetica', 'normal'); doc.setTextColor(...DARK);
-    doc.text(doc.splitTextToSize(String(val), PW - ML * 2 - 42), ML + 42, y);
-    y += 5.2;
+    const t = doc.splitTextToSize(String(val), PW - ML * 2 - 42);
+    doc.text(t, ML + 42, y);
+    y += 5.2 * Math.max(1, t.length);
   });
   y += 3;
 
-  y = secTitle('MATERIAL SOLICITADO', y);
+  /* Sin precios ni costos: este PDF se le manda a compras por correo. */
+  if (mats.length) {
+    y = secTitle('A. MATERIAL DE LA COTIZACIÓN', y);
+    doc.autoTable({
+      ...estiloTabla,
+      startY: y,
+      head: [['#', 'No. de Parte', 'Descripción', 'Cantidad', 'En almacén', 'Por surtir']],
+      body: mats.map((p, i) => [
+        String(i + 1), p.it.numero_parte, p.it.descripcion,
+        String(p.cantidad), String(p.almacen), _porSurtirTxt(p),
+      ]),
+      foot: [['', '', 'TOTALES', String(R.piezas), String(R.piezasAlmacen), String(R.piezasSurtirMat)]],
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 9 },
+        1: { font: 'courier', fontSize: 8, cellWidth: 34 },
+        2: { cellWidth: 'auto' },
+        3: { halign: 'center', cellWidth: 18 },
+        4: { halign: 'center', cellWidth: 19 },
+        5: { halign: 'center', cellWidth: 22 },
+      },
+      didParseCell: (data) => {
+        const p = mats[data.row.index];
+        if (data.section === 'body' && p) {
+          if (p.pipro) data.cell.styles.fillColor = [226, 239, 250];
+          else if (p.falta) data.cell.styles.fillColor = [255, 248, 214];
+          if (data.column.index === 5 && p.falta && p.compras) data.cell.styles.fontStyle = 'bold';
+        }
+        if (data.section === 'foot' && data.column.index === 2) data.cell.styles.halign = 'right';
+        if (data.section === 'foot' && data.column.index >= 3) data.cell.styles.halign = 'center';
+      },
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
 
-  /* Sólo número de parte, descripción y cantidad: este PDF se le manda por
-     correo al equipo de compras y no debe llevar precios de venta ni costos. */
-  const totalPiezas = reqs.reduce((s, f) => s + f.falta, 0);
-  const body = reqs.map((f, i) => [
-    String(i + 1),
-    f.it.numero_parte,
-    f.it.descripcion,
-    String(f.falta),
-  ]);
+  if (sop.length) {
+    y = secTitle('B. SOPORTERÍA', y);
+    doc.autoTable({
+      ...estiloTabla,
+      startY: y,
+      head: [['#', 'No. de Parte', 'Descripción', 'Cantidad', 'Unidad']],
+      body: sop.map((s, i) => [
+        String(i + 1), s.np, s.desc + (s.consumible ? '  (consumible)' : ''),
+        String(s.cantidad), s.unidad,
+      ]),
+      foot: [['', '', 'TOTAL DE PIEZAS', String(R.sopPiezas), '']],
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 9 },
+        1: { font: 'courier', fontSize: 8, cellWidth: 40 },
+        2: { cellWidth: 'auto' },
+        3: { halign: 'center', cellWidth: 20 },
+        4: { halign: 'center', cellWidth: 18 },
+      },
+      didParseCell: (data) => {
+        if (data.section === 'foot' && data.column.index === 2) data.cell.styles.halign = 'right';
+        if (data.section === 'foot' && data.column.index === 3) data.cell.styles.halign = 'center';
+      },
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  }
 
-  doc.autoTable({
-    startY: y,
-    head: [['#', 'No. de Parte', 'Descripción', 'Cantidad']],
-    body,
-    foot: [['', '', 'TOTAL DE PIEZAS', String(totalPiezas)]],
-    margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
-    theme: 'plain',
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: 2.8, textColor: [40, 40, 40] },
-    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 8.5, fontStyle: 'bold' },
-    footStyles: { fillColor: [214, 228, 240], textColor: [30, 30, 38], fontStyle: 'bold', fontSize: 8.5 },
-    alternateRowStyles: { fillColor: [237, 244, 251] },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 11 },
-      1: { font: 'courier', fontSize: 8.5, cellWidth: 38 },
-      2: { cellWidth: 'auto' },
-      3: { halign: 'center', cellWidth: 26 },
-    },
-    didParseCell: (data) => {
-      // Las partidas PIPRO entraron por solicitud especial: se señalan
-      if (data.section === 'body' && reqs[data.row.index] && reqs[data.row.index].pipro) {
-        data.cell.styles.fillColor = [226, 239, 250];
-      }
-      if (data.section === 'foot' && data.column.index === 2) data.cell.styles.halign = 'right';
-    },
-    didDrawPage: () => setupPage(),
-  });
-  y = doc.lastAutoTable.finalY + 6;
-
-  if (llevaPipro) {
+  // Leyenda
+  const leyenda = [];
+  if (mats.some(p => p.falta && !p.pipro)) leyenda.push('Amarillo: partida que no alcanza a cubrirse con almacén; la cantidad en «Por surtir» es lo que hay que comprar.');
+  if (mats.some(p => p.pipro)) leyenda.push(state.incluirPipro
+    ? 'Azul: material PIPRO, incluido en la compra por solicitud especial.'
+    : 'Azul: material PIPRO. Lo que falta se surte por su propio canal («Canal PIPRO»), no por compras.');
+  if (leyenda.length) {
+    y = nuevaPaginaSi(y, 6 + leyenda.length * 5);
     doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    const t = doc.splitTextToSize(
-      'Las partidas sombreadas en azul son material PIPRO y se incluyeron por solicitud especial del solicitante.',
-      PW - ML * 2);
-    doc.text(t, ML, y); y += t.length * 4 + 3;
+    leyenda.forEach(t => {
+      const l = doc.splitTextToSize(t, PW - ML * 2);
+      doc.text(l, ML, y); y += l.length * 4 + 1;
+    });
+    y += 2;
   }
 
   // Firmas
-  if (y + 30 > FBOT - 10) { doc.addPage(); setupPage(); y = HTOP + 5; }
+  y = nuevaPaginaSi(y, 34);
   y = Math.max(y + 8, FBOT - 34);
   const anchoF = (PW - ML * 2 - 16) / 3;
   ['Solicita', 'Autoriza', 'Recibe compras'].forEach((rol, i) => {
@@ -4829,8 +4952,8 @@ function generateRequisicionPDF() {
   });
 
   const suf = state.editandoFolio ? '-EDITADO' : '';
-  doc.save(('Requisicion_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.pdf');
-  toast('🖨 PDF de requisición descargado');
+  doc.save(('Control_Material_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.pdf');
+  toast('🖨 PDF de control de material descargado');
 }
 
 /* Celda con fórmula. Lleva también el valor ya calculado: así el número se ve
@@ -4843,105 +4966,183 @@ function xlFormula(valor, formula, bold, fillRgb, fontColor, numFmt, hAlign) {
   return cell;
 }
 
+/* Encabezado de tabla en dos renglones. xlCell no ajusta texto, y en columnas
+   angostas «Cantidad entregada» salía cortado («antidad entregad»). Ajustar el
+   texto con renglón alto mantiene las columnas angostas, que es lo que permite
+   imprimir la hoja completa en horizontal. */
+function xlEncabezado(ws, fila, textos, aligns, fill) {
+  textos.forEach((h, c) => {
+    const cell = xlCell(h, true, fill, 'FFFFFF', null, aligns[c]);
+    cell.s.alignment.wrapText = true;
+    cell.s.alignment.vertical = 'center';
+    ws[XLSX.utils.encode_cell({ r: fila, c })] = cell;
+  });
+  (ws['!rows'] = ws['!rows'] || [])[fila] = { hpt: 28 };
+}
+
+// Márgenes estrechos: es lo único de impresión que la librería sí guarda
+const XL_MARGENES = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+
+/* ¿Puede esta sesión ver el costo de esta partida en el Excel?
+   - Lo que la propia persona capturó a mano en el botón $ es suyo: sí.
+   - La lista de compra (PIPRO) y lo aprendido de internet vienen del catálogo:
+     sólo un administrador. Para los demás la celda sale vacía, en amarillo,
+     como se acordó: quien cotiza no tiene acceso a los costos. */
+function _costoVisible(it) {
+  const c = +it.costoCompra || 0;
+  if (!c) return 0;
+  if (it.costoOrigen === 'manual') return c;
+  return (GD.sesion && GD.sesion.esAdmin) ? c : 0;
+}
+
 function generateRequisicionExcel() {
   if (!validateForm()) return;
-  const reqs = getReqItems();
-  if (!reqs.length) { toast('No hay material faltante para requisitar'); return; }
+  const mats = getMaterialControl();
+  const sop  = getSoporteria();
+  if (!mats.length && !sop.length) { toast('No hay material en la cotización'); return; }
 
   const D = _reqEncabezadoDatos();
   const d = collectData();
   const wb = XLSX.utils.book_new();
-  const hdrFill = '1F3864', altFill = 'EBF5FB', lblFill = 'D6E4F0',
-        totFill = 'D6E4F0', capFill = 'FFF59D';   // amarillo = celda a capturar
+  const hdrFill = '1F3864', secFill = '2E4A7A', altFill = 'EBF5FB', lblFill = 'D6E4F0',
+        totFill = 'D6E4F0', capFill = 'FFF59D', piproFill = 'E2EFFA';
 
-  // ── Hoja 1: la requisición con su control de costos ────────────────────────
+  // ── Hoja 1: control de costos de cada pieza ────────────────────────────────
   const ws = {}, merges = [];
   const set = (row, col, cell) => { ws[XLSX.utils.encode_cell({ r: row, c: col })] = cell; };
   const merge = (sr, sc, er, ec) => merges.push({ s: { r: sr, c: sc }, e: { r: er, c: ec } });
+  const ULT = 13;   // última columna (N)
   let r = 0;
 
-  set(r, 0, xlCell('REQUISICIÓN DE MATERIAL  ·  CONTROL DE COSTOS  ·  USO INTERNO', true, hdrFill, 'FFFFFF', null, 'center'));
-  merge(r, 0, r, 10); r++;
+  set(r, 0, xlCell('CONTROL DE COSTOS DEL PROYECTO  ·  MATERIAL Y SOPORTERÍA  ·  USO INTERNO', true, hdrFill, 'FFFFFF', null, 'center'));
+  merge(r, 0, r, ULT); r++;
 
   [['Cliente:', D.empresa],
    ['Proyecto:', D.proyecto],
    ['Cotización:', D.folioCot],
-   ['Requisición:', D.folioReq],
+   ['Documento:', D.folioReq],
    ['Fecha:', D.fechaStr],
    ['Solicita:', D.solicita],
   ].forEach(([lbl, val]) => {
     set(r, 0, xlCell(lbl, true, lblFill, null, null, 'right'));
-    set(r, 1, xlCell(val || '', false, null, null, null, 'left'));
-    merge(r, 1, r, 10); r++;
+    merge(r, 0, r, 1);
+    set(r, 2, xlCell(val || '', false, null, null, null, 'left'));
+    merge(r, 2, r, ULT); r++;
   });
-  r++;
-
-  const hdrs = ['#', 'Descripción', 'No. de Parte', 'Cantidad', 'Proveedor',
-                'Costo unitario', 'Costo total', 'Precio cotizado', 'Total cotizado',
-                'Utilidad', 'Margen %'];
-  const aligns = ['center','center','center','center','center','right','right','right','right','right','center'];
-  hdrs.forEach((h, c) => set(r, c, xlCell(h, true, hdrFill, 'FFFFFF', null, aligns[c])));
-  r++;
-
-  /* Proveedor y costo unitario salen EN BLANCO, marcados en amarillo: quien
-     cotiza no tiene acceso a esa información, así que el control se lleva fuera
-     de la aplicación. Las fórmulas ya están puestas, de modo que al capturar un
-     costo aquí dentro la utilidad, el margen y el balance se calculan solos. */
-  const primeraFila = r + 1;                 // 1-based, para las fórmulas
-  reqs.forEach((f, i) => {
-    const fila = r + 1;
-    const fill = f.pipro ? 'E2EFFA' : (i % 2 === 0 ? altFill : 'FFFFFF');
-    const pc = +f.it.precio || 0;
-    const tc = pc * f.falta;
-    set(r, 0, xlCell(i + 1, false, fill, null, null, 'center'));
-    set(r, 1, xlCell(f.it.descripcion + (f.pipro ? '  [PIPRO · solicitud especial]' : ''), false, fill, null, null, 'left'));
-    set(r, 2, xlCell(f.it.numero_parte, false, fill, null, null, 'center'));
-    set(r, 3, xlCell(f.falta, false, fill, null, '#,##0', 'center'));
-    set(r, 4, xlCell('', false, capFill, null, null, 'left'));                    // ← capturar
-    set(r, 5, xlCell('', false, capFill, null, '$#,##0.00', 'right'));            // ← capturar
-    set(r, 6, xlFormula(0, `IF(F${fila}="","",D${fila}*F${fila})`, false, fill, null, '$#,##0.00', 'right'));
-    set(r, 7, xlCell(pc, false, fill, null, '$#,##0.00', 'right'));
-    set(r, 8, xlFormula(tc, `D${fila}*H${fila}`, false, fill, null, '$#,##0.00', 'right'));
-    set(r, 9, xlFormula(0, `IF(F${fila}="","",I${fila}-G${fila})`, false, fill, null, '$#,##0.00', 'right'));
-    set(r, 10, xlFormula(0, `IF(OR(F${fila}="",I${fila}=0),"",J${fila}/I${fila})`, false, fill, null, '0.0%', 'center'));
-    // Las celdas de utilidad y margen nacen vacías: no hay costo todavía
-    ws[XLSX.utils.encode_cell({ r, c: 6 })].v = '';  ws[XLSX.utils.encode_cell({ r, c: 6 })].t = 's';
-    ws[XLSX.utils.encode_cell({ r, c: 9 })].v = '';  ws[XLSX.utils.encode_cell({ r, c: 9 })].t = 's';
-    ws[XLSX.utils.encode_cell({ r, c: 10 })].v = ''; ws[XLSX.utils.encode_cell({ r, c: 10 })].t = 's';
-    r++;
-  });
-  const ultimaFila = r;                      // 1-based de la última partida
-  const cotizadoTotal = reqs.reduce((s, f) => s + (+f.it.precio || 0) * f.falta, 0);
-  const rangoCosto = `$F$${primeraFila}:$F$${ultimaFila}`;
-
-  // Totales — el costo sólo suma lo que ya se haya capturado
-  set(r, 0, xlCell('TOTALES', true, totFill, null, null, 'right'));
-  merge(r, 0, r, 5);
-  const totFila = r + 1;
-  set(r, 6,  xlFormula(0, `SUM($G$${primeraFila}:$G$${ultimaFila})`, true, totFill, null, '$#,##0.00', 'right'));
-  set(r, 7,  xlCell('', true, totFill, null, null, 'right'));
-  // ">0" excluye las celdas vacías sin ambigüedad: sólo cuenta lo ya capturado
-  set(r, 8,  xlFormula(0, `SUMIF(${rangoCosto},">0",$I$${primeraFila}:$I$${ultimaFila})`, true, totFill, null, '$#,##0.00', 'right'));
-  set(r, 9,  xlFormula(0, `I${totFila}-G${totFila}`, true, totFill, null, '$#,##0.00', 'right'));
-  set(r, 10, xlFormula(0, `IF(I${totFila}=0,0,J${totFila}/I${totFila})`, true, totFill, null, '0.0%', 'center'));
   r++;
 
   set(r, 0, xlCell(
-    'Captura el PROVEEDOR y el COSTO UNITARIO en las celdas amarillas. El costo total, la utilidad, ' +
-    'el margen y el balance de la segunda hoja se calculan solos conforme los vayas llenando. ' +
-    'La columna «Total cotizado» sólo suma las partidas que ya tienen costo, para que el margen ' +
-    'compare cosas equivalentes.',
+    'Captura el PROVEEDOR y el COSTO UNITARIO en las celdas amarillas. El costo total, la utilidad, el margen ' +
+    'y la hoja «Balance de utilidad» se calculan solos. La utilidad sólo compara partidas con costo capturado.',
     true, capFill, null, null, 'left'));
-  merge(r, 0, r, 10); r++;
-  r += 1;
+  merge(r, 0, r, ULT); r += 2;
 
-  set(r, 0, xlCell('Los importes están en pesos (MXN). El costo unitario es lo que se le paga al proveedor; el precio cotizado es el ofrecido al cliente en su valor base en MXN, aunque la cotización se entregue en otra moneda.', false, null, '777777', null, 'left'));
-  merge(r, 0, r, 10); r++;
+  const hdrs = ['#', 'Descripción', 'No. de Parte', 'Categoría', 'Cantidad', 'En almacén', 'Por surtir',
+                'Proveedor', 'Costo unitario', 'Costo total', 'Precio venta', 'Total venta',
+                'Utilidad', 'Margen %'];
+  const aligns = ['center','center','center','center','center','center','center',
+                  'center','right','right','right','right','right','center'];
+  const encabezado = () => {
+    xlEncabezado(ws, r, hdrs, aligns, hdrFill);
+    r++;
+  };
+  const tituloSeccion = (t) => {
+    set(r, 0, xlCell(t, true, secFill, 'FFFFFF', null, 'left'));
+    merge(r, 0, r, ULT); r++;
+  };
+
+  /** Una fila de pieza. Devuelve los valores para los totales precalculados. */
+  const filaPieza = (n, desc, np, cat, cant, almacen, surtir, costo, venta, fill) => {
+    const f = r + 1;
+    const ct = costo ? costo * cant : 0, tv = venta * cant, ut = costo ? tv - ct : 0;
+    set(r, 0,  xlCell(n, false, fill, null, null, 'center'));
+    set(r, 1,  xlCell(desc, false, fill, null, null, 'left'));
+    set(r, 2,  xlCell(np, false, fill, null, null, 'center'));
+    set(r, 3,  xlCell(cat, false, fill, null, null, 'center'));
+    set(r, 4,  xlCell(cant, false, fill, null, '#,##0', 'center'));
+    set(r, 5,  typeof almacen === 'number' ? xlCell(almacen, false, fill, null, '#,##0', 'center') : xlCell(almacen, false, fill, '999999', null, 'center'));
+    set(r, 6,  typeof surtir === 'number' ? xlCell(surtir, !!surtir, fill, null, '#,##0', 'center') : xlCell(surtir, false, fill, null, null, 'center'));
+    set(r, 7,  xlCell('', false, capFill, null, null, 'left'));                                 // ← capturar
+    set(r, 8,  costo ? xlCell(costo, false, fill, null, '$#,##0.00', 'right')
+                     : xlCell('', false, capFill, null, '$#,##0.00', 'right'));                // ← capturar
+    set(r, 9,  xlFormula(ct, `IF(I${f}="","",E${f}*I${f})`, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 10, xlCell(venta, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 11, xlFormula(tv, `E${f}*K${f}`, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 12, xlFormula(ut, `IF(I${f}="","",L${f}-J${f})`, false, fill, null, '$#,##0.00', 'right'));
+    set(r, 13, xlFormula(tv && costo ? ut / tv : 0, `IF(OR(I${f}="",L${f}=0),"",M${f}/L${f})`, false, fill, null, '0.0%', 'center'));
+    if (!costo) {   // sin costo, utilidad y margen nacen vacíos
+      [9, 12, 13].forEach(c => { const x = ws[XLSX.utils.encode_cell({ r, c })]; x.v = ''; x.t = 's'; });
+    }
+    r++;
+    return { ct, tv, conCosto: !!costo };
+  };
+
+  /** Totales de una sección. Devuelve la fila (1-based) del renglón comparable. */
+  const totalesSeccion = (etiqueta, desde, hasta, filas) => {
+    const venta = filas.reduce((s, x) => s + x.tv, 0);
+    const costo = filas.reduce((s, x) => s + x.ct, 0);
+    const ventaComp = filas.filter(x => x.conCosto).reduce((s, x) => s + x.tv, 0);
+    const util = ventaComp - costo;
+    const rng = c => `$${c}$${desde}:$${c}$${hasta}`;
+
+    set(r, 0, xlCell(`${etiqueta} · venta total (todas las partidas)`, true, lblFill, null, null, 'right'));
+    merge(r, 0, r, 10);
+    set(r, 11, xlFormula(venta, `SUM(${rng('L')})`, true, lblFill, null, '$#,##0.00', 'right'));
+    set(r, 12, xlCell('', true, lblFill)); set(r, 13, xlCell('', true, lblFill));
+    r++;
+
+    const fc = r + 1;
+    set(r, 0, xlCell(`${etiqueta} · comparable (sólo partidas con costo)`, true, totFill, null, null, 'right'));
+    merge(r, 0, r, 8);
+    set(r, 9,  xlFormula(costo, `SUM(${rng('J')})`, true, totFill, null, '$#,##0.00', 'right'));
+    set(r, 10, xlCell('', true, totFill));
+    // ">0" excluye las celdas vacías sin ambigüedad: sólo cuenta lo ya capturado
+    set(r, 11, xlFormula(ventaComp, `SUMIF(${rng('I')},">0",${rng('L')})`, true, totFill, null, '$#,##0.00', 'right'));
+    set(r, 12, xlFormula(util, `L${fc}-J${fc}`, true, totFill, null, '$#,##0.00', 'right'));
+    set(r, 13, xlFormula(ventaComp ? util / ventaComp : 0, `IF(L${fc}=0,0,M${fc}/L${fc})`, true, totFill, null, '0.0%', 'center'));
+    r += 2;
+    return { fc, venta, costo, ventaComp, util, pendientes: filas.filter(x => !x.conCosto).length };
+  };
+
+  // ── A. Material de la cotización ──
+  let secA = null;
+  if (mats.length) {
+    tituloSeccion('A. MATERIAL DE LA COTIZACIÓN');
+    encabezado();
+    const desde = r + 1, filas = [];
+    mats.forEach((p, i) => {
+      const fill = p.pipro ? piproFill : (p.falta ? 'FFF8D6' : (i % 2 === 0 ? altFill : 'FFFFFF'));
+      const surtir = !p.falta ? 0 : (p.pipro && !state.incluirPipro ? 'Canal PIPRO' : p.falta);
+      filas.push(filaPieza(i + 1, p.it.descripcion, p.it.numero_parte,
+        catEtiqueta(p.it.categoria || categoriaDe(p.it)), p.cantidad, p.almacen, surtir,
+        _costoVisible(p.it), +p.it.precio || 0, fill));
+    });
+    secA = totalesSeccion('Material', desde, r, filas);
+  }
+
+  // ── B. Soportería ──
+  let secB = null;
+  if (sop.length) {
+    tituloSeccion(`B. SOPORTERÍA  ·  precio de venta = costo + ${(UTIL_SOPORTERIA * 100).toFixed(0)} %`);
+    encabezado();
+    const desde = r + 1, filas = [];
+    sop.forEach((s, i) => {
+      const fill = s.consumible ? 'FFF3E0' : (i % 2 === 0 ? altFill : 'FFFFFF');
+      filas.push(filaPieza(i + 1, s.desc, s.np, s.consumible ? 'Consumible' : 'Soportería',
+        s.cantidad, 'n/d', s.cantidad, s.costo, s.venta, fill));
+    });
+    secB = totalesSeccion('Soportería', desde, r, filas);
+  }
+
+  set(r, 0, xlCell('Importes en pesos (MXN). El precio de venta del material es el ofrecido al cliente en su valor base en MXN, aunque la cotización se entregue en otra moneda. «En almacén» no aplica a la soportería: se considera completa por surtir.', false, null, '777777', null, 'left'));
+  merge(r, 0, r, ULT); r++;
 
   ws['!merges'] = merges;
-  ws['!cols'] = [{wch:4},{wch:44},{wch:15},{wch:10},{wch:22},{wch:14},{wch:14},{wch:15},{wch:15},{wch:14},{wch:10}];
-  ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:r, c:10} });
-  XLSX.utils.book_append_sheet(wb, ws, 'Requisición');
+  ws['!cols'] = [{wch:4},{wch:42},{wch:18},{wch:14},{wch:9},{wch:10},{wch:12},
+                 {wch:20},{wch:13},{wch:13},{wch:13},{wch:14},{wch:13},{wch:9}];
+  ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:r, c:ULT} });
+  ws['!margins'] = XL_MARGENES;
+  XLSX.utils.book_append_sheet(wb, ws, 'Control de costos');
 
   // ── Hoja 2: balance de utilidad ───────────────────────────────────────────
   const bs = {}, bmerges = [];
@@ -4949,11 +5150,11 @@ function generateRequisicionExcel() {
   const bmerge = (sr, sc, er, ec) => bmerges.push({ s:{r:sr,c:sc}, e:{r:er,c:ec} });
   let br = 0;
 
-  bset(br, 0, xlCell('BALANCE DE UTILIDAD  ·  COSTO DE COMPRA CONTRA PRECIO COTIZADO', true, hdrFill, 'FFFFFF', null, 'center'));
+  bset(br, 0, xlCell('BALANCE DE UTILIDAD  ·  COSTO DE COMPRA CONTRA PRECIO DE VENTA', true, hdrFill, 'FFFFFF', null, 'center'));
   bmerge(br, 0, br, 3); br += 2;
 
-  /* `linea` escribe en la fila `br` y avanza. La fila de Excel (1-based) de la
-     línea que se va a escribir es siempre br+1: por eso las referencias se
+  /* `linea` escribe en la fila `br` y avanza; la fila de Excel (1-based) de la
+     línea que se va a escribir es siempre br+1, así que las referencias se
      capturan ANTES de llamar. */
   const filaActual = () => br + 1;
   const linea = (lbl, valor, formula, fmtN, destaca) => {
@@ -4969,55 +5170,251 @@ function generateRequisicionExcel() {
     bset(br, 0, xlCell(t, true, hdrFill, 'FFFFFF', null, 'left'));
     bmerge(br, 0, br, 3); br++;
   };
+  const HC = "'Control de costos'!";   // nombre de hoja con espacios: entrecomillado
 
-  const HR = "'Requisición'!";   // el nombre de hoja con acento va entrecomillado
-
-  bset(br, 0, xlCell('Este balance se llena solo conforme se capturen los costos en la hoja «Requisición». Hasta entonces las cifras salen en cero.', false, capFill, null, null, 'left'));
+  bset(br, 0, xlCell('Cada bloque sólo compara partidas con costo capturado. Al capturar costos en la hoja «Control de costos» este balance se actualiza solo.', false, capFill, null, null, 'left'));
   bmerge(br, 0, br, 3); br += 2;
 
-  titulo('A. Material que entra a requisición');
-  linea('Costo de compra (capturado)', 0, `${HR}G${totFila}`);
-  const filaCotA = filaActual();
-  linea('Precio cotizado de ese material', 0, `${HR}I${totFila}`);
-  const filaUtilA = filaActual();
-  linea('Utilidad', 0, `${HR}J${totFila}`, null, true);
-  linea('Margen', 0, `IF(D${filaCotA}=0,0,D${filaUtilA}/D${filaCotA})`, '0.0%', true);
-  br++;
+  const bloque = (t, sec) => {
+    titulo(t);
+    const fC = filaActual(); linea('Costo de compra', sec.costo, `${HC}J${sec.fc}`);
+    const fV = filaActual(); linea('Precio de venta (partidas con costo)', sec.ventaComp, `${HC}L${sec.fc}`);
+    const fU = filaActual(); linea('Utilidad', sec.util, `D${fV}-D${fC}`, null, true);
+    linea('Margen', sec.ventaComp ? sec.util / sec.ventaComp : 0, `IF(D${fV}=0,0,D${fU}/D${fV})`, '0.0%', true);
+    if (sec.pendientes) {
+      bset(br, 0, xlCell(`${sec.pendientes === 1 ? '1 partida' : sec.pendientes + ' partidas'} sin costo capturado todavía.`, false, capFill, null, null, 'left'));
+      bmerge(br, 0, br, 3); br++;
+    }
+    br++;
+    return { fC, fV };
+  };
 
-  /* El bloque B ubica el peso de la requisición dentro de la cotización.
-     No se calcula una utilidad global porque el material que sí hay en almacén
-     tampoco tiene costo capturado aquí: eso daría un número inventado. */
+  const refs = [];
+  if (secA) refs.push(bloque('A. Material de la cotización', secA));
+  if (secB) refs.push(bloque('B. Soportería', secB));
+
+  const costoMat = (secA ? secA.costo : 0) + (secB ? secB.costo : 0);
+  const ventaMat = (secA ? secA.ventaComp : 0) + (secB ? secB.ventaComp : 0);
+  let refMat = refs.length === 1 ? refs[0] : null;
+  if (refs.length > 1) {
+    titulo('C. Material + soportería');
+    const fC = filaActual(); linea('Costo de compra', costoMat, refs.map(x => 'D' + x.fC).join('+'));
+    const fV = filaActual(); linea('Precio de venta (partidas con costo)', ventaMat, refs.map(x => 'D' + x.fV).join('+'));
+    const fU = filaActual(); linea('Utilidad', ventaMat - costoMat, `D${fV}-D${fC}`, null, true);
+    linea('Margen', ventaMat ? (ventaMat - costoMat) / ventaMat : 0, `IF(D${fV}=0,0,D${fU}/D${fV})`, '0.0%', true);
+    refMat = { fC, fV };
+    br++;
+  }
+
+  /* Mano de obra, viáticos, movilidad y equipo: aquí el costo real SÍ se conoce
+     (sale del propio cálculo de M.O.), así que su margen es exacto. Con esto el
+     análisis cubre todo lo estimado de la cotización, no sólo el material. */
+  const mo = (d.tipo === 'ip' && d.mo_res) ? d.mo_res : null;
+  if (mo && mo.total_mo_equipo_viaticos > 0) {
+    titulo('D. Mano de obra, viáticos y movilidad');
+    // Tabla de 4 columnas: concepto | costo real | cobrado | utilidad
+    bset(br, 0, xlCell('Concepto', true, lblFill, null, null, 'left'));
+    bset(br, 1, xlCell('Costo real', true, lblFill, null, null, 'right'));
+    bset(br, 2, xlCell('Cobrado', true, lblFill, null, null, 'right'));
+    bset(br, 3, xlCell('Utilidad', true, lblFill, null, null, 'right'));
+    br++;
+    const desde = br + 1;
+    [
+      ['Mano de obra',              mo.costo_mo_real,        mo.costo_mo],
+      ['Comidas y hospedaje',       mo.total_viaticos_real,  mo.total_viaticos],
+      ['Movilidad (auto + vuelo)',  mo.total_movilidad_real, mo.total_movilidad],
+      ['Equipo de maniobras',       mo.total_plataformas,    mo.total_plataformas],
+    ].forEach(([lbl, real, cobrado]) => {
+      const f = br + 1;
+      bset(br, 0, xlCell(lbl, false, null, null, null, 'left'));
+      bset(br, 1, xlCell(+real || 0, false, null, null, '$#,##0.00', 'right'));
+      bset(br, 2, xlCell(+cobrado || 0, false, null, null, '$#,##0.00', 'right'));
+      bset(br, 3, xlFormula((+cobrado || 0) - (+real || 0), `C${f}-B${f}`, false, null, null, '$#,##0.00', 'right'));
+      br++;
+    });
+    const hasta = br;
+    const moReal = mo.costo_mo_real + mo.total_viaticos_real + mo.total_movilidad_real + mo.total_plataformas;
+    const moCob  = mo.total_mo_equipo_viaticos;
+    const fT = br + 1;
+    bset(br, 0, xlCell('Total', true, lblFill, null, null, 'left'));
+    bset(br, 1, xlFormula(moReal, `SUM(B${desde}:B${hasta})`, true, lblFill, null, '$#,##0.00', 'right'));
+    bset(br, 2, xlFormula(moCob,  `SUM(C${desde}:C${hasta})`, true, lblFill, null, '$#,##0.00', 'right'));
+    bset(br, 3, xlFormula(moCob - moReal, `C${fT}-B${fT}`, true, lblFill, null, '$#,##0.00', 'right'));
+    br++;
+    linea('Margen de mano de obra y viáticos', moCob ? (moCob - moReal) / moCob : 0,
+          `IF(C${fT}=0,0,D${fT}/C${fT})`, '0.0%', true);
+    br++;
+
+    if (refMat) {
+      titulo('E. Todo lo estimado de la cotización');
+      const fC = filaActual(); linea('Costo (material con costo capturado + M.O. real)', costoMat + moReal, `D${refMat.fC}+B${fT}`);
+      const fV = filaActual(); linea('Venta (material con costo capturado + M.O. cobrada)', ventaMat + moCob, `D${refMat.fV}+C${fT}`);
+      const fU = filaActual(); linea('Utilidad', ventaMat + moCob - costoMat - moReal, `D${fV}-D${fC}`, null, true);
+      linea('Margen', (ventaMat + moCob) ? (ventaMat + moCob - costoMat - moReal) / (ventaMat + moCob) : 0,
+            `IF(D${fV}=0,0,D${fU}/D${fV})`, '0.0%', true);
+      br++;
+    }
+  }
+
+  // Lo que el margen no ve: el descuento a cliente y el IVA
+  if (d.descuento > 0) {
+    bset(br, 0, xlCell(`La cotización lleva ${(d.descuento * 100).toFixed(0)} % de descuento sobre material y M.O. Los márgenes de arriba son ANTES de descuento: el margen real es menor.`, true, capFill, null, null, 'left'));
+    bmerge(br, 0, br, 3); br += 2;
+  }
+
+  // Contexto: cómo se compone lo cotizado
   const subtotalMat = getCartSubtotal();
   const esIP        = d.tipo === 'ip';
   const costoMO     = esIP ? (d.costo_mo || 0) : 0;
-  const brutoTotal  = subtotalMat + costoMO;
-  const descMonto   = brutoTotal * (d.descuento || 0);
-  const netoTotal   = brutoTotal - descMonto;
-  const cotizadoReq = getReqResumen().cotizado;
-
-  titulo('B. La cotización completa, para ubicar el bloque A');
-  linea('Subtotal material cotizado', subtotalMat);
+  titulo('Referencia: lo cotizado al cliente');
+  linea('Material de la cotización', subtotalMat);
+  if (secB) linea(`Soportería (costo + ${(UTIL_SOPORTERIA * 100).toFixed(0)} %)`, secB.venta);
   if (esIP) linea('Mano de obra y viáticos', costoMO);
-  if (d.descuento > 0) linea(`Descuento (${(d.descuento * 100).toFixed(0)} %)`, -descMonto);
-  const filaNeto = filaActual();
-  linea('Total sin IVA', netoTotal, null, null, true);
-  const filaReq = filaActual();
-  linea('Material que va a requisición', cotizadoReq);
-  linea('Peso sobre el total cotizado', netoTotal ? cotizadoReq / netoTotal : 0,
-        `IF(D${filaNeto}=0,0,D${filaReq}/D${filaNeto})`, '0.0%', true);
+  if (d.descuento > 0) linea(`Descuento sobre material y M.O. (${(d.descuento * 100).toFixed(0)} %)`, -(subtotalMat + costoMO) * d.descuento);
   br++;
 
-  bset(br, 0, xlCell('Importes en pesos (MXN). El precio cotizado va en su valor base en MXN aunque la cotización se entregue en otra moneda, porque al proveedor se le paga en pesos.', false, null, '777777', null, 'left'));
+  bset(br, 0, xlCell('Importes en pesos (MXN). La soportería se imprime por separado de la cotización del cliente; aquí se suma para el control del proyecto.', false, null, '777777', null, 'left'));
   bmerge(br, 0, br, 3); br++;
 
   bs['!merges'] = bmerges;
-  bs['!cols'] = [{wch:36},{wch:10},{wch:10},{wch:18}];
+  bs['!cols'] = [{wch:44},{wch:15},{wch:15},{wch:18}];
   bs['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:br, c:3} });
   XLSX.utils.book_append_sheet(wb, bs, 'Balance de utilidad');
 
   const suf = state.editandoFolio ? '-EDITADO' : '';
-  XLSX.writeFile(wb, ('Requisicion_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
+  XLSX.writeFile(wb, ('Control_Costos_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
   toast('📊 Excel de control de costos descargado');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONTROL DE ENTREGAS
+   Todo lo cotizado (cada partida + la soportería) con su cantidad, y columnas
+   en amarillo para ir registrando lo que se entrega en obra. El pendiente y el
+   estado de cada pieza se calculan solos con fórmulas, así el archivo sigue
+   sirviendo semanas después, ya fuera del portal.
+   ════════════════════════════════════════════════════════════════════════════ */
+function generateEntregasExcel() {
+  if (!validateForm()) return;
+  const mats = getMaterialControl();
+  const sop  = getSoporteria();
+  if (!mats.length && !sop.length) { toast('No hay material en la cotización'); return; }
+
+  const D = _reqEncabezadoDatos();
+  const wb = XLSX.utils.book_new();
+  const hdrFill = '1F3864', secFill = '2E4A7A', altFill = 'EBF5FB', lblFill = 'D6E4F0',
+        capFill = 'FFF59D';
+  const ws = {}, merges = [];
+  const set = (row, col, cell) => { ws[XLSX.utils.encode_cell({ r: row, c: col })] = cell; };
+  const merge = (sr, sc, er, ec) => merges.push({ s: { r: sr, c: sc }, e: { r: er, c: ec } });
+  const ULT = 9;   // última columna (J)
+  let r = 0;
+
+  set(r, 0, xlCell('CONTROL DE ENTREGAS DE MATERIAL  ·  COTIZACIÓN Y SOPORTERÍA', true, hdrFill, 'FFFFFF', null, 'center'));
+  merge(r, 0, r, ULT); r++;
+
+  [['Cliente:', D.empresa],
+   ['Proyecto:', D.proyecto],
+   ['Cotización:', D.folioCot],
+   ['Documento:', D.folioCot + '-ENT'],
+   ['Fecha:', D.fechaStr],
+   ['Elaboró:', D.solicita],
+  ].forEach(([lbl, val]) => {
+    set(r, 0, xlCell(lbl, true, lblFill, null, null, 'right'));
+    merge(r, 0, r, 1);
+    set(r, 2, xlCell(val || '', false, null, null, null, 'left'));
+    merge(r, 2, r, ULT); r++;
+  });
+  r++;
+
+  set(r, 0, xlCell(
+    'Registra en las celdas amarillas lo entregado de cada pieza (cantidad acumulada), la fecha y quién recibió. ' +
+    'El pendiente, el estado y el avance se calculan solos.',
+    true, capFill, null, null, 'left'));
+  merge(r, 0, r, ULT); r += 2;
+
+  const hdrs   = ['#', 'No. de Parte', 'Descripción', 'Cantidad cotizada', 'Cantidad entregada',
+                  'Pendiente', 'Estado', 'Fecha de entrega', 'Recibió', 'Observaciones'];
+  const aligns = ['center','center','center','center','center','center','center','center','center','center'];
+
+  /** Escribe una sección y devuelve la fila (1-based) de su renglón de total. */
+  const seccion = (titulo, piezas) => {
+    set(r, 0, xlCell(titulo, true, secFill, 'FFFFFF', null, 'left'));
+    merge(r, 0, r, ULT); r++;
+    xlEncabezado(ws, r, hdrs, aligns, hdrFill);
+    r++;
+    const desde = r + 1;
+    piezas.forEach((p, i) => {
+      const f = r + 1;
+      const fill = i % 2 === 0 ? altFill : 'FFFFFF';
+      set(r, 0, xlCell(i + 1, false, fill, null, null, 'center'));
+      set(r, 1, xlCell(p.np, false, fill, null, null, 'center'));
+      set(r, 2, xlCell(p.desc, false, fill, null, null, 'left'));
+      set(r, 3, xlCell(p.cantidad, true, fill, null, '#,##0', 'center'));
+      set(r, 4, xlCell('', false, capFill, null, '#,##0', 'center'));                       // ← capturar
+      // N() trata la celda vacía como cero
+      set(r, 5, xlFormula(p.cantidad, `MAX(0,D${f}-N(E${f}))`, false, fill, null, '#,##0', 'center'));
+      const estado = xlCell('Pendiente', false, fill, null, null, 'center');
+      estado.f = `IF(N(E${f})=0,"Pendiente",IF(N(E${f})>=D${f},"Entregado","Parcial"))`;
+      set(r, 6, estado);
+      set(r, 7, xlCell('', false, capFill, null, null, 'center'));                           // ← capturar
+      set(r, 8, xlCell('', false, capFill, null, null, 'left'));                             // ← capturar
+      set(r, 9, xlCell('', false, capFill, null, null, 'left'));                             // ← capturar
+      r++;
+    });
+    const hasta = r;
+    const total = piezas.reduce((s, p) => s + p.cantidad, 0);
+    const ft = r + 1;
+    set(r, 0, xlCell('TOTAL ' + titulo.replace(/^[A-Z]\.\s*/, ''), true, lblFill, null, null, 'right'));
+    merge(r, 0, r, 2);
+    set(r, 3, xlFormula(total, `SUM(D${desde}:D${hasta})`, true, lblFill, null, '#,##0', 'center'));
+    set(r, 4, xlFormula(0,     `SUM(E${desde}:E${hasta})`, true, lblFill, null, '#,##0', 'center'));
+    set(r, 5, xlFormula(total, `SUM(F${desde}:F${hasta})`, true, lblFill, null, '#,##0', 'center'));
+    set(r, 6, xlFormula(0, `IF(D${ft}=0,0,E${ft}/D${ft})`, true, lblFill, null, '0.0%', 'center'));
+    set(r, 7, xlCell('← avance', false, lblFill, '777777', null, 'left'));
+    merge(r, 7, r, ULT);
+    r += 2;
+    return { ft, total };
+  };
+
+  const totales = [];
+  if (mats.length) {
+    totales.push(seccion('A. MATERIAL DE LA COTIZACIÓN',
+      mats.map(p => ({ np: p.it.numero_parte, desc: p.it.descripcion, cantidad: p.cantidad }))));
+  }
+  if (sop.length) {
+    totales.push(seccion('B. SOPORTERÍA',
+      sop.map(s => ({ np: s.np, desc: s.desc + (s.consumible ? ' (consumible)' : ''), cantidad: s.cantidad }))));
+  }
+
+  // Avance general del proyecto, cuando hay las dos secciones
+  if (totales.length > 1) {
+    const fg = r + 1;
+    const total = totales.reduce((s, t) => s + t.total, 0);
+    set(r, 0, xlCell('TOTAL DEL PROYECTO', true, hdrFill, 'FFFFFF', null, 'right'));
+    merge(r, 0, r, 2);
+    set(r, 3, xlFormula(total, totales.map(t => 'D' + t.ft).join('+'), true, hdrFill, 'FFFFFF', '#,##0', 'center'));
+    set(r, 4, xlFormula(0,     totales.map(t => 'E' + t.ft).join('+'), true, hdrFill, 'FFFFFF', '#,##0', 'center'));
+    set(r, 5, xlFormula(total, totales.map(t => 'F' + t.ft).join('+'), true, hdrFill, 'FFFFFF', '#,##0', 'center'));
+    set(r, 6, xlFormula(0, `IF(D${fg}=0,0,E${fg}/D${fg})`, true, hdrFill, 'FFFFFF', '0.0%', 'center'));
+    set(r, 7, xlCell('← avance del proyecto', false, hdrFill, 'FFFFFF', null, 'left'));
+    merge(r, 7, r, ULT);
+    r += 2;
+  }
+
+  set(r, 0, xlCell('Las cantidades cotizadas son las de la cotización ' + D.folioCot +
+    '. Si la cotización cambia, genera de nuevo este archivo para no controlar contra cantidades viejas.',
+    false, null, '777777', null, 'left'));
+  merge(r, 0, r, ULT); r++;
+
+  ws['!merges'] = merges;
+  ws['!cols'] = [{wch:4},{wch:20},{wch:46},{wch:11},{wch:11},{wch:10},{wch:11},{wch:13},{wch:18},{wch:28}];
+  ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:r, c:ULT} });
+  ws['!margins'] = XL_MARGENES;
+  XLSX.utils.book_append_sheet(wb, ws, 'Control de entregas');
+
+  const suf = state.editandoFolio ? '-EDITADO' : '';
+  XLSX.writeFile(wb, ('Control_Entregas_' + D.folioCot + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
+  toast('📦 Excel de control de entregas descargado');
 }
 
 /**
@@ -5034,11 +5431,12 @@ async function generateAll() {
     ['Word',  generateWord],
     ['Excel', generateExcel],
   ];
-  // Si hay material sin disponibilidad, la requisición y su control de costos
-  // salen en el mismo paquete: es justo el trabajo manual que se quiere evitar.
-  if (getReqItems().length) {
-    pasos.push(['PDF de requisición',  generateRequisicionPDF]);
-    pasos.push(['Excel de requisición', generateRequisicionExcel]);
+  // El control de material y el de costos cubren todo el proyecto (cotización
+  // + soportería), así que salen en el mismo paquete siempre que haya material.
+  if (hayMaterialControl()) {
+    pasos.push(['Control de material (PDF)', generateRequisicionPDF]);
+    pasos.push(['Control de costos (Excel)', generateRequisicionExcel]);
+    pasos.push(['Control de entregas (Excel)', generateEntregasExcel]);
   }
 
   btn.disabled = true;
@@ -5476,7 +5874,9 @@ async function addProduct() {
     state.materiales[existing].precio = price;
     el('add-prod-ok').textContent = `✅ Producto ${part} actualizado.${conversionNote}`;
   } else {
-    state.materiales.push({descripcion:desc,numero_parte:part,precio:price,categoria:clasificarMaterial({descripcion:desc})});
+    // Alta en el catálogo: sin regla que coincida se asume PIPRO, como el resto del catálogo
+    state.materiales.push({descripcion:desc,numero_parte:part,precio:price,
+      categoria:(REGLAS_CAT.find(([re]) => re.test(desc)) || [null, 'pipro'])[1]});
     el('add-prod-ok').textContent = `✅ Producto ${part} agregado.${conversionNote}`;
   }
   // Guardar en caché local siempre
@@ -6591,6 +6991,7 @@ function calcSoporteria() {
   if (!nA && !nP && !nM) {
     wrap.style.display = 'none';
     if (el('r-sop')) el('r-sop').textContent = fmt(0);
+    renderRequisicion();   // sin abrazaderas, la soportería sale del control
     return;
   }
 
@@ -6651,6 +7052,7 @@ function calcSoporteria() {
 
   updateSopTotal();
   wrap.style.display = 'block';
+  renderRequisicion();   // la soportería entra al control de material y costos
 }
 
 /** Actualiza una fila individual al editar su input de cantidad */
@@ -6669,6 +7071,7 @@ function updateSopRow(idx) {
   inp.style.border     = qty > 0 ? '1.5px solid #C8102E' : '1.5px solid #ccc';
   inp.style.background = qty > 0 ? '#fff8f9' : '#fff';
   updateSopTotal();
+  renderRequisicion();
 }
 
 /** Suma las cantidades × precios de todos los inputs actuales */
@@ -6682,7 +7085,7 @@ function getSopTotal() {
 /** Actualiza subtotal, utilidad (40%) y total en la tabla y en la tarjeta del resumen */
 function updateSopTotal() {
   const subtotal = getSopTotal();
-  const utilidad = subtotal * 0.40;
+  const utilidad = subtotal * UTIL_SOPORTERIA;
   const total    = subtotal + utilidad;
   const sub = el('sop-subtotal');  if (sub)  sub.textContent  = fmt(subtotal);
   const uti = el('sop-utilidad');  if (uti)  uti.textContent  = fmt(utilidad);
@@ -6705,7 +7108,7 @@ function downloadSoporteriaPDF() {
 
   // ── Datos del documento ───────────────────────────────────────────────────────
   const subtotalAmt = rows.reduce((s, m) => s + m.qty * m.precio, 0);
-  const utilidadAmt = subtotalAmt * 0.40;
+  const utilidadAmt = subtotalAmt * UTIL_SOPORTERIA;
   const totalAmt    = subtotalAmt + utilidadAmt;
   const nA = parseInt(el('sop-aerea').value) || 0;
   const nP = parseInt(el('sop-ptr').value)   || 0;
