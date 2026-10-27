@@ -89,8 +89,33 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
   editables por pieza, margen por fila con semáforo, filtros (sin costo / margen
   bajo) y exportación a CSV. Lo que se capture ahí es lo que sale en el control
   interno de costos.
-- `_costoVisible()` sigue mandando: el costo `lista` sólo lo ve un
-  administrador; quien cotiza ve la celda vacía.
+- **`_costoVisible()` ya NO reserva nada por rol** (cambio de 2026-10-27, a
+  petición del dueño): el control interno es el documento con el que se sube el
+  margen del proyecto, así que imprime todos los costos que la base tenga, para
+  cualquier sesión. Lo que no esté capturado sale en blanco. El PDF y el Word
+  del cliente siguen sin costos de ningún tipo.
+
+### Resumen económico del proyecto (hoja «Balance de utilidad»)
+
+- Cuadro único: **Concepto · Costo real · Cobrado al cliente · Utilidad ·
+  Margen %**, con material, soportería, mano de obra, comidas y hospedaje,
+  movilidad, renta de equipo, fletes, herramienta, permisos y dos renglones
+  libres, y el **TOTAL DEL PROYECTO** abajo.
+- **Los conceptos aparecen siempre, aunque no se conozca el importe**: celda
+  amarilla en blanco que se captura después. Por eso cada renglón va con
+  fórmula; el total y el margen se recalculan solos al llenarla.
+- La **renta de equipo** lleva el cobrado (tarifa de catálogo) y el costo en
+  blanco: lo que se paga es la factura del arrendador y el portal no la conoce.
+  Antes se ponía costo = cobrado, lo que fingía utilidad cero y escondía el dato.
+- Un contador abajo dice cuántos conceptos siguen sin costo, porque mientras
+  queden el margen del proyecto sale optimista.
+- Dos trampas de ese contador, ya resueltas: `COUNTBLANK` no sirve (las celdas
+  por capturar llevan cadena vacía, no están vacías) y barrer el rango con
+  `SUMPRODUCT` cuenta también los renglones de título (daba 9 donde había 6).
+  Se suma celda por celda con las filas que devuelve `rsFila`.
+- `xlFormula` siempre guarda un número, así que un renglón sin costo abriría
+  mostrando `$0.00` y `0.0 %` —como si no dejara utilidad— hasta que Excel
+  recalculara. El valor y el tipo se corrigen a mano, igual que en `filaPieza`.
 
 ### Estado actual (2026-09-18): búsqueda con IA APAGADA
 

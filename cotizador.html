@@ -4892,16 +4892,15 @@ function xlEncabezado(ws, fila, textos, aligns, fill) {
 // Márgenes estrechos: es lo único de impresión que la librería sí guarda
 const XL_MARGENES = { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
-/* ¿Puede esta sesión ver el costo de esta partida en el Excel?
-   - Lo que la propia persona capturó a mano en el botón $ es suyo: sí.
-   - La lista de compra (PIPRO) y lo aprendido de internet vienen del catálogo:
-     sólo un administrador. Para los demás la celda sale vacía, en amarillo,
-     como se acordó: quien cotiza no tiene acceso a los costos. */
+/* Costo de la partida para el Excel de control interno.
+   Antes la lista PIPRO sólo se le mostraba a un administrador y a los demás la
+   celda salía en amarillo. Se quitó esa reserva: el control interno es el
+   documento con el que se sube el margen del proyecto, así que lleva todos los
+   costos que la base ya tiene. Lo que no esté capturado sale en blanco, para
+   llenarse después. Esto NO toca el PDF ni el Word del cliente, que siguen sin
+   costos de ningún tipo. */
 function _costoVisible(it) {
-  const c = +it.costoCompra || 0;
-  if (!c) return 0;
-  if (it.costoOrigen === 'manual') return c;
-  return (GD.sesion && GD.sesion.esAdmin) ? c : 0;
+  return +it.costoCompra || 0;
 }
 
 /* Añade al libro las hojas «Control de costos» y «Balance de utilidad».
@@ -4990,6 +4989,7 @@ function _hojasCostos(wb, mats, sop) {
     const util = ventaComp - costo;
     const rng = c => `$${c}$${desde}:$${c}$${hasta}`;
 
+    const fv = r + 1;   // fila de la venta total: la usa el resumen del proyecto
     set(r, 0, xlCell(`${etiqueta} · venta total (todas las partidas)`, true, lblFill, null, null, 'right'));
     merge(r, 0, r, 10);
     set(r, 11, xlFormula(venta, `SUM(${rng('L')})`, true, lblFill, null, '$#,##0.00', 'right'));
@@ -5006,7 +5006,7 @@ function _hojasCostos(wb, mats, sop) {
     set(r, 12, xlFormula(util, `L${fc}-J${fc}`, true, totFill, null, '$#,##0.00', 'right'));
     set(r, 13, xlFormula(ventaComp ? util / ventaComp : 0, `IF(L${fc}=0,0,M${fc}/L${fc})`, true, totFill, null, '0.0%', 'center'));
     r += 2;
-    return { fc, venta, costo, ventaComp, util, pendientes: filas.filter(x => !x.conCosto).length };
+    return { fc, fv, venta, costo, ventaComp, util, pendientes: filas.filter(x => !x.conCosto).length };
   };
 
   // ── A. Material de la cotización ──
@@ -5055,8 +5055,8 @@ function _hojasCostos(wb, mats, sop) {
   const bmerge = (sr, sc, er, ec) => bmerges.push({ s:{r:sr,c:sc}, e:{r:er,c:ec} });
   let br = 0;
 
-  bset(br, 0, xlCell('BALANCE DE UTILIDAD  ·  COSTO DE COMPRA CONTRA PRECIO DE VENTA', true, hdrFill, 'FFFFFF', null, 'center'));
-  bmerge(br, 0, br, 3); br += 2;
+  bset(br, 0, xlCell('BALANCE DE UTILIDAD DEL PROYECTO  ·  COSTOS CONTRA LO COBRADO AL CLIENTE', true, hdrFill, 'FFFFFF', null, 'center'));
+  bmerge(br, 0, br, 4); br += 2;
 
   /* `linea` escribe en la fila `br` y avanza; la fila de Excel (1-based) de la
      línea que se va a escribir es siempre br+1, así que las referencias se
@@ -5073,12 +5073,12 @@ function _hojasCostos(wb, mats, sop) {
   };
   const titulo = (t) => {
     bset(br, 0, xlCell(t, true, hdrFill, 'FFFFFF', null, 'left'));
-    bmerge(br, 0, br, 3); br++;
+    bmerge(br, 0, br, 4); br++;
   };
   const HC = "'Control de costos'!";   // nombre de hoja con espacios: entrecomillado
 
-  bset(br, 0, xlCell('Cada bloque sólo compara partidas con costo capturado. Al capturar costos en la hoja «Control de costos» este balance se actualiza solo.', false, capFill, null, null, 'left'));
-  bmerge(br, 0, br, 3); br += 2;
+  bset(br, 0, xlCell('Los bloques A y B comparan sólo las partidas con costo capturado, para que el margen del material sea exacto. El resumen de más abajo lleva el proyecto completo. Todo se recalcula al capturar costos en la hoja «Control de costos».', false, capFill, null, null, 'left'));
+  bmerge(br, 0, br, 4); br += 2;
 
   const bloque = (t, sec) => {
     titulo(t);
@@ -5088,7 +5088,7 @@ function _hojasCostos(wb, mats, sop) {
     linea('Margen', sec.ventaComp ? sec.util / sec.ventaComp : 0, `IF(D${fV}=0,0,D${fU}/D${fV})`, '0.0%', true);
     if (sec.pendientes) {
       bset(br, 0, xlCell(`${sec.pendientes === 1 ? '1 partida' : sec.pendientes + ' partidas'} sin costo capturado todavía.`, false, capFill, null, null, 'left'));
-      bmerge(br, 0, br, 3); br++;
+      bmerge(br, 0, br, 4); br++;
     }
     br++;
     return { fC, fV };
@@ -5111,65 +5111,146 @@ function _hojasCostos(wb, mats, sop) {
     br++;
   }
 
-  /* Mano de obra, viáticos, movilidad y equipo: aquí el costo real SÍ se conoce
-     (sale del propio cálculo de M.O.), así que su margen es exacto. Con esto el
-     análisis cubre todo lo estimado de la cotización, no sólo el material. */
+  /* ── Resumen económico del proyecto ───────────────────────────────────────
+     Un solo cuadro con TODO lo que cuesta el proyecto, porque es el documento
+     con el que se sube el margen. Los conceptos aparecen siempre, aunque el
+     importe no se conozca: una celda amarilla en blanco se llena después y el
+     total se recalcula solo. Por eso cada renglón va con fórmula y no con el
+     número ya resuelto.
+
+     Columnas: Concepto | Costo real | Cobrado al cliente | Utilidad | Margen % */
   const mo = (d.tipo === 'ip' && d.mo_res) ? d.mo_res : null;
-  if (mo && mo.total_mo_equipo_viaticos > 0) {
-    titulo('D. Mano de obra, viáticos y movilidad');
-    // Tabla de 4 columnas: concepto | costo real | cobrado | utilidad
-    bset(br, 0, xlCell('Concepto', true, lblFill, null, null, 'left'));
-    bset(br, 1, xlCell('Costo real', true, lblFill, null, null, 'right'));
-    bset(br, 2, xlCell('Cobrado', true, lblFill, null, null, 'right'));
-    bset(br, 3, xlCell('Utilidad', true, lblFill, null, null, 'right'));
-    br++;
-    const desde = br + 1;
-    [
-      ['Mano de obra',              mo.costo_mo_real,        mo.costo_mo],
-      ['Comidas y hospedaje',       mo.total_viaticos_real,  mo.total_viaticos],
-      ['Movilidad (auto + vuelo)',  mo.total_movilidad_real, mo.total_movilidad],
-      ['Equipo de maniobras',       mo.total_plataformas,    mo.total_plataformas],
-    ].forEach(([lbl, real, cobrado]) => {
-      const f = br + 1;
-      bset(br, 0, xlCell(lbl, false, null, null, null, 'left'));
-      bset(br, 1, xlCell(+real || 0, false, null, null, '$#,##0.00', 'right'));
-      bset(br, 2, xlCell(+cobrado || 0, false, null, null, '$#,##0.00', 'right'));
-      bset(br, 3, xlFormula((+cobrado || 0) - (+real || 0), `C${f}-B${f}`, false, null, null, '$#,##0.00', 'right'));
-      br++;
+  const esIP = d.tipo === 'ip';
+
+  titulo(refs.length > 1 ? 'D. RESUMEN ECONÓMICO DEL PROYECTO' : 'C. RESUMEN ECONÓMICO DEL PROYECTO');
+  bset(br, 0, xlCell(
+    'Las celdas amarillas están en blanco a propósito: se capturan cuando se tenga el dato ' +
+    '(la factura de la renta, el flete, los permisos). La utilidad, el margen y el total se ' +
+    'recalculan solos. Un concepto sin costo capturado suma al cobrado pero no al costo, así que ' +
+    'mientras queden amarillos el margen del proyecto sale optimista.',
+    false, capFill, null, null, 'left'));
+  bmerge(br, 0, br, 4); br += 2;
+
+  ['Concepto', 'Costo real', 'Cobrado al cliente', 'Utilidad', 'Margen %']
+    .forEach((h, c) => bset(br, c, xlCell(h, true, hdrFill, 'FFFFFF', null, c ? 'right' : 'left')));
+  br++;
+
+  const rsDesde = br + 1;
+  let totCosto = 0, totCobrado = 0, rsPendientes = 0;
+  const rsFilas = [];   // filas de concepto, sin los renglones de título
+  /* `costo` y `cobrado` pueden ser:
+      - un número            → se escribe tal cual,
+      - {f: fórmula, v: val} → se enlaza, con su valor ya resuelto,
+      - null                 → celda amarilla en blanco, para capturar después.
+     El valor en caché importa: SheetJS no calcula nada, así que una fórmula sin
+     él abriría mostrando cero hasta que Excel recalcule. */
+  const rsFila = (lbl, costo, cobrado, nota) => {
+    const f = br + 1;
+    bset(br, 0, xlCell(lbl + (nota ? '   (' + nota + ')' : ''), false, null, null, null, 'left'));
+    const valor = v => (v === null || v === undefined) ? null
+                     : (typeof v === 'object' ? (+v.v || 0) : (+v || 0));
+    [[1, costo], [2, cobrado]].forEach(([c, v]) => {
+      if (v === null || v === undefined) {
+        bset(br, c, xlCell('', false, capFill, null, '$#,##0.00', 'right'));
+      } else if (typeof v === 'object') {
+        bset(br, c, xlFormula(+v.v || 0, v.f, false, null, null, '$#,##0.00', 'right'));
+      } else {
+        bset(br, c, xlCell(+v || 0, false, null, null, '$#,##0.00', 'right'));
+      }
     });
-    const hasta = br;
-    const moReal = mo.costo_mo_real + mo.total_viaticos_real + mo.total_movilidad_real + mo.total_plataformas;
-    const moCob  = mo.total_mo_equipo_viaticos;
-    const fT = br + 1;
-    bset(br, 0, xlCell('Total', true, lblFill, null, null, 'left'));
-    bset(br, 1, xlFormula(moReal, `SUM(B${desde}:B${hasta})`, true, lblFill, null, '$#,##0.00', 'right'));
-    bset(br, 2, xlFormula(moCob,  `SUM(C${desde}:C${hasta})`, true, lblFill, null, '$#,##0.00', 'right'));
-    bset(br, 3, xlFormula(moCob - moReal, `C${fT}-B${fT}`, true, lblFill, null, '$#,##0.00', 'right'));
+    const vc = valor(costo), vv = valor(cobrado);
+    totCosto   += vc || 0;
+    totCobrado += vv || 0;
+    if (vc === null) rsPendientes++;
+    // Con el costo en blanco la utilidad no se inventa: queda vacía
+    const util = vc === null ? '' : (vv || 0) - vc;
+    const marg = (vc === null || !vv) ? '' : util / vv;
+    bset(br, 3, xlFormula(util || 0, `IF(B${f}="","",C${f}-B${f})`, false, null, null, '$#,##0.00', 'right'));
+    bset(br, 4, xlFormula(marg || 0, `IF(OR(B${f}="",C${f}=0),"",D${f}/C${f})`, false, null, null, '0.0%', 'right'));
+    /* xlFormula siempre guarda un número, así que un renglón sin costo abriría
+       mostrando $0.00 y 0.0 % —como si no dejara utilidad— hasta que Excel
+       recalculara. Se corrigen el valor y el tipo a mano, igual que en
+       filaPieza. */
+    [[3, util], [4, marg]].forEach(([c, v]) => {
+      if (v !== '') return;
+      const x = bs[XLSX.utils.encode_cell({ r: br, c })];
+      if (x) { x.v = ''; x.t = 's'; }
+    });
+    rsFilas.push(f);
     br++;
-    linea('Margen de mano de obra y viáticos', moCob ? (moCob - moReal) / moCob : 0,
-          `IF(C${fT}=0,0,D${fT}/C${fT})`, '0.0%', true);
-    br++;
+    return f;
+  };
+  const rsTitulo = (t) => {
+    bset(br, 0, xlCell(t, true, lblFill, null, null, 'left'));
+    bmerge(br, 0, br, 4); br++;
+  };
 
-    if (refMat) {
-      titulo('E. Todo lo estimado de la cotización');
-      const fC = filaActual(); linea('Costo (material con costo capturado + M.O. real)', costoMat + moReal, `D${refMat.fC}+B${fT}`);
-      const fV = filaActual(); linea('Venta (material con costo capturado + M.O. cobrada)', ventaMat + moCob, `D${refMat.fV}+C${fT}`);
-      const fU = filaActual(); linea('Utilidad', ventaMat + moCob - costoMat - moReal, `D${fV}-D${fC}`, null, true);
-      linea('Margen', (ventaMat + moCob) ? (ventaMat + moCob - costoMat - moReal) / (ventaMat + moCob) : 0,
-            `IF(D${fV}=0,0,D${fU}/D${fV})`, '0.0%', true);
-      br++;
-    }
-  }
+  rsTitulo('Material');
+  if (secA) rsFila('Material de la cotización',
+                   { f: `${HC}J${secA.fc}`, v: secA.costo },
+                   { f: `${HC}L${secA.fv}`, v: secA.venta },
+                   secA.pendientes ? `${secA.pendientes} partida(s) sin costo` : null);
+  if (secB) rsFila('Soportería y consumibles',
+                   { f: `${HC}J${secB.fc}`, v: secB.costo },
+                   { f: `${HC}L${secB.fv}`, v: secB.venta },
+                   secB.pendientes ? `${secB.pendientes} partida(s) sin costo` : null);
 
-  // Lo que el margen no ve: el descuento a cliente y el IVA
+  rsTitulo('Mano de obra y estancia');
+  /* En una cotización IT (sin mano de obra) estos renglones salen en blanco en
+     vez de desaparecer: el formato es el mismo siempre y el dato se agrega
+     después si el proyecto acabó llevando gente a obra. */
+  rsFila('Mano de obra',             mo ? mo.costo_mo_real        : null, mo ? mo.costo_mo        : null);
+  rsFila('Comidas y hospedaje',      mo ? mo.total_viaticos_real  : null, mo ? mo.total_viaticos  : null);
+  rsFila('Movilidad (auto + vuelo)', mo ? mo.total_movilidad_real : null, mo ? mo.total_movilidad : null);
+
+  rsTitulo('Equipo, renta y logística');
+  /* La renta se le cobra al cliente a la tarifa del catálogo, pero lo que
+     realmente pagamos es la factura del arrendador y eso el portal no lo sabe:
+     va en blanco. Antes se ponía costo = cobrado, lo que fingía utilidad cero
+     y escondía el dato. */
+  rsFila('Renta de equipo y plataformas', null,
+         mo ? mo.total_plataformas : null,
+         'capturar la factura del arrendador');
+  rsFila('Fletes y embarques',               null, null);
+  rsFila('Herramienta y consumibles de obra', null, null);
+  rsFila('Permisos, trámites y seguros',     null, null);
+  rsFila('Otro concepto',                    null, null);
+  rsFila('Otro concepto',                    null, null);
+
   if (d.descuento > 0) {
-    bset(br, 0, xlCell(`La cotización lleva ${(d.descuento * 100).toFixed(0)} % de descuento sobre material y M.O. Los márgenes de arriba son ANTES de descuento: el margen real es menor.`, true, capFill, null, null, 'left'));
-    bmerge(br, 0, br, 3); br += 2;
+    // El descuento no tiene costo: baja lo cobrado y por eso baja el margen
+    const desc = -(getCartSubtotal() + (esIP ? (d.costo_mo || 0) : 0)) * d.descuento;
+    rsFila(`Descuento al cliente (${(d.descuento * 100).toFixed(0)} %)`, 0, desc);
+  }
+  const rsFin = br;
+
+  // ── Total del proyecto ──
+  const fT = br + 1;
+  const totUtil = totCobrado - totCosto;
+  bset(br, 0, xlCell('TOTAL DEL PROYECTO', true, hdrFill, 'FFFFFF', null, 'left'));
+  bset(br, 1, xlFormula(totCosto,   `SUM(B${rsDesde}:B${rsFin})`, true, hdrFill, 'FFFFFF', '$#,##0.00', 'right'));
+  bset(br, 2, xlFormula(totCobrado, `SUM(C${rsDesde}:C${rsFin})`, true, hdrFill, 'FFFFFF', '$#,##0.00', 'right'));
+  bset(br, 3, xlFormula(totUtil,    `C${fT}-B${fT}`,              true, hdrFill, 'FFFFFF', '$#,##0.00', 'right'));
+  bset(br, 4, xlFormula(totCobrado ? totUtil / totCobrado : '', `IF(C${fT}=0,"",D${fT}/C${fT})`, true, hdrFill, 'FFFFFF', '0.0%', 'right'));
+  br++;
+  /* Se suma celda por celda en vez de barrer el rango: entre los conceptos hay
+     renglones de título, que también están vacíos y se contarían como
+     pendientes (daban 9 donde hay 6). COUNTBLANK tampoco sirve, porque las
+     celdas por capturar llevan cadena vacía y no están realmente vacías. */
+  bset(br, 0, xlCell('Conceptos todavía sin costo capturado', false, null, '777777', null, 'left'));
+  bmerge(br, 0, br, 2);
+  bset(br, 3, xlFormula(rsPendientes,
+    rsFilas.map(f => `(B${f}="")`).join('+') || '0', true, capFill, null, '#,##0', 'right'));
+  bset(br, 4, xlCell('', false, capFill));
+  br += 2;
+
+  if (d.descuento > 0) {
+    bset(br, 0, xlCell(`La cotización lleva ${(d.descuento * 100).toFixed(0)} % de descuento sobre material y M.O. Ya está restado del total de arriba; los bloques A y B son ANTES de descuento.`, true, capFill, null, null, 'left'));
+    bmerge(br, 0, br, 4); br += 2;
   }
 
   // Contexto: cómo se compone lo cotizado
   const subtotalMat = getCartSubtotal();
-  const esIP        = d.tipo === 'ip';
   const costoMO     = esIP ? (d.costo_mo || 0) : 0;
   titulo('Referencia: lo cotizado al cliente');
   linea('Material de la cotización', subtotalMat);
@@ -5178,12 +5259,13 @@ function _hojasCostos(wb, mats, sop) {
   if (d.descuento > 0) linea(`Descuento sobre material y M.O. (${(d.descuento * 100).toFixed(0)} %)`, -(subtotalMat + costoMO) * d.descuento);
   br++;
 
-  bset(br, 0, xlCell('Importes en pesos (MXN). La soportería se imprime por separado de la cotización del cliente; aquí se suma para el control del proyecto.', false, null, '777777', null, 'left'));
-  bmerge(br, 0, br, 3); br++;
+  bset(br, 0, xlCell('Importes en pesos (MXN), sin IVA. La soportería se imprime por separado de la cotización del cliente; aquí se suma para el control del proyecto.', false, null, '777777', null, 'left'));
+  bmerge(br, 0, br, 4); br++;
 
   bs['!merges'] = bmerges;
-  bs['!cols'] = [{wch:44},{wch:15},{wch:15},{wch:18}];
-  bs['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:br, c:3} });
+  bs['!cols'] = [{wch:46},{wch:16},{wch:18},{wch:16},{wch:11}];
+  bs['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:br, c:4} });
+  bs['!margins'] = XL_MARGENES;
   XLSX.utils.book_append_sheet(wb, bs, 'Balance de utilidad');
 }
 
