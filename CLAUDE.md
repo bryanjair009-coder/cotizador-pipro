@@ -56,7 +56,7 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
   omitir `categoria` o `costo_compra` las borraría en cada edición en línea.
 - **Costo de compra** (`costo_compra`, `costo_origen`, `costo_fuentes`,
   `costo_fecha`). Tres orígenes:
-  - `lista` → Excel de precios de compra (admin → Catálogo), cruzado por
+  - `lista` → Excel de costos (admin → **Costos de compra**), cruzado por
     `numero_parte`. Es la vía para PIPRO.
   - `internet` → `api/precio-mercado.js`: **Haiku 4.5** (`claude-haiku-4-5`) +
     `web_search_20250305` busca distribuidores mexicanos y el **servidor**
@@ -64,6 +64,33 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
     no calcula el promedio; su salida se sanea (duplicados por distribuidor,
     precios no finitos, URLs no http) antes de usarse.
   - `manual` → capturado a mano; siempre gana.
+
+### Lista de costeo PIPRO (2026-10)
+
+- La hoja **«Stock»** del libro «COSTEO TUBERIA ACTUAL» es la fuente: col. E =
+  número de parte, **J = costo**, **L = precio de venta**. `SUPABASE_COSTOS_PIPRO.sql`
+  dejó cargados 137 materiales; `materiales.js` trae los mismos datos para la
+  siembra inicial.
+- **Esa hoja tiene columnas gemelas y elegir la equivocada no falla a la vista.**
+  Junto a `J` está `K = COSTO ANTERIOR`, junto a `L` está `M = PRECIO DE VENTA DE
+  ANTES`, y antes que las dos está `F = Selling price`, que es el precio en
+  **dólares** del fabricante. Por eso `_detectarColumnas()` descarta de entrada
+  todo encabezado histórico (`_COL_VIEJO`) y ordena los patrones de más
+  específico a más laxo: con un solo patrón que aceptara «selling» y «precio de
+  venta», se cargaban los dólares y el tubo de 20 mm quedaba en **$9** en lugar
+  de $795, sin ningún error.
+- **El precio de venta se redondea hacia ARRIBA a pesos enteros**
+  (`redondearVenta()`), en la carga masiva, en el alta del catálogo y en la
+  edición en línea. Se redondea el **unitario**, nunca los totales ni el IVA.
+  Excepción: por debajo de $1 el precio ES centavos (hay rondanas de $0.20);
+  ahí redondear multiplicaría la pieza por cinco.
+- El costo de compra **no** se redondea: es lo que realmente facturan.
+- Panel admin → pestaña **💲 Costos de compra**: carga masiva, costo y precio
+  editables por pieza, margen por fila con semáforo, filtros (sin costo / margen
+  bajo) y exportación a CSV. Lo que se capture ahí es lo que sale en el control
+  interno de costos.
+- `_costoVisible()` sigue mandando: el costo `lista` sólo lo ve un
+  administrador; quien cotiza ve la celda vacía.
 
 ### Estado actual (2026-09-18): búsqueda con IA APAGADA
 
@@ -274,10 +301,25 @@ genera siempre los 5 archivos cuando hay material.
     de ese ramal**, no del mayor del nodo;
   - cruces (grado > 3) no existen en catálogo: se cuentan tees en cascada y se
     avisa.
-- **`CAT` y `CAT_RED` salen de materiales.js, extraídos, no deducidos del
-  patrón del número de parte.** Varias combinaciones no existen (no hay codo de
-  20/25 mm, ni tapón de 20/100 mm); se listan como «sin No. parte» en vez de
-  inventar uno. Al crecer el catálogo hay que volver a extraerlas.
+- **`CAT`, `CAT_RED` y `CONECTORES` salen del DXF «Atributos de pipro» de
+  PIPRO, leyendo el atributo `NÚMERO_DE_PARTE` de cada bloque; extraídos, no
+  deducidos del patrón del número de parte.** Lo que el DXF no trae —los tubos
+  (un tubo es una línea, no un símbolo) y todo el 200 mm— sale de materiales.js.
+  Las combinaciones que no existen se listan como «sin No. parte» en vez de
+  inventar un código. Al crecer el catálogo hay que volver a extraerlas.
+- Dos trampas de ese DXF, si hay que rehacer la extracción:
+  - **El nombre del bloque no es de fiar.** «COPLE 25mm» lleva dentro el número
+    del cople de 20 mm y «TEE 15X80mm» es en realidad la de 150×80. Manda el
+    atributo `NOMBRE` junto con `NÚMERO_DE_PARTE`.
+  - **La válvula mariposa dice «incluye Coples para conexión»** en su
+    descripción. Clasificando por `/cople/` antes que por `/mariposa/`, las
+    mariposas de 80, 100 y 150 mm terminan listadas como coples. Las reglas van
+    de lo más específico a lo más general.
+- `81B00 01` (Tapón 100 mm) está en el DXF pero **no en materiales.js**: el
+  isométrico lo entrega y el cotizador no lo encuentra al cruzar.
+- La bajada a punto de uso remata en conector NPT y el número de parte depende
+  de la **rosca**, no sólo del diámetro: se toma la hembra de paso completo y se
+  avisa de las otras roscas disponibles.
 - Botón «Al cotizador»: `postMessage` → `index.html` hace de puente →
   `gd-theme-sync.js` → `window.gdMaterialExterno(items)` en cotizador.html, que
   cruza por número de parte contra el catálogo. Lo que no está entra con
@@ -338,3 +380,11 @@ actualización parcial:
 
 Para cambiar unos pocos campos de una fila existente usar `sb.update(tabla,
 filtro, datos)` (PATCH). Los upserts del front-end sí mandan la fila completa.
+
+Su gemela, la **trampa de la LECTURA** (2026-10): `loadMateriales()` copiaba de
+Supabase sólo `descripcion`, `numero_parte` y `precio`, así que `categoria` y
+`costo_compra` se guardaban bien y se tiraban en cada recarga — el control
+interno salía sin costos ni margen aunque la lista estuviera cargada, y no había
+error en ninguna parte. Al añadir una columna a `materiales` hay que tocar los
+**cuatro** lugares: `loadMateriales()` (las dos vías: Supabase y el bundled),
+`filaMaterial()`, `_seedSupabaseIfNeeded()` y `replaceMateriales()`.

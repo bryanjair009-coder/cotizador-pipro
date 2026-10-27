@@ -225,41 +225,90 @@ body{background:var(--gd-bg);color:var(--gd-text);-webkit-font-smoothing:antiali
 
 const TRAMO_TUBO = 5.8;    // metros por tubo de catálogo → un cople por unión
 
-// ── Catálogo: número de parte por tipo y diámetro ──────────────────────────
-//  Extraído de materiales.js. Un hueco significa que esa pieza no existe en el
-//  catálogo para ese diámetro; se reporta como tal, nunca se inventa.
+/* ── Catálogo de piezas PIPRO ───────────────────────────────────────────────
+   Fuente: el DXF «Atributos de pipro» de PIPRO, leyendo el atributo
+   NÚMERO_DE_PARTE de cada bloque. Los TUBOS y todo el 200 mm no vienen en el
+   DXF (un tubo es una línea, no un símbolo) y salen de materiales.js.
+
+   Dos trampas de ese archivo, por si hay que rehacerlo:
+    · El nombre del bloque NO es de fiar. «COPLE 25mm» lleva dentro el número
+      del cople de 20 mm, y «TEE 15X80mm» es en realidad la de 150×80. Lo que
+      manda es el atributo NOMBRE junto con NÚMERO_DE_PARTE.
+    · La válvula mariposa dice «incluye Coples para conexión» en su
+      descripción. Si se clasifica buscando «cople» antes que «mariposa», una
+      válvula de $miles termina listada como cople.
+   Un hueco significa que la pieza no existe para ese diámetro: se reporta
+   como «sin No. parte», nunca se inventa un código. */
 const CAT = {
-  20:  { tubo:'92060 00', cople:'12000 00', tee:'32000 01', valvula:'A2020 01', abrazadera:'DN20 CLAMP IRON' },
-  25:  { tubo:'92560 00', cople:'12500 00', tee:'32500 01', tapon:'82500 01', valvula:'A2525 01', abrazadera:'DN25 CLAMP IRON' },
-  40:  { tubo:'94060 00', cople:'14000 00', codo90:'24000 01', tee:'34000 01', tapon:'84000 01', valvula:'A4040 01', abrazadera:'DN40 CLAMP IRON' },
-  50:  { tubo:'95060 00', cople:'15000 00', codo90:'25000 01', tee:'35000 01', tapon:'85000 01', valvula:'A5050 01', bridado:'75000 01', abrazadera:'AIN-1 1/2' },
+  20:  { tubo:'92060 00', cople:'12000 00', codo90:'22000 01', tee:'32000 01', tapon:'82000 01', valvula:'A2020 01', abrazadera:'DN20 CLAMP IRON' },
+  25:  { tubo:'92560 00', cople:'12500 00', codo90:'22500 01', tee:'32500 01', tapon:'82500 01', valvula:'A2525 01', abrazadera:'DN25 CLAMP IRON' },
+  40:  { tubo:'94060 00', cople:'14000 00', codo90:'24000 01', tee:'34000 01', tapon:'84000 01', valvula:'A4040 01', abrazadera:'DN40 CLAMP IRON', manguera:'1503-24-80' },
+  50:  { tubo:'95060 00', cople:'15000 00', codo90:'25000 01', tee:'35000 01', tapon:'85000 01', valvula:'A5050 01', bridado:'75000 01', abrazadera:'AIN-1 1/2', manguera:'1503-32-80' },
   65:  { tubo:'96560 00', cople:'16500 00', codo90:'26500 01', tee:'36500 01', tapon:'86500 01', valvula:'A6565 31', bridado:'76500 01', abrazadera:'AIN-2 1/2' },
-  80:  { tubo:'98060 00', cople:'18000 00', codo90:'28000 01', tee:'38000 01', tapon:'88000 01', bridado:'78000 01' },
-  100: { tubo:'91B60 00', cople:'11B00 00', codo90:'21B00 01', tee:'31B00 01', bridado:'71B00 01' },
-  150: { tubo:'91W60 00', cople:'11W00 00', codo90:'21W00 01', tee:'31W00 01', tapon:'81W00 01', bridado:'71W00 01' },
-  200: { tubo:'92B60 00', cople:'12B00 00', codo90:'22B00 01', tee:'32B00 01', tapon:'82B00 01', bridado:'72B00 01' },
+  80:  { tubo:'98060 00', cople:'18000 00', codo90:'28000 01', tee:'38000 01', tapon:'88000 01', bridado:'78000 01', mariposa:'A8080 01', abrazadera:'DN80 CLAMP IRON' },
+  100: { tubo:'91B60 00', cople:'11B00 00', codo90:'21B00 01', tee:'31B00 01', tapon:'81B00 01', bridado:'71B00 01', mariposa:'A1B1B 01', abrazadera:'DN100 CLAMP IRON' },
+  150: { tubo:'91W60 00', cople:'11W00 00', codo90:'21W00 01', tee:'31W00 01', tapon:'81W00 01', bridado:'71W00 01', mariposa:'A1WWD 41', abrazadera:'F41W03' },
+  200: { tubo:'92B60 00', cople:'12B00 00', codo90:'22B00 01', tee:'32B00 01', tapon:'82B00 01', bridado:'72B00 01', mariposa:'ALV2BWD01', abrazadera:'DN200 CLAMP IRON' },
 };
-/* Tees con reducción, reductores y derivaciones de abrazadera.
-   Clave «mayor>menor». Tabla extraída de materiales.js, no deducida del patrón
-   del número de parte: hay combinaciones que simplemente no existen. */
+
+/* Tees con reducción, reductores y derivaciones de abrazadera, clave
+   «mayor>menor». Cuando no hay tee reducida para un salto, PIPRO lo resuelve
+   con derivación de abrazadera: por eso conviven las tres columnas. */
 const CAT_RED = {
-  '25>20':  {teeRed:'32520 01', reductor:'42520 01', derivacion:'62520 01'},
-  '40>20':  {teeRed:'34020 01', reductor:'44020 01', derivacion:'64020 01'},
-  '40>25':  {teeRed:'34025 01', reductor:'44025 01', derivacion:'64025 01'},
-  '50>20':  {teeRed:null,       reductor:null,       derivacion:'65020 01'},
-  '50>25':  {teeRed:'35025 01', reductor:'45025 01', derivacion:'65025 01'},
-  '50>40':  {teeRed:'35040 01', reductor:'45040 01'},
-  '65>20':  {teeRed:null,       reductor:null,       derivacion:'66520 01'},
-  '65>25':  {teeRed:null,       reductor:null,       derivacion:'66525 01'},
-  '65>40':  {teeRed:'36540 01', reductor:'46540 01'},
-  '65>50':  {teeRed:'36550 01', reductor:'46550 01'},
-  '80>50':  {teeRed:'38050 01', reductor:null},
-  '80>65':  {teeRed:'38065 01', reductor:null},
-  '150>80': {teeRed:'31W80 01', reductor:null},
-  '150>100':{teeRed:'31W1B 01', reductor:null},
-  '200>100':{teeRed:'32B1B 01', reductor:null},
-  '200>150':{teeRed:'32B1W 01', reductor:null},
+  '25>20':  { teeRed:'32520 01', reductor:'42520 01', derivacion:'62520 01' },
+  '40>20':  { teeRed:'34020 01', reductor:'44020 01', derivacion:'64020 01' },
+  '40>25':  { teeRed:'34025 01', reductor:'44025 01', derivacion:'64025 01' },
+  '50>20':  { teeRed:null,       reductor:null,       derivacion:'65020 01' },
+  '50>25':  { teeRed:'35025 01', reductor:'45025 01', derivacion:'65025 01' },
+  '50>40':  { teeRed:'35040 01', reductor:'45040 01', derivacion:null },
+  '65>20':  { teeRed:null,       reductor:null,       derivacion:'66520 01' },
+  '65>25':  { teeRed:null,       reductor:null,       derivacion:'66525 01' },
+  '65>40':  { teeRed:'36540 01', reductor:'46540 01', derivacion:null },
+  '65>50':  { teeRed:'36550 01', reductor:'46550 01', derivacion:null },
+  '80>20':  { teeRed:null,       reductor:null,       derivacion:'68020 01' },
+  '80>25':  { teeRed:null,       reductor:null,       derivacion:'68025 01' },
+  '80>50':  { teeRed:'38050 01', reductor:'48050 01', derivacion:null },
+  '80>65':  { teeRed:'38065 01', reductor:'48065 01', derivacion:null },
+  '100>20': { teeRed:null,       reductor:null,       derivacion:'61B20 01' },
+  '100>25': { teeRed:null,       reductor:null,       derivacion:'61B25 01' },
+  '100>40': { teeRed:null,       reductor:null,       derivacion:'61B40 01' },
+  '100>50': { teeRed:null,       reductor:null,       derivacion:'61B50 01' },
+  '100>65': { teeRed:'31B65 01', reductor:'41B65 01', derivacion:null },
+  '100>80': { teeRed:'31B80 01', reductor:'41B80 01', derivacion:null },
+  '150>80': { teeRed:'31W80 01', reductor:'41W80 01', derivacion:null },
+  '150>100':{ teeRed:'31W1B 01', reductor:'41W1B 01', derivacion:null },
+  // 200 mm: sólo de materiales.js, el DXF no lo cubre
+  '200>20': { teeRed:null,       reductor:null,       derivacion:'ALQ2B2001' },
+  '200>25': { teeRed:null,       reductor:null,       derivacion:'ALQ2B2501' },
+  '200>40': { teeRed:null,       reductor:null,       derivacion:'ALQ2B4001' },
+  '200>50': { teeRed:null,       reductor:null,       derivacion:'ALQ2B5001' },
+  '200>100':{ teeRed:'32B1B 01', reductor:'42B1B 01', derivacion:null },
+  '200>150':{ teeRed:'32B1W 01', reductor:'42B1W 01', derivacion:null },
 };
+
+/* Conectores NPT y tomas de pared, para rematar una bajada a punto de uso.
+   Van por rosca, no sólo por diámetro, así que se eligen a mano. */
+const CONECTORES = [
+  { np:'52020N 01',  diam:20,  texto:'Conector hembra 20 mm a 3/4" NPT' },
+  { np:'E22015L 01', diam:20,  texto:'Conector de pared 20 mm c/1 puerto' },
+  { np:'Q1SM2A 00',  diam:20,  texto:'Manifold 20 mm c/2 puertos 1/2"' },
+  { np:'52515W 01',  diam:25,  texto:'Conector macho 25 mm a 1/2" NPT' },
+  { np:'52520W 01',  diam:25,  texto:'Conector macho 25 mm a 3/4" NPT' },
+  { np:'52525W 01',  diam:25,  texto:'Conector macho 25 mm a 1" NPT' },
+  { np:'52515N 01',  diam:25,  texto:'Conector hembra 25 mm a 1/2" NPT' },
+  { np:'52520N 01',  diam:25,  texto:'Conector hembra 25 mm a 3/4" NPT' },
+  { np:'52525N 01',  diam:25,  texto:'Conector hembra 25 mm a 1" NPT' },
+  { np:'54032W 01',  diam:40,  texto:'Conector macho 40 mm a 1 1/4" NPT' },
+  { np:'54040W 01',  diam:40,  texto:'Conector macho 40 mm a 1 1/2" NPT' },
+  { np:'54032N 01',  diam:40,  texto:'Conector hembra 40 mm a 1 1/4" NPT' },
+  { np:'54040N 01',  diam:40,  texto:'Conector hembra 40 mm a 1 1/2" NPT' },
+  { np:'55050W 01',  diam:50,  texto:'Conector macho 50 mm a 2" NPT' },
+  { np:'55050N 01',  diam:50,  texto:'Conector hembra 50 mm a 2" NPT' },
+  { np:'56565W 01',  diam:65,  texto:'Conector macho 65 mm a 2 1/2" NPT' },
+  { np:'56565N 01',  diam:65,  texto:'Conector hembra 65 mm a 2 1/2" NPT' },
+  { np:'58080W 01',  diam:80,  texto:'Conector macho 80 mm a 3"' },
+  { np:'58080N 01',  diam:80,  texto:'Conector hembra 80 mm a 3"' },
+];
 
 const DIAMETROS = [20, 25, 40, 50, 65, 80, 100, 150, 200];
 // Un color por diámetro, el más grueso más oscuro: se lee el calibre de un vistazo
@@ -270,16 +319,18 @@ const COLOR = {
 const GROSOR = { 20:2.5, 25:3, 40:3.5, 50:4, 65:4.5, 80:5, 100:5.5, 150:6.5, 200:7.5 };
 
 /* Accesorios que se colocan a mano, con su símbolo de DTI.
-   `np` dice de dónde sale el número de parte: 'diam' lo busca por diámetro en
-   CAT, null significa que el catálogo PIPRO no lo incluye. */
+   `np` dice de dónde sale el número de parte: una clave de CAT se busca por el
+   diámetro del tramo, 'conector' va a CONECTORES, y null significa que el
+   catálogo PIPRO no lo incluye (filtros, reguladores, manómetros: son de otra
+   marca y se cotizan aparte). */
 const ACCESORIOS = {
   valvula:   { nombre:'Válvula de esfera',   simbolo:'moño',     np:'valvula' },
-  mariposa:  { nombre:'Válvula de mariposa', simbolo:'mariposa', np:null },
+  mariposa:  { nombre:'Válvula de mariposa', simbolo:'mariposa', np:'mariposa' },
   filtro:    { nombre:'Filtro',              simbolo:'filtro',   np:null },
   regulador: { nombre:'Regulador',           simbolo:'regulador',np:null },
   manometro: { nombre:'Manómetro',           simbolo:'circulo',  np:null, letra:'PI' },
   purga:     { nombre:'Purga / trampa',      simbolo:'purga',    np:null },
-  bajada:    { nombre:'Bajada a punto de uso', simbolo:'bajada', np:null },
+  bajada:    { nombre:'Bajada a punto de uso', simbolo:'bajada', np:'conector' },
   equipo:    { nombre:'Compresor / equipo',  simbolo:'equipo',   np:null },
   soporte:   { nombre:'Abrazadera de soporte', simbolo:'soporte', np:'abrazadera' },
 };
@@ -791,9 +842,33 @@ function calcularMaterial() {
   });
 
   // ── Accesorios colocados a mano ──
+  const roscasAvisadas = new Set();
   S.tramos.forEach(t => (t.acc || []).forEach(ac => {
     const def = ACCESORIOS[ac.tipo];
     if (!def) return;
+    if (def.np === 'conector') {
+      /* La bajada remata en un conector NPT, y el número de parte depende de
+         la rosca, no sólo del diámetro. Se toma el conector hembra de rosca
+         completa como opción por omisión y se avisa de las demás. */
+      const opciones = CONECTORES.filter(c => c.diam === t.diam);
+      // De las hembras, la de rosca más grande: es la del paso completo
+      const pulgadas = c => { const m = /(\d+)?\s*(?:(\d)\/(\d))?"/.exec(c.texto) || [];
+                              return (+m[1] || 0) + (m[2] ? +m[2] / +m[3] : 0); };
+      const hembras = opciones.filter(c => /N 01$/.test(c.np))
+                              .sort((a, b) => pulgadas(b) - pulgadas(a));
+      const elegido = hembras[0] || opciones[0] || null;
+      sumar(ac.tipo, t.diam, elegido ? elegido.texto : `${def.nombre} ${t.diam} mm`,
+            elegido ? elegido.np : null, 1);
+      if (opciones.length > 1 && !roscasAvisadas.has(t.diam)) {
+        roscasAvisadas.add(t.diam);
+        avisos.push(`Bajada de ${t.diam} mm: se tomó «${elegido.texto}». ` +
+          `PIPRO tiene ${opciones.length} roscas para ese diámetro ` +
+          `(${opciones.map(o => o.np).join(', ')}); cambia el número de parte si la rosca del punto de uso es otra.`);
+      } else if (!opciones.length) {
+        avisos.push(`No hay conector PIPRO de ${t.diam} mm para la bajada: a ese calibre se baja con una derivación a un diámetro menor.`);
+      }
+      return;
+    }
     sumar(ac.tipo, t.diam, `${def.nombre} ${t.diam} mm`,
           def.np ? np(t.diam, def.np) : null, 1);
   }));

@@ -1626,6 +1626,7 @@ Precio de venta soportería = costo × 1.40"></button>
     <!-- El panel era una sola página interminable; ahora se navega por áreas -->
     <div class="adm-nav" role="tablist">
       <button class="adm-tab active" data-sec="catalogo"   onclick="admSeccion('catalogo')"   role="tab">📦 Catálogo</button>
+      <button class="adm-tab"        data-sec="costos"     onclick="admSeccion('costos')"     role="tab">💲 Costos de compra</button>
       <button class="adm-tab"        data-sec="utilidades" onclick="admSeccion('utilidades')" role="tab">💰 Utilidades</button>
       <button class="adm-tab"        data-sec="usuarios"   onclick="admSeccion('usuarios')"   role="tab">👥 Usuarios</button>
       <button class="adm-tab"        data-sec="bitacora"   onclick="admSeccion('bitacora')"   role="tab">📜 Bitácora</button>
@@ -1705,27 +1706,6 @@ Precio de venta soportería = costo × 1.40"></button>
       <div id="upload-status"></div>
     </div>
 
-    <!-- Lista de precios de COMPRA (lo que nos cuesta) ───────────────────── -->
-    <div class="card">
-      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">
-        💲 Cargar precios de compra
-        <button class="gd-i" type="button"
-                data-info-title="Precios de compra"
-                data-info="Es lo que <b>nos cuesta</b> la pieza, no lo que se le cobra al cliente. Se usa para el margen y nunca sale al PDF ni al Word.<br><br>Pensado para la <b>lista PIPRO del fabricante</b>. Para material de proveedor externo, el costo se puede sacar desde el carrito con la búsqueda de precio en internet."
-                data-fuente="Se cruza por número de parte"></button>
-      </div>
-      <div class="info-box" style="margin-bottom:10px;">
-        Sube un Excel con dos columnas: <b>número de parte</b> y <b>costo unitario en MXN</b>.
-        Se detectan solas por el encabezado; los materiales que no estén en el catálogo se informan y se omiten.
-      </div>
-      <label class="upload-area" for="costos-file">
-        <input type="file" id="costos-file" accept=".xls,.xlsx" onchange="cargarCostosCompra(this)">
-        <div>📂 Haz clic o arrastra la lista de precios de compra</div>
-        <div style="color:var(--gd-text-soft);font-size:.82rem;margin-top:4px;">No. de parte + costo MXN</div>
-      </label>
-      <div id="costos-status"></div>
-    </div>
-
     <!-- Stats -->
     <div class="card">
       <div class="sec-title" style="margin-top:0;">📋 Base de Datos</div>
@@ -1752,6 +1732,91 @@ Precio de venta soportería = costo × 1.40"></button>
             <th style="width:90px;text-align:center;">Acciones</th>
           </tr></thead>
           <tbody id="admin-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    </section>
+
+    <!-- ── COSTOS DE COMPRA ────────────────────────────────────────────── -->
+    <section class="adm-sec" id="adm-costos" hidden>
+
+    <div class="adm-cifras" style="margin-bottom:14px;">
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Con costo capturado</div>
+        <div class="adm-cifra-v" id="cst-n-con">—</div>
+      </div>
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Sin costo</div>
+        <div class="adm-cifra-v" id="cst-n-sin">—</div>
+      </div>
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Margen promedio</div>
+        <div class="adm-cifra-v acento" id="cst-margen">—</div>
+      </div>
+      <div class="adm-cifra">
+        <div class="adm-cifra-l">Última lista cargada</div>
+        <div class="adm-cifra-v peq" id="cst-fecha">—</div>
+      </div>
+    </div>
+
+    <!-- Lista de precios de COMPRA (lo que nos cuesta) ───────────────────── -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">
+        💲 Cargar lista de costos
+        <button class="gd-i" type="button"
+                data-info-title="Costos de compra"
+                data-info="El costo de compra es lo que <b>nos cuesta</b> la pieza, no lo que se le cobra al cliente. Alimenta el margen del control interno y <b>nunca</b> sale al PDF ni al Word del cliente.<br><br>Pensado para la hoja <b>«Stock» de la lista PIPRO</b>: toma el número de parte, el costo y, si viene, el precio de venta nuevo. Para material de proveedor externo el costo se captura a mano desde el carrito."
+                data-fuente="Se cruza por número de parte; el precio de venta se redondea a pesos enteros"></button>
+      </div>
+      <div class="info-box" style="margin-bottom:10px;">
+        Sube el Excel de costeo. Se detectan solas las columnas de <b>número de parte</b>,
+        <b>costo unitario</b> y <b>precio de venta</b> por su encabezado, descartando las
+        columnas históricas («costo anterior», «precio de venta de antes»).
+        El precio de venta se <b>redondea hacia arriba</b> a pesos enteros y los materiales
+        que no estén en el catálogo se informan y se omiten.
+      </div>
+      <label class="upload-area" for="costos-file">
+        <input type="file" id="costos-file" accept=".xls,.xlsx" onchange="cargarCostosCompra(this)">
+        <div>📂 Haz clic o arrastra la lista de costeo</div>
+        <div style="color:var(--gd-text-soft);font-size:.82rem;margin-top:4px;">No. de parte + costo + precio de venta</div>
+      </label>
+      <div id="costos-status"></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;">🧮 Costo y margen por pieza</div>
+      <div style="margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="cst-search" placeholder="Filtrar por descripción o No. de parte…"
+               style="width:260px;" oninput="renderCostosTable()">
+        <select id="cst-cat-filtro" style="width:190px;" onchange="renderCostosTable()">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select id="cst-estado" style="width:170px;" onchange="renderCostosTable()">
+          <option value="">Todos</option>
+          <option value="sin">Sin costo</option>
+          <option value="con">Con costo</option>
+          <option value="flaco">Margen bajo (&lt; 20 %)</option>
+        </select>
+        <span id="cst-count" style="font-weight:700;font-size:.85rem;"></span>
+        <button class="btn btn-secondary btn-sm" onclick="exportCostosCSV()">⬇️ Exportar CSV</button>
+      </div>
+      <div style="font-size:.78rem;color:var(--gd-text-mute);margin-bottom:6px;">
+        💡 Escribe en «Costo de compra» o en «Precio de venta» para corregir una pieza; se guarda al salir del campo.
+        El precio de venta se redondea a pesos enteros.
+      </div>
+      <div class="admin-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th style="width:42px;">#</th>
+            <th>Descripción</th>
+            <th style="width:140px;">No. Parte</th>
+            <th style="width:130px;text-align:right;" title="Lo que nos cuesta. Interno.">Costo compra</th>
+            <th style="width:120px;text-align:right;">Precio venta</th>
+            <th style="width:110px;text-align:right;" title="(venta - costo) / venta">Margen</th>
+            <th style="width:110px;text-align:center;">Origen</th>
+          </tr></thead>
+          <tbody id="cst-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -1862,9 +1927,23 @@ const UTIL_DEFAULTS = {
   UTIL_MERCADO_PCT:      0.50
 };
 
-/** Precio de venta a partir del costo de compra. */
+/* Un precio de venta de catálogo va en pesos enteros, redondeado hacia ARRIBA:
+   así ninguna partida de la cotización arrastra centavos. Se redondea el
+   precio unitario, no los totales ni el IVA: redondear el total cambiaría lo
+   que se cobra y dejaría de cuadrar con la suma de las partidas.
+
+   Excepción deliberada: por debajo de $1 el precio ES centavos (hay rondanas
+   de $0.20 en la soportería). Ahí redondear no quitaría centavos, multiplicaría
+   la pieza por cinco, y en una partida de 500 rondanas eso se nota. */
+function redondearVenta(p) {
+  const n = +p || 0;
+  if (n <= 0) return 0;
+  return n < 1 ? n : Math.ceil(n);
+}
+
+/** Precio de venta a partir del costo de compra, ya redondeado. */
 function precioDesdeCosto(costo) {
-  return Math.round(((+costo || 0) * (1 + UTIL_MERCADO_PCT)) * 100) / 100;
+  return redondearVenta((+costo || 0) * (1 + UTIL_MERCADO_PCT));
 }
 
 const SUELDO_TECNICO    = 25723.065720;
@@ -5311,6 +5390,105 @@ function admSeccion(id) {
   if (id === 'usuarios') renderUsuarios();
   if (id === 'bitacora') renderBitacora();
   if (id === 'catalogo') renderAdminTable();
+  if (id === 'costos')   renderCostosTable();
+}
+
+/* ── Costos de compra ───────────────────────────────────────────────────────
+   Misma fuente que el catálogo (`state.materiales`): aquí sólo se mira por la
+   lente del costo, para ver de un golpe qué piezas siguen sin costo y qué
+   margen deja cada una. Lo que se escriba aquí es lo que después aparece en el
+   control interno de costos del Excel. */
+const _margen = m => {
+  const c = +m.costo_compra || 0, p = +m.precio || 0;
+  return (c > 0 && p > 0) ? (p - c) / p : null;
+};
+
+function _costosFiltrados() {
+  const q      = (el('cst-search')?.value || '').toLowerCase().trim();
+  const cat    = el('cst-cat-filtro')?.value || '';
+  const estado = el('cst-estado')?.value || '';
+  return state.materiales.filter(m => {
+    if (q && !m.descripcion.toLowerCase().includes(q) && !m.numero_parte.toLowerCase().includes(q)) return false;
+    if (cat && categoriaDe(m) !== cat) return false;
+    const mg = _margen(m);
+    if (estado === 'sin'   && +m.costo_compra > 0) return false;
+    if (estado === 'con'   && !(+m.costo_compra > 0)) return false;
+    if (estado === 'flaco' && !(mg !== null && mg < 0.20)) return false;
+    return true;
+  });
+}
+
+function renderCostosTable() {
+  if (!el('cst-tbody')) return;
+
+  // Filtro de categorías: sólo las que existen, con su conteo
+  const sel = el('cst-cat-filtro');
+  if (sel) {
+    const prev = sel.value;
+    const cuenta = {};
+    state.materiales.forEach(m => { const c = categoriaDe(m); cuenta[c] = (cuenta[c] || 0) + 1; });
+    sel.innerHTML = '<option value="">Todas las categorías</option>' +
+      CATEGORIAS.filter(c => cuenta[c.valor])
+        .map(c => `<option value="${c.valor}">${c.icono} ${GD.esc(c.etiqueta)} (${cuenta[c.valor]})</option>`).join('');
+    sel.value = prev;
+  }
+
+  // Cifras de cabecera, siempre sobre el catálogo completo
+  const conCosto = state.materiales.filter(m => +m.costo_compra > 0);
+  const margenes = state.materiales.map(_margen).filter(x => x !== null);
+  const prom = margenes.length ? margenes.reduce((a, b) => a + b, 0) / margenes.length : null;
+  el('cst-n-con').textContent = conCosto.length.toLocaleString('es-MX');
+  el('cst-n-sin').textContent = (state.materiales.length - conCosto.length).toLocaleString('es-MX');
+  el('cst-margen').textContent = prom === null ? '—' : (prom * 100).toFixed(1) + ' %';
+  const fechas = state.materiales.map(m => m.costo_fecha).filter(Boolean).sort();
+  el('cst-fecha').textContent = fechas.length
+    ? new Date(fechas[fechas.length - 1]).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })
+    : '—';
+
+  const mats = _costosFiltrados();
+  el('cst-count').textContent = mats.length === state.materiales.length
+    ? `${mats.length} materiales`
+    : `${mats.length} de ${state.materiales.length}`;
+
+  el('cst-tbody').innerHTML = mats.map((m, i) => {
+    const np    = _attrEsc(m.numero_parte);
+    const costo = +m.costo_compra || 0;
+    const mg    = _margen(m);
+    // Verde si deja margen sano, ámbar si va flaco, rojo si se vende con pérdida
+    const color = mg === null ? 'var(--gd-text-mute)'
+                : mg < 0      ? '#dc2626'
+                : mg < 0.20   ? '#f97316' : '#16a34a';
+    return `<tr>
+      <td style="color:var(--gd-text-mute);text-align:center;">${i + 1}</td>
+      <td style="font-size:.82rem;">${GD.esc(m.descripcion)}</td>
+      <td style="font-family:ui-monospace,monospace;font-size:.8rem;">${GD.esc(m.numero_parte)}</td>
+      <td><input class="admin-edit admin-price admin-costo" data-part="${np}" data-field="costo_compra"
+                 type="number" min="0" step="0.01" value="${costo || ''}" placeholder="—"
+                 onchange="updateMatField(this)"></td>
+      <td><input class="admin-edit admin-price" data-part="${np}" data-field="precio"
+                 type="number" min="0" step="1" value="${m.precio}"
+                 onchange="updateMatField(this)"></td>
+      <td style="text-align:right;font-weight:700;color:${color};">
+        ${mg === null ? '—' : (mg * 100).toFixed(1) + ' %'}</td>
+      <td style="text-align:center;font-size:.72rem;color:var(--gd-text-mute);"
+          title="${m.costo_fecha ? 'Capturado el ' + new Date(m.costo_fecha).toLocaleDateString('es-MX') : ''}">
+        ${m.costo_origen ? GD.esc(ORIGEN_TXT[m.costo_origen] || m.costo_origen) : '—'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--gd-text-mute);padding:18px;">
+       Ningún material coincide con el filtro.</td></tr>`;
+}
+
+function exportCostosCSV() {
+  const filas = [['Descripción','No. de parte','Categoría','Costo compra','Precio venta','Margen %','Origen','Fecha del costo'],
+    ..._costosFiltrados().map(m => {
+      const mg = _margen(m);
+      return [m.descripcion, m.numero_parte, catEtiqueta(categoriaDe(m)),
+              m.costo_compra || '', m.precio,
+              mg === null ? '' : (mg * 100).toFixed(1),
+              m.costo_origen ? (ORIGEN_TXT[m.costo_origen] || m.costo_origen) : '',
+              m.costo_fecha ? new Date(m.costo_fecha).toLocaleDateString('es-MX') : ''];
+    })];
+  descargarCSV(filas, `Costos_compra_${new Date().toISOString().slice(0,10)}.csv`);
 }
 
 /** Cifras de cabecera del panel. */
@@ -5772,7 +5950,7 @@ function uploadMateriales(inp) {
         if (i<2) return; // skip headers
         const desc = String(row[3]||'').trim();
         const part = String(row[4]||'').trim();
-        const price = parseFloat(row[7])||0;
+        const price = redondearVenta(parseFloat(row[7])||0);
         const skip = new Set(['MC','Número de Parte','N?mero de Parte','']);
         if (desc && part && !skip.has(part) && price>0) {
           newMats.push({descripcion:desc, numero_parte:part, precio:price});
@@ -6255,6 +6433,9 @@ async function updateMatField(input) {
   const field   = input.dataset.field;
   let value     = input.value.trim();
   if (field === 'precio' || field === 'costo_compra') value = parseFloat(value) || 0;
+  // El precio de venta del catálogo va en pesos enteros; el costo de compra no
+  // se toca, es lo que realmente nos facturan.
+  if (field === 'precio') { value = redondearVenta(value); input.value = value || ''; }
 
   const idx = state.materiales.findIndex(m => m.numero_parte === oldPart);
   if (idx < 0) { _showSaveStatus(oldPart, 'err', 'Material no encontrado'); return; }
@@ -6322,12 +6503,65 @@ async function updateMatField(input) {
   }
 
   actualizarContadorMateriales();
+  /* Si la edición vino de la pestaña de costos, hay que recalcular el margen y
+     las cifras de cabecera. Se hace al final, ya guardado, para no borrar el
+     indicador de «guardando» ni quitarle el foco al campo antes de tiempo. */
+  if (!el('adm-costos')?.hidden && (field === 'precio' || field === 'costo_compra')) renderCostosTable();
 }
 
-/* ── Carga masiva de precios de COMPRA ───────────────────────────────────────
+/* ── Detección de columnas en una lista de costos ────────────────────────────
+   La hoja de costeo de PIPRO trae columnas gemelas que no hay que confundir:
+   «COSTO» junto a «COSTO ANTERIOR», y «PRECIO DE VENTA» junto a «PRECIO DE
+   VENTA DE ANTES». Si se toma la equivocada se cargan los precios viejos sin
+   que nada falle a la vista, así que lo histórico se descarta de entrada. */
+const _COL_VIEJO = /anterior|antes|previo|old|hist[oó]ric/i;
+/* Cada campo lleva sus patrones del más específico al más laxo, y gana el de
+   nivel más alto aunque esté más a la derecha. Hace falta: la hoja de PIPRO
+   tiene «Selling price» (el precio en dólares del fabricante) a la izquierda
+   de «PRECIO DE VENTA» (el precio en pesos al cliente). Con un solo patrón que
+   aceptara las dos, se cargaban los dólares como precio de venta y el tubo de
+   20 mm quedaba en $9 en lugar de $795, sin ningún error a la vista. */
+const _PATRONES_COL = {
+  parte: [/n[uú]mero\s*de\s*parte|no\.?\s*de\s*parte|no\.?\s*parte/i,
+          /item\s*code|c[oó]digo|codigo|clave|sku/i,
+          /\bparte\b|\bpart\b/i],
+  costo: [/costo\s*(unitario|de\s*compra)|precio\s*de\s*compra/i,
+          /^\s*costo\s*$/i,
+          /costo|compra|\bcost\b/i],
+  venta: [/precio\s*de\s*venta|precio\s*venta/i,
+          /^\s*venta\s*$/i,
+          /\bventa\b|selling|\bsale\b/i],
+};
+function _detectarColumnas(filas) {
+  for (let i = 0; i < Math.min(filas.length, 12); i++) {
+    const fila = filas[i] || [];
+    const hit = {}, nivel = {};
+    fila.forEach((cel, j) => {
+      const t = String(cel || '').trim();
+      if (!t || _COL_VIEJO.test(t)) return;        // columna histórica: fuera
+      for (const k in _PATRONES_COL) {
+        const n = _PATRONES_COL[k].findIndex(re => re.test(t));
+        if (n < 0) continue;
+        if (hit[k] === undefined || n < nivel[k]) { hit[k] = j; nivel[k] = n; }
+      }
+    });
+    // La fila de encabezado es la que trae el número de parte y algún importe
+    if (hit.parte !== undefined && (hit.costo !== undefined || hit.venta !== undefined)) {
+      return { ...hit, inicio: i + 1 };
+    }
+  }
+  return null;
+}
+const _numCel = v => {
+  const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
+
+/* ── Carga masiva de costos de compra y precios de venta ─────────────────────
    Cruza por número de parte contra el catálogo. Lo que no existe se informa y
    se omite: un costo sin material al que colgarse no sirve de nada, y crear el
-   material a ciegas desde una lista de precios ensuciaría el catálogo. */
+   material a ciegas desde una lista de precios ensuciaría el catálogo.
+   El precio de venta se redondea hacia arriba, a pesos enteros. */
 function cargarCostosCompra(inp) {
   const file = inp.files[0];
   if (!file) return;
@@ -6338,63 +6572,78 @@ function cargarCostosCompra(inp) {
   reader.onload = async e => {
     try {
       const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-      const hoja = wb.SheetNames.find(s => /costo|compra|precio|lista/i.test(s)) || wb.SheetNames[0];
+      const hoja = wb.SheetNames.find(s => /stock|costo|compra|precio|lista/i.test(s)) || wb.SheetNames[0];
       const filas = XLSX.utils.sheet_to_json(wb.Sheets[hoja], { header: 1, defval: '' });
 
-      // Encabezado: primera fila que tenga algo parecido a parte y a costo
-      let cParte = -1, cCosto = -1, inicio = 0;
-      for (let i = 0; i < Math.min(filas.length, 10); i++) {
-        (filas[i] || []).forEach((cel, j) => {
-          const t = String(cel || '').toLowerCase().trim();
-          if (cParte < 0 && /parte|part|c[oó]digo|codigo|clave|sku|n[uú]mero/.test(t)) cParte = j;
-          if (cCosto < 0 && /costo|compra|cost|unitario|precio/.test(t))              cCosto = j;
-        });
-        if (cParte >= 0 && cCosto >= 0) { inicio = i + 1; break; }
-      }
-      if (cParte < 0 || cCosto < 0) {
-        est.innerHTML = '<div class="error-box">No encontré las columnas de número de parte y costo. Revisa que el archivo tenga encabezados.</div>';
+      const col = _detectarColumnas(filas);
+      if (!col) {
+        est.innerHTML = '<div class="error-box">No encontré las columnas de número de parte y de importe. Revisa que el archivo tenga una fila de encabezados con «No. de parte» y «Costo» o «Precio de venta».</div>';
         return;
       }
 
       const ahora = new Date().toISOString();
-      const cambiados = [], sinMaterial = [];
-      let invalidos = 0;
+      const cambiados = new Set(), sinMaterial = [], bajan = [];
+      let nCosto = 0, nVenta = 0, invalidos = 0;
 
-      for (let i = inicio; i < filas.length; i++) {
+      for (let i = col.inicio; i < filas.length; i++) {
         const f = filas[i] || [];
-        const parte = String(f[cParte] || '').trim();
-        const costo = parseFloat(String(f[cCosto] || '').replace(/[^0-9.\-]/g, ''));
+        const parte = String(f[col.parte] || '').trim();
         if (!parte) continue;
-        if (!Number.isFinite(costo) || costo <= 0) { invalidos++; continue; }
+        const costo = col.costo === undefined ? null : _numCel(f[col.costo]);
+        const venta = col.venta === undefined ? null : _numCel(f[col.venta]);
+        if ((costo == null || costo <= 0) && (venta == null || venta <= 0)) { invalidos++; continue; }
         const m = materialDeCatalogo(parte);
         if (!m) { sinMaterial.push(parte); continue; }
-        m.costo_compra = costo;
-        m.costo_origen = 'lista';
-        m.costo_fecha  = ahora;
-        m.costo_fuentes = null;
-        cambiados.push(m);
+
+        if (costo != null && costo > 0) {
+          m.costo_compra  = Math.round(costo * 100) / 100;  // el costo sí lleva centavos
+          m.costo_origen  = 'lista';
+          m.costo_fecha   = ahora;
+          m.costo_fuentes = null;
+          nCosto++;
+        }
+        if (venta != null && venta > 0) {
+          const nuevo = redondearVenta(venta);
+          // Una baja de precio es legítima, pero conviene que se vea
+          if (nuevo < (+m.precio || 0)) bajan.push(`${parte}: ${fmt(m.precio)} → ${fmt(nuevo)}`);
+          m.precio = nuevo;
+          nVenta++;
+        }
+        cambiados.add(m);
       }
 
-      if (!cambiados.length) {
-        est.innerHTML = `<div class="error-box">No se actualizó ningún costo.` +
+      const lista = [...cambiados];
+      if (!lista.length) {
+        est.innerHTML = `<div class="error-box">No se actualizó nada.` +
           (sinMaterial.length ? ` ${sinMaterial.length} número(s) de parte no existen en el catálogo.` : '') +
-          (invalidos ? ` ${invalidos} fila(s) con costo no numérico.` : '') + `</div>`;
+          (invalidos ? ` ${invalidos} fila(s) sin importe numérico.` : '') + `</div>`;
         return;
       }
 
-      est.innerHTML = `<div class="info-box">Guardando ${cambiados.length} costos…</div>`;
+      est.innerHTML = `<div class="info-box">Guardando ${lista.length} materiales…</div>`;
       try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(err) {}
+      /* El fallo de red se informa aparte: antes caía en el catch de abajo y
+         decía «error al leer el archivo», cuando el archivo se había leído
+         perfectamente y lo que falló fue guardar en el servidor. */
+      let errSync = null;
       if (window.SB && window.SB.configured) {
-        // En bloques, para no mandar un cuerpo enorme de una sola vez
-        for (let i = 0; i < cambiados.length; i += 200) {
-          await window.SB.upsert('materiales', cambiados.slice(i, i + 200).map(filaMaterial), 'numero_parte');
-        }
+        try {
+          // En bloques, para no mandar un cuerpo enorme de una sola vez
+          for (let i = 0; i < lista.length; i += 200) {
+            await window.SB.upsert('materiales', lista.slice(i, i + 200).map(filaMaterial), 'numero_parte');
+          }
+        } catch (e) { errSync = e.message || String(e); }
       }
 
-      est.innerHTML = `<div class="success-box">✅ ${cambiados.length} costos de compra actualizados.` +
+      est.innerHTML = `<div class="${errSync ? 'error-box' : 'success-box'}">` +
+        (errSync ? `⚠️ Se aplicaron los cambios en esta sesión, pero <b>no se pudieron guardar en el servidor</b>: ${GD.esc(errSync)}.<br>Vuelve a cargar el archivo cuando haya conexión.<br>` : '✅ ') +
+        `${lista.length} materiales actualizados` +
+        ` · ${nCosto} costo(s) de compra · ${nVenta} precio(s) de venta (redondeados a pesos enteros).` +
+        (bajan.length ? `<br><b>⚠️ ${bajan.length} precio(s) BAJAN</b> respecto al catálogo actual: ${GD.esc(bajan.slice(0, 6).join(' · '))}${bajan.length > 6 ? '…' : ''}` : '') +
         (sinMaterial.length ? `<br><b>${sinMaterial.length} sin material en el catálogo</b> (se omitieron): ${GD.esc(sinMaterial.slice(0, 8).join(', '))}${sinMaterial.length > 8 ? '…' : ''}` : '') +
-        (invalidos ? `<br>${invalidos} fila(s) con costo no numérico.` : '') + `</div>`;
+        (invalidos ? `<br>${invalidos} fila(s) sin importe numérico.` : '') + `</div>`;
       renderAdminTable();
+      renderCostosTable();
 
     } catch (err) {
       est.innerHTML = `<div class="error-box">Error al leer el archivo: ${GD.esc(err.message)}</div>`;
@@ -6429,14 +6678,21 @@ async function deleteMat(btn) {
   toast(`🗑 "${m.descripcion.substring(0, 40)}..." eliminado`);
 }
 
-function exportCSV() {
-  const rows = [['Descripcion','Numero_Parte','Categoria','Precio_Venta_MXN','Costo_Compra_MXN','Origen_Costo'],
-    ...state.materiales.map(m=>[m.descripcion,m.numero_parte,catEtiqueta(categoriaDe(m)),m.precio,m.costo_compra||'',m.costo_origen||''])];
-  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+/* Descarga un CSV. El BOM del inicio es para que Excel en Windows lo abra en
+   UTF-8 y no destroce los acentos. */
+function descargarCSV(filas, nombre) {
+  const csv = filas.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='materiales.csv'; document.body.appendChild(a); a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},500);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 500);
+}
+
+function exportCSV() {
+  descargarCSV([['Descripcion','Numero_Parte','Categoria','Precio_Venta_MXN','Costo_Compra_MXN','Origen_Costo'],
+    ...state.materiales.map(m=>[m.descripcion,m.numero_parte,catEtiqueta(categoriaDe(m)),m.precio,m.costo_compra||'',m.costo_origen||''])],
+    'materiales.csv');
 }
 
 // ── PERSISTENCIA (Supabase como única fuente de verdad) ──────────────────────
@@ -6483,11 +6739,9 @@ async function _seedSupabaseIfNeeded(currentRows) {
   }
 
   console.info(`[materiales] Supabase tiene ${currentRows.length} items; sembrando ${missing.length} faltantes del bundled (siembra inicial)...`);
-  const rowsToInsert = missing.map(m => ({
-    numero_parte: m.numero_parte,
-    descripcion:  m.descripcion,
-    precio:       m.precio
-  }));
+  // Fila completa: el bundled ya trae categoría y costo de compra de la lista
+  // PIPRO, y mandar sólo tres columnas los dejaría fuera desde la siembra.
+  const rowsToInsert = missing.map(filaMaterial);
   const BATCH = 500;
   for (let i = 0; i < rowsToInsert.length; i += BATCH) {
     await window.SB.upsert('materiales', rowsToInsert.slice(i, i + BATCH), 'numero_parte');
@@ -6511,10 +6765,19 @@ async function loadMateriales() {
       // Si Supabase está vacío o incompleto, sembrar desde el bundled
       rows = await _seedSupabaseIfNeeded(rows);
 
+      /* OJO: aquí hay que traerse TODAS las columnas. Esta vuelta sólo copiaba
+         descripción, parte y precio, así que el costo de compra y la categoría
+         se guardaban bien en Supabase y se tiraban en cada recarga: el control
+         interno salía sin costos y sin margen aunque la lista estuviera cargada. */
       state.materiales = rows.map(r => ({
-        descripcion:  r.descripcion,
-        numero_parte: r.numero_parte,
-        precio:       parseFloat(r.precio) || 0
+        descripcion:   r.descripcion,
+        numero_parte:  r.numero_parte,
+        precio:        parseFloat(r.precio) || 0,
+        categoria:     r.categoria     || null,
+        costo_compra:  parseFloat(r.costo_compra) || null,
+        costo_origen:  r.costo_origen  || null,
+        costo_fuentes: r.costo_fuentes || null,
+        costo_fecha:   r.costo_fecha   || null,
       }));
       // Guardar respaldo offline
       try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
@@ -6538,9 +6801,13 @@ async function loadMateriales() {
 
   // 3. Sin localStorage tampoco → bundled como último recurso (modo offline puro)
   state.materiales = (window.MATERIALES_DB || []).map(m => ({
-    descripcion:  m.descripcion,
-    numero_parte: m.numero_parte,
-    precio:       m.precio
+    descripcion:   m.descripcion,
+    numero_parte:  m.numero_parte,
+    precio:        m.precio,
+    categoria:     m.categoria     || null,
+    costo_compra:  m.costo_compra  || null,
+    costo_origen:  m.costo_origen  || null,
+    costo_fecha:   m.costo_fecha   || null,
   }));
   return state.materiales.length > 0;
 }
@@ -6549,10 +6816,8 @@ async function loadMateriales() {
 async function saveMateriales() {
   try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch(e) {}
   if (!window.SB || !window.SB.configured) return;
-  const rows = state.materiales.map(m => ({
-    numero_parte: m.numero_parte, descripcion: m.descripcion, precio: m.precio
-  }));
-  await window.SB.upsert('materiales', rows, 'numero_parte');
+  // filaMaterial y no tres columnas: ver «Trampa de PostgREST» en CLAUDE.md
+  await window.SB.upsert('materiales', state.materiales.map(filaMaterial), 'numero_parte');
 }
 
 /** Reemplaza TODOS los materiales en Supabase (usa en carga masiva desde Excel) */
@@ -6560,9 +6825,7 @@ async function replaceMateriales() {
   if (!window.SB || !window.SB.configured) return;
   // Borrar catálogo anterior y subir el nuevo
   await window.SB.deleteWhere('materiales', 'numero_parte=not.is.null');
-  const rows = state.materiales.map(m => ({
-    numero_parte: m.numero_parte, descripcion: m.descripcion, precio: m.precio
-  }));
+  const rows = state.materiales.map(filaMaterial);
   // Supabase tiene límite de 1000 registros por POST; enviar en lotes
   const BATCH = 500;
   for (let i = 0; i < rows.length; i += BATCH) {
