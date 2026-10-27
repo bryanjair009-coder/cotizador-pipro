@@ -6017,6 +6017,7 @@ async function addProduct() {
 function uploadMateriales(inp) {
   const file = inp.files[0];
   if (!file) return;
+  if (!_puedeEditarCatalogo('Reemplazar el catálogo')) { inp.value = ''; return; }
   el('upload-status').innerHTML = '<div class="info-box">Procesando...</div>';
   const reader = new FileReader();
   reader.onload = async e => {
@@ -6493,6 +6494,21 @@ function _showSaveStatus(numeroParte, status, message) {
   }
 }
 
+/* ── Candado de escritura del catálogo ──────────────────────────────────────
+   Ver el costo de compra lo puede hacer cualquiera —lo necesitan para su
+   análisis de precios unitarios—, pero **cambiarlo sólo un administrador**.
+   Esconder el panel no basta: las funciones son globales y siguen ahí si la
+   sesión caduca con la pestaña abierta, o si alguien las llama desde la
+   consola. El candado va en la función, que es por donde se escribe.
+
+   Esto es una barrera del portal, no del servidor: el candado de verdad son
+   las políticas RLS de Supabase sobre la tabla `materiales`. */
+function _puedeEditarCatalogo(accion) {
+  if (GD.sesion && GD.sesion.esAdmin) return true;
+  toast(`🔒 ${accion} requiere permisos de administrador`);
+  return false;
+}
+
 /* Fila completa del material para el upsert.
    OJO: un upsert de PostgREST reescribe con valores por defecto las columnas
    que no se mandan, así que omitir `categoria` o `costo_compra` aquí las
@@ -6513,6 +6529,12 @@ function filaMaterial(m) {
 async function updateMatField(input) {
   const oldPart = input.dataset.part;
   const field   = input.dataset.field;
+  if (!_puedeEditarCatalogo('Editar el catálogo')) {
+    // Devolver el campo a su valor guardado, para que no engañe en pantalla
+    const m = state.materiales.find(x => x.numero_parte === oldPart);
+    if (m) input.value = m[field] ?? '';
+    return;
+  }
   let value     = input.value.trim();
   if (field === 'precio' || field === 'costo_compra') value = parseFloat(value) || 0;
   // El precio de venta del catálogo va en pesos enteros; el costo de compra no
@@ -6647,6 +6669,7 @@ const _numCel = v => {
 function cargarCostosCompra(inp) {
   const file = inp.files[0];
   if (!file) return;
+  if (!_puedeEditarCatalogo('Cargar la lista de costos')) { inp.value = ''; return; }
   const est = el('costos-status');
   est.innerHTML = '<div class="info-box">Leyendo archivo…</div>';
 
@@ -6737,6 +6760,7 @@ function cargarCostosCompra(inp) {
 }
 
 async function deleteMat(btn) {
+  if (!_puedeEditarCatalogo('Eliminar un material')) return;
   const part = btn.dataset.part;
   const idx  = state.materiales.findIndex(m => m.numero_parte === part);
   if (idx < 0) return;

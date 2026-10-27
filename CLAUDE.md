@@ -89,11 +89,25 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
   editables por pieza, margen por fila con semáforo, filtros (sin costo / margen
   bajo) y exportación a CSV. Lo que se capture ahí es lo que sale en el control
   interno de costos.
-- **`_costoVisible()` ya NO reserva nada por rol** (cambio de 2026-10-27, a
-  petición del dueño): el control interno es el documento con el que se sube el
-  margen del proyecto, así que imprime todos los costos que la base tenga, para
-  cualquier sesión. Lo que no esté capturado sale en blanco. El PDF y el Word
-  del cliente siguen sin costos de ningún tipo.
+### Quién ve y quién cambia los costos (2026-10-27, regla del dueño)
+
+- **Ver: todos.** `_costoVisible()` ya no reserva nada por rol. El control
+  interno es el documento con el que se sube el margen del proyecto y quien
+  cotiza lo necesita para su análisis de precios unitarios, así que imprime
+  todos los costos que la base tenga, para cualquier sesión. Lo que no esté
+  capturado sale en blanco. El PDF y el Word del cliente siguen sin costos.
+  Esto cuadra con `api/db.js`: `materiales` tiene `select: 'todos'`.
+- **Cambiar el catálogo: sólo administrador.** Ya lo impone el servidor
+  (`materiales: { upsert: 'admin', delete: 'admin' }`) y el acceso anónimo a
+  Supabase está cerrado, así que la regla no depende del navegador.
+  `_puedeEditarCatalogo()` la repite en el portal para que un intento no-admin
+  falle con un mensaje claro **antes** de tocar `state.materiales` y
+  localStorage: sin ese candado el valor cambiaba en pantalla y se guardaba en
+  el respaldo local, aunque el servidor devolviera 403. Está en
+  `updateMatField`, `cargarCostosCompra`, `uploadMateriales` y `deleteMat`.
+- **Capturar un costo en el carrito sí lo puede hacer cualquiera**, pero se
+  queda en esa partida: `guardarCostoEnCatalogo()` sólo escribe el catálogo si
+  la sesión es de administrador.
 
 ### Resumen económico del proyecto (hoja «Balance de utilidad»)
 
