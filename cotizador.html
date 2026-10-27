@@ -1252,7 +1252,7 @@ Descuento = Base × %"></button>
       5b. Control de material y costos
       <button class="gd-i" type="button"
               data-info-title="Control de material y costos"
-              data-info="Los dos Excel incluyen <b>todas las partidas de la cotización</b> con su número de parte <b>y la soportería</b> del proyecto.<br><br>El <b>control de costos</b> lleva proveedor y costo unitario de cada pieza para capturar; la utilidad y el margen se calculan solos.<br><br>El <b>control de entregas</b> sirve para ir registrando en obra lo que se entrega de cada pieza.<br><br>El faltante de <b>material PIPRO</b> se surte por su propio canal, salvo solicitud especial."
+              data-info="Un solo Excel con <b>tres hojas</b>, todas sobre las mismas partidas: <b>todo lo cotizado</b> con su número de parte <b>más la soportería</b>.<br><br><b>Control de costos:</b> proveedor y costo unitario de cada pieza para capturar; la utilidad y el margen se calculan solos.<br><br><b>Balance de utilidad:</b> material, soportería y mano de obra.<br><br><b>Control de entregas:</b> para ir registrando en obra lo que se entrega.<br><br>El faltante de <b>material PIPRO</b> se surte por su propio canal, salvo solicitud especial."
               data-formula="Por surtir = Cantidad − En almacén
 Precio de venta soportería = costo × 1.40"></button>
     </div>
@@ -1276,8 +1276,7 @@ Precio de venta soportería = costo × 1.40"></button>
       </div>
       <div class="req-nota" id="req-nota"></div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-secondary btn-sm" onclick="generateRequisicionExcel()">📊 Excel de control de costos</button>
-        <button class="btn btn-secondary btn-sm" onclick="generateEntregasExcel()">📦 Excel de control de entregas</button>
+        <button class="btn btn-secondary btn-sm" onclick="generateControlInterno()">📋 Excel de control interno</button>
       </div>
     </div>
   </div>
@@ -1310,10 +1309,8 @@ Precio de venta soportería = costo × 1.40"></button>
 
     <div class="gen-grupo">Control interno — no se le entrega al cliente</div>
     <div class="gen-row">
-      <button class="btn btn-secondary" id="btn-gen-costos" onclick="generateRequisicionExcel()"
-              title="Costo de compra y margen de cada pieza, con la soportería">📊 Control de costos</button>
-      <button class="btn btn-secondary" id="btn-gen-entregas" onclick="generateEntregasExcel()"
-              title="Lo cotizado y la soportería, para registrar lo entregado en obra">📦 Control de entregas</button>
+      <button class="btn btn-secondary" id="btn-gen-interno" onclick="generateControlInterno()"
+              title="Un solo Excel con tres hojas: control de costos, balance de utilidad y control de entregas">📋 Control interno (3 hojas)</button>
     </div>
     <div id="gen-progreso" style="display:none;margin-top:12px;"></div>
   </div>
@@ -3587,8 +3584,9 @@ function renderRequisicion() {
     (res.cotizado ? `<b>Valor cotizado del material sin stock: ${fmtMXN(res.cotizado)}.</b><br>` : '') +
     `Los dos documentos incluyen <b>todo el material de la cotización</b> con su número de parte` +
     (R.sopPartidas ? ` <b>y la soportería</b> (${R.sopPartidas} partidas, ${R.sopPiezas.toLocaleString('es-MX')} piezas)` : '') +
-    `, no sólo lo que falta. El <b>control de costos</b> lleva proveedor y costo unitario por pieza y calcula solo la utilidad y el margen, mano de obra incluida. ` +
-    `El <b>control de entregas</b> lista lo cotizado para ir registrando lo entregado en obra.`;
+    `, no sólo lo que falta. El <b>Excel de control interno</b> trae tres hojas: ` +
+    `<b>control de costos</b> (proveedor y costo unitario por pieza, con la utilidad y el margen calculados solos), ` +
+    `<b>balance de utilidad</b> (mano de obra incluida) y <b>control de entregas</b> para registrar lo entregado en obra.`;
 }
 
 /** El botón de «generar todo» dice cuántos archivos va a bajar de verdad. */
@@ -3597,10 +3595,10 @@ function actualizarBotonGenerar() {
   if (!btn) return;
   const hay = hayMaterialControl();
   btn.innerHTML = hay
-    ? '📦 Generar los 5 archivos · Cotización (PDF + Word + Excel) + Control de costos y entregas'
+    ? '📦 Generar los 4 archivos · Cotización (PDF + Word + Excel) + Control interno'
     : '📦 Generar los 3 archivos · PDF + Word + Excel';
   // Los botones de control no sirven sin material: se desactivan en vez de fallar
-  ['btn-gen-costos', 'btn-gen-entregas'].forEach(id => {
+  ['btn-gen-interno'].forEach(id => {
     const b = el(id);
     if (!b) return;
     b.disabled = !hay;
@@ -4827,15 +4825,11 @@ function _costoVisible(it) {
   return (GD.sesion && GD.sesion.esAdmin) ? c : 0;
 }
 
-function generateRequisicionExcel() {
-  if (!validateForm()) return;
-  const mats = getMaterialControl();
-  const sop  = getSoporteria();
-  if (!mats.length && !sop.length) { toast('No hay material en la cotización'); return; }
-
+/* Añade al libro las hojas «Control de costos» y «Balance de utilidad».
+   No escribe archivo: el libro lo arma y lo guarda generateControlInterno(). */
+function _hojasCostos(wb, mats, sop) {
   const D = _reqEncabezadoDatos();
   const d = collectData();
-  const wb = XLSX.utils.book_new();
   const hdrFill = '1F3864', secFill = '2E4A7A', altFill = 'EBF5FB', lblFill = 'D6E4F0',
         totFill = 'D6E4F0', capFill = 'FFF59D', piproFill = 'E2EFFA';
 
@@ -5112,10 +5106,6 @@ function generateRequisicionExcel() {
   bs['!cols'] = [{wch:44},{wch:15},{wch:15},{wch:18}];
   bs['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:br, c:3} });
   XLSX.utils.book_append_sheet(wb, bs, 'Balance de utilidad');
-
-  const suf = state.editandoFolio ? '-EDITADO' : '';
-  XLSX.writeFile(wb, ('Control_Costos_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
-  toast('📊 Excel de control de costos descargado');
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -5125,14 +5115,8 @@ function generateRequisicionExcel() {
    estado de cada pieza se calculan solos con fórmulas, así el archivo sigue
    sirviendo semanas después, ya fuera del portal.
    ════════════════════════════════════════════════════════════════════════════ */
-function generateEntregasExcel() {
-  if (!validateForm()) return;
-  const mats = getMaterialControl();
-  const sop  = getSoporteria();
-  if (!mats.length && !sop.length) { toast('No hay material en la cotización'); return; }
-
+function _hojaEntregas(wb, mats, sop) {
   const D = _reqEncabezadoDatos();
-  const wb = XLSX.utils.book_new();
   const hdrFill = '1F3864', secFill = '2E4A7A', altFill = 'EBF5FB', lblFill = 'D6E4F0',
         capFill = 'FFF59D';
   const ws = {}, merges = [];
@@ -5243,10 +5227,28 @@ function generateEntregasExcel() {
   ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:r, c:ULT} });
   ws['!margins'] = XL_MARGENES;
   XLSX.utils.book_append_sheet(wb, ws, 'Control de entregas');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CONTROL INTERNO — un solo libro con las tres hojas
+   Costos y entregas se llevan del mismo proyecto y sobre las mismas partidas,
+   así que viven en el mismo archivo en vez de en dos. Las fórmulas del balance
+   apuntan a la hoja «Control de costos» dentro de este mismo libro.
+   ════════════════════════════════════════════════════════════════════════════ */
+function generateControlInterno() {
+  if (!validateForm()) return;
+  const mats = getMaterialControl();
+  const sop  = getSoporteria();
+  if (!mats.length && !sop.length) { toast('No hay material en la cotización'); return; }
+
+  const D = _reqEncabezadoDatos();
+  const wb = XLSX.utils.book_new();
+  _hojasCostos(wb, mats, sop);    // Control de costos + Balance de utilidad
+  _hojaEntregas(wb, mats, sop);   // Control de entregas
 
   const suf = state.editandoFolio ? '-EDITADO' : '';
-  XLSX.writeFile(wb, ('Control_Entregas_' + D.folioCot + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
-  toast('📦 Excel de control de entregas descargado');
+  XLSX.writeFile(wb, ('Control_Interno_' + D.folioCot + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
+  toast('📋 Excel de control interno descargado');
 }
 
 /**
@@ -5266,8 +5268,7 @@ async function generateAll() {
   // Los dos controles cubren todo el proyecto (cotización + soportería), así
   // que salen en el mismo paquete siempre que haya material.
   if (hayMaterialControl()) {
-    pasos.push(['Control de costos (Excel)', generateRequisicionExcel]);
-    pasos.push(['Control de entregas (Excel)', generateEntregasExcel]);
+    pasos.push(['Control interno (Excel)', generateControlInterno]);
   }
 
   btn.disabled = true;

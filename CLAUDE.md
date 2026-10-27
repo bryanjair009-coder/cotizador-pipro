@@ -202,27 +202,33 @@ genera siempre los 5 archivos cuando hay material.
 
 - El **PDF de control de material** se eliminó a petición del departamento
   (2026-10). No reponerlo sin pedirlo: los dos Excel ya cubren esa información.
-- **Excel de control de costos** (`generateRequisicionExcel`), hoja «Control de
-  costos» con secciones A y B y, por sección, dos totales: venta total y
-  **comparable** (sólo partidas con costo). Hoja «Balance de utilidad»: A, B y
-  C (proyecto) apuntan a los renglones comparables.
+- **Un solo Excel de control interno** (`generateControlInterno`,
+  `Control_Interno_<folio>.xlsx`) con tres hojas. Los constructores
+  `_hojasCostos(wb, mats, sop)` y `_hojaEntregas(wb, mats, sop)` sólo añaden
+  hojas; el libro se crea y se guarda una sola vez en `generateControlInterno`.
+  Si se agrega otra hoja, seguir ese patrón: nada de `book_new()` ni
+  `writeFile()` dentro de un constructor.
+- Hoja «Control de costos»: secciones A y B y, por sección, dos totales: venta
+  total y **comparable** (sólo partidas con costo). Hoja «Balance de utilidad»:
+  A, B y C (proyecto) apuntan a los renglones comparables **por referencia de
+  hoja** (`'Control de costos'!J16`), que ahora se resuelve dentro del mismo
+  libro — verificado recalculando en Excel real.
 - El balance incluye **D. Mano de obra, viáticos y movilidad** (sólo IP), con
   costo real vs cobrado tomados de `getMOResult()` — ahí el costo sí se conoce,
   así que su margen es exacto — y **E. Todo lo estimado de la cotización**
   (material con costo capturado + M.O.). Si hay descuento, una nota avisa que los
   márgenes son ANTES de descuento.
-- **Excel de control de entregas** (`generateEntregasExcel`,
-  `Control_Entregas_<folio>.xlsx`): todo lo cotizado + soportería con
+- Hoja «Control de entregas»: todo lo cotizado + soportería con
   No. de parte, descripción y cantidad cotizada; columnas amarillas para
   cantidad entregada (acumulada), fecha, recibió y observaciones. Pendiente
   `MAX(0,D-N(E))` y estado (Pendiente/Parcial/Entregado) por fórmula; avance por
   sección y del proyecto. `N()` es a propósito: trata la celda vacía como cero.
-- `generateAll()` genera **5 archivos** cuando hay material: cotización (3) +
-  control de costos + control de entregas. En la sección 6 hay además **un
-  botón por archivo**; los dos de control se deshabilitan solos desde
-  `actualizarBotonGenerar()` cuando no hay material. `init()` llama a
-  `renderRequisicion()` para que ese estado sea correcto desde el primer
-  pintado, no sólo después del primer cambio en el carrito.
+- `generateAll()` genera **4 archivos** cuando hay material: cotización (3) +
+  control interno. En la sección 6 hay además **un botón por archivo**; el de
+  control interno se deshabilita solo desde `actualizarBotonGenerar()` cuando
+  no hay material. `init()` llama a `renderRequisicion()` para que ese estado
+  sea correcto desde el primer pintado, no sólo tras el primer cambio en el
+  carrito.
 - Las fórmulas de los dos Excel se verificaron recalculando en Excel real
   (COM), capturando entregas y costos: no basta con que SheetJS las escriba.
 - **Quién ve qué costo** (`_costoVisible`): lo capturado a mano por la persona
