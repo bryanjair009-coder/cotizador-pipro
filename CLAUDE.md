@@ -14,6 +14,7 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 |---|---|
 | `index.html` | Portal (6 iframes) + pantalla de acceso + menú de cuenta |
 | `cotizador.html` | Cotizaciones (IP = con MO, IT = sin MO) + panel admin |
+| `isometrico.html` | Trazo isométrico de la red + lista de material |
 | `presiones.html` | Estudio de caídas de presión + PDF ejecutivo |
 | `requisiciones.html` | Requisiciones de material (React via Babel CDN) |
 | `electrico.html` | Selección eléctrica NOM-001-SEDE-2012 |
@@ -254,6 +255,33 @@ genera siempre los 5 archivos cuando hay material.
 - `clasificarMaterial()`: sin regla que coincida, sólo lo que está en el
   catálogo se asume PIPRO; un material rápido (`TEMP-…`) cae en `otros`. Antes
   un tornillo capturado a mano se iba por «Canal PIPRO» y no lo compraba nadie.
+
+## Isométrico (isometrico.html, 2026-10)
+
+- Se traza sobre los tres ejes isométricos (6 direcciones) en SVG. El dibujo es
+  **esquemático**, como un isométrico de tubería real: la longitud NO se mide
+  del trazo, se anota por tramo en el panel «Tramos».
+- **La identidad de un nodo es su punto en pantalla, no la terna (i,j,k).** La
+  proyección isométrica es ambigua: toda la familia `(i+t, j+t, k+t)` cae en el
+  mismo píxel. Con búsqueda por terna, dos clics en el mismo sitio creaban
+  nodos encimados y se perdía la conexión — ni tee ni codo, y un tapón de más.
+  Ver `nodoEnPunto()` / `nodoCercaDeRaton()`. **No volver a comparar ternas.**
+- Lista de material, derivada de la topología:
+  - tubos `ceil(m / 5.8)` por tramo; coples `tubos - 1`, más uno por cada
+    unión recta entre dos tramos del mismo diámetro;
+  - grado 1 → tapón · grado 2 con vuelta → codo · grado 2 con cambio de
+    diámetro → reductor · grado ≥ 3 → una tee por cada ramal, **del diámetro
+    de ese ramal**, no del mayor del nodo;
+  - cruces (grado > 3) no existen en catálogo: se cuentan tees en cascada y se
+    avisa.
+- **`CAT` y `CAT_RED` salen de materiales.js, extraídos, no deducidos del
+  patrón del número de parte.** Varias combinaciones no existen (no hay codo de
+  20/25 mm, ni tapón de 20/100 mm); se listan como «sin No. parte» en vez de
+  inventar uno. Al crecer el catálogo hay que volver a extraerlas.
+- Botón «Al cotizador»: `postMessage` → `index.html` hace de puente →
+  `gd-theme-sync.js` → `window.gdMaterialExterno(items)` en cotizador.html, que
+  cruza por número de parte contra el catálogo. Lo que no está entra con
+  precio 0 para que salte a la vista.
 
 ## Caídas de presión — criterios de cálculo (auditoría 2026-09)
 

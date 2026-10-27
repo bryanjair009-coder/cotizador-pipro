@@ -28,6 +28,16 @@
     // El portal pide abrir el panel de administración (menú de cuenta)
     if (ev.data.type === 'gd-abrir-admin' && typeof window.gdAbrirAdmin === 'function') {
       window.gdAbrirAdmin();
+      return;
+    }
+
+    /* Material que llega de otro módulo (hoy, la lista del isométrico). Las
+       partidas vienen de la propia aplicación, pero el módulo que las recibe
+       las valida igual antes de usarlas: aquí sólo se comprueba la forma. */
+    if (ev.data.type === 'gd-material-externo' &&
+        Array.isArray(ev.data.items) &&
+        typeof window.gdMaterialExterno === 'function') {
+      window.gdMaterialExterno(ev.data.items.slice(0, 500));
     }
   });
 })();

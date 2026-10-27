@@ -284,6 +284,7 @@ const GRUPOS = [
     { id: 'requisiciones', ruta: 'requisiciones.html', ico: '📦', nombre: 'Requisiciones',    titulo: 'Requisiciones' },
   ]},
   { grupo: 'Ingeniería', modulos: [
+    { id: 'isometrico',    ruta: 'isometrico.html',    ico: '📐', nombre: 'Isométrico',        titulo: 'Isométrico PIPRO' },
     { id: 'presiones',     ruta: 'presiones.html',     ico: '🔵', nombre: 'Caídas de presión', titulo: 'Caídas de Presión' },
     { id: 'electrico',     ruta: 'electrico.html',     ico: '⚡', nombre: 'Selección eléctrica', titulo: 'Selección Eléctrica' },
   ]},
@@ -474,6 +475,22 @@ function irAdmin() {
 /* ── Sesión expirada, avisada por un módulo ───────────────────────────── */
 window.addEventListener('message', e => {
   if (e.origin !== location.origin) return;
+  /* El isométrico manda su lista de material al cotizador. El portal sólo
+     hace de puente entre los dos marcos; la validación de cada partida la
+     hace el cotizador, que es quien conoce el catálogo. */
+  if (e.data && e.data.type === 'gd-isometrico-material' && Array.isArray(e.data.items)) {
+    const f = document.getElementById('f-cotizador');
+    const enviar = () => {
+      try { f.contentWindow.postMessage({ type: 'gd-material-externo', items: e.data.items }, location.origin); } catch (err) {}
+    };
+    if (f.dataset.src) {
+      f.src = f.dataset.src; delete f.dataset.src;
+      f.addEventListener('load', () => setTimeout(enviar, 400), { once: true });
+    } else { enviar(); }
+    ir('cotizador');
+    return;
+  }
+
   if (e.data && e.data.type === 'gd-sesion-expirada') {
     document.getElementById('portal').classList.add('oculto');
     document.getElementById('auth').style.display = 'flex';

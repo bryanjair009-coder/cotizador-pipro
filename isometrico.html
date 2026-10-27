@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Isométrico PIPRO · Gardner Denver</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="gd-theme.css?v=20260906"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260906"/>
+<script src="gd-theme-sync.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260906"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js" integrity="sha384-OUW9euuUyxyHcAhTqbhI+Iyb8LMssXt/cpz0yXhs9UWG2/R/uaWdakx/4cfww7Vb" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--gd-font-sans);}
+body{background:var(--gd-bg);color:var(--gd-text);-webkit-font-smoothing:antialiased;overflow:hidden;}
+
+/* ── Cabecera del módulo ─────────────────────────────────────────────── */
+.mod-header{
+  background:var(--gd-bg-elev);border-bottom:1px solid var(--gd-border);
+  padding:10px 18px;display:flex;align-items:center;gap:12px;flex:none;
+}
+.mod-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;flex:none;
+  background:var(--gd-red-tint);color:var(--gd-red-ink);font-size:18px;
+}
+.mod-title{font-size:15px;font-weight:700;letter-spacing:-.2px;}
+.mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;font-weight:500;}
+
+/* ── Disposición general ─────────────────────────────────────────────── */
+.app{display:flex;flex-direction:column;height:100vh;}
+.cuerpo{flex:1;display:flex;min-height:0;}
+.lienzo-zona{flex:1;position:relative;min-width:0;background:var(--gd-bg);}
+#lienzo{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none;}
+.panel{
+  width:340px;flex:none;border-left:1px solid var(--gd-border);
+  background:var(--gd-bg-elev);display:flex;flex-direction:column;min-height:0;
+}
+.panel-tabs{display:flex;border-bottom:1px solid var(--gd-border);flex:none;}
+.panel-tab{
+  flex:1;padding:10px 6px;border:none;background:transparent;cursor:pointer;
+  font:600 12px var(--gd-font-sans);color:var(--gd-text-mute);
+  border-bottom:2px solid transparent;
+}
+.panel-tab.on{color:var(--gd-red-ink);border-bottom-color:var(--gd-red);background:var(--gd-bg-alt);}
+.panel-cuerpo{flex:1;overflow-y:auto;padding:14px;min-height:0;}
+
+/* ── Barra de herramientas ───────────────────────────────────────────── */
+.barra{
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  padding:8px 14px;background:var(--gd-bg-alt);
+  border-bottom:1px solid var(--gd-border);flex:none;
+}
+.herr{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 11px;border:1px solid var(--gd-border);border-radius:var(--gd-radius-sm);
+  background:var(--gd-bg-elev);color:var(--gd-text);
+  font:600 12px var(--gd-font-sans);cursor:pointer;white-space:nowrap;
+}
+.herr:hover{border-color:var(--gd-text-mute);}
+.herr.on{background:var(--gd-red);border-color:var(--gd-red);color:#fff;}
+.herr:disabled{opacity:.4;cursor:not-allowed;}
+.barra-sep{width:1px;height:22px;background:var(--gd-border);margin:0 3px;}
+.barra-txt{font-size:11.5px;color:var(--gd-text-soft);}
+
+/* ── Selector de diámetro ────────────────────────────────────────────── */
+.diam-fila{display:flex;gap:5px;flex-wrap:wrap;}
+.diam-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 9px;border:1.5px solid var(--gd-border);border-radius:var(--gd-radius-sm);
+  background:var(--gd-bg-elev);color:var(--gd-text);
+  font:600 11.5px var(--gd-font-mono);cursor:pointer;
+}
+.diam-btn .punto{width:10px;height:10px;border-radius:50%;flex:none;}
+.diam-btn.on{border-width:2px;}
+
+/* ── Listas del panel ────────────────────────────────────────────────── */
+.p-tit{
+  font:600 11px var(--gd-font-sans);letter-spacing:.07em;text-transform:uppercase;
+  color:var(--gd-text-soft);margin:14px 0 7px;
+}
+.p-tit:first-child{margin-top:0;}
+.tramo{
+  display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;
+  padding:7px 9px;margin-bottom:5px;border:1px solid var(--gd-border);
+  border-radius:var(--gd-radius-sm);background:var(--gd-bg);font-size:12px;
+}
+.tramo.sel{border-color:var(--gd-red);background:var(--gd-red-tint);}
+.tramo .barra-color{width:5px;height:22px;border-radius:2px;}
+.tramo .dir{font:600 11px var(--gd-font-mono);color:var(--gd-text-soft);}
+.tramo input{
+  width:62px;padding:3px 5px;text-align:right;font-size:12px;
+  border:1px solid var(--gd-border);border-radius:4px;
+  background:var(--gd-bg-elev);color:var(--gd-text);
+}
+.tramo .quitar{
+  border:none;background:none;color:var(--gd-text-soft);cursor:pointer;
+  font-size:13px;padding:2px 4px;
+}
+.tramo .quitar:hover{color:var(--gd-red-ink);}
+
+.mat-tabla{width:100%;border-collapse:collapse;font-size:11.5px;}
+.mat-tabla th{
+  text-align:left;padding:6px 7px;background:var(--gd-blue);color:#fff;
+  font-size:10.5px;font-weight:600;position:sticky;top:0;
+}
+.mat-tabla td{padding:5px 7px;border-bottom:1px solid var(--gd-border);}
+.mat-tabla tr:nth-child(even) td{background:var(--gd-bg-alt);}
+.mat-tabla .np{font-family:var(--gd-font-mono);font-size:10.5px;color:var(--gd-red-ink);white-space:nowrap;}
+.mat-tabla .cant{text-align:center;font-weight:700;font-variant-numeric:tabular-nums;}
+.mat-grupo td{
+  background:var(--gd-bg-alt)!important;font-weight:700;font-size:11px;
+  color:var(--gd-text);padding:6px 7px;
+}
+.sin-np{color:var(--gd-warning);font-size:10.5px;}
+
+.aviso{
+  padding:9px 11px;border-radius:var(--gd-radius-sm);background:var(--gd-bg-alt);
+  border-left:3px solid var(--gd-warning);font-size:11.5px;line-height:1.45;
+  color:var(--gd-text-mute);margin-bottom:8px;
+}
+.vacio{text-align:center;color:var(--gd-text-soft);font-size:12px;padding:22px 10px;line-height:1.5;}
+
+/* ── Ayuda flotante sobre el lienzo ──────────────────────────────────── */
+.pista{
+  position:absolute;left:12px;bottom:12px;max-width:330px;
+  padding:9px 12px;border-radius:var(--gd-radius-md);
+  background:var(--gd-bg-elev);border:1px solid var(--gd-border);
+  font-size:11.5px;line-height:1.5;color:var(--gd-text-mute);
+  box-shadow:var(--gd-shadow-md);pointer-events:none;
+}
+.pista b{color:var(--gd-text);}
+.leyenda{
+  position:absolute;right:12px;top:12px;
+  padding:8px 11px;border-radius:var(--gd-radius-md);
+  background:var(--gd-bg-elev);border:1px solid var(--gd-border);
+  box-shadow:var(--gd-shadow-md);font-size:11px;
+}
+.leyenda div{display:flex;align-items:center;gap:6px;margin:3px 0;}
+.leyenda i{width:16px;height:3px;border-radius:2px;display:block;}
+
+/* ── SVG ─────────────────────────────────────────────────────────────── */
+.rejilla{stroke:var(--gd-border);stroke-width:.5;opacity:.5;}
+.eje-guia{stroke-dasharray:4 4;opacity:.75;}
+.tubo{stroke-linecap:round;cursor:pointer;}
+.tubo-sel{stroke:var(--gd-red);stroke-width:2;fill:none;stroke-dasharray:5 3;}
+.nodo{fill:var(--gd-bg-elev);stroke:var(--gd-text-mute);stroke-width:1.2;}
+.nodo-activo{fill:var(--gd-red);stroke:#fff;stroke-width:1.5;}
+.etq{font:600 10px var(--gd-font-mono);fill:var(--gd-text-mute);pointer-events:none;}
+.etq-fondo{fill:var(--gd-bg);opacity:.85;}
+.simb{stroke:var(--gd-text);fill:var(--gd-bg-elev);stroke-width:1.3;cursor:pointer;}
+.simb-txt{font:700 8px var(--gd-font-sans);fill:var(--gd-text);text-anchor:middle;pointer-events:none;}
+
+@media (max-width:900px){
+  .panel{position:absolute;right:0;top:0;bottom:0;z-index:50;box-shadow:var(--gd-shadow-lg);}
+  .panel.oculto{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="mod-header">
+    <span class="mod-icon">📐</span>
+    <div style="flex:1;min-width:0;">
+      <div class="mod-title">Isométrico PIPRO</div>
+      <div class="mod-sub">Traza la red en isométrico y saca la lista de material · un cople cada 5.8 m</div>
+    </div>
+    <button class="herr" onclick="togglePanel()" id="btn-panel" style="display:none;">📋 Lista</button>
+  </header>
+
+  <div class="barra">
+    <button class="herr on" id="h-trazar" onclick="setHerramienta('trazar')" title="Clic para empezar; luego clic en cada vuelta. Esc o doble clic para terminar">✏️ Trazar</button>
+    <button class="herr" id="h-accesorio" onclick="setHerramienta('accesorio')" title="Coloca un accesorio sobre un tramo">🔧 Accesorio</button>
+    <button class="herr" id="h-borrar" onclick="setHerramienta('borrar')" title="Clic sobre un tramo o accesorio para quitarlo">🗑 Borrar</button>
+    <span class="barra-sep"></span>
+
+    <span class="barra-txt">Ø</span>
+    <span class="diam-fila" id="diam-fila"></span>
+    <span class="barra-sep"></span>
+
+    <select id="sel-accesorio" style="width:auto;padding:5px 8px;font-size:12px;"></select>
+    <span class="barra-sep"></span>
+
+    <button class="herr" onclick="deshacer()" id="h-deshacer" title="Deshacer (Ctrl+Z)">↶</button>
+    <button class="herr" onclick="ajustarVista()" title="Centrar el dibujo">🎯 Centrar</button>
+    <button class="herr" onclick="limpiarTodo()">🧹 Limpiar</button>
+    <span class="barra-sep"></span>
+    <button class="herr" onclick="guardarDibujo()" title="Descargar el trazo para volver a abrirlo después">💾 Guardar</button>
+    <label class="herr" style="margin:0;">📂 Abrir
+      <input type="file" accept=".json" style="display:none" onchange="abrirDibujo(this)">
+    </label>
+  </div>
+
+  <div class="cuerpo">
+    <div class="lienzo-zona">
+      <svg id="lienzo"></svg>
+      <div class="leyenda" id="leyenda"></div>
+      <div class="pista" id="pista"></div>
+    </div>
+
+    <aside class="panel" id="panel">
+      <div class="panel-tabs">
+        <button class="panel-tab on" data-p="materiales" onclick="setPanel('materiales')">Lista de material</button>
+        <button class="panel-tab" data-p="tramos" onclick="setPanel('tramos')">Tramos</button>
+      </div>
+      <div class="panel-cuerpo" id="panel-materiales"></div>
+      <div class="panel-cuerpo" id="panel-tramos" hidden></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   ISOMÉTRICO PIPRO
+
+   Se traza la red sobre los tres ejes isométricos y de la topología sale la
+   lista de material: cada vuelta es un codo, cada bifurcación una tee, cada
+   punta libre un tapón, cada cambio de diámetro un reductor.
+
+   El dibujo es ESQUEMÁTICO, como un isométrico de tubería real: la longitud no
+   se mide del trazo, se anota por tramo. Así el plano se lee aunque un tramo de
+   40 m y otro de 2 m se dibujen parecidos.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const TRAMO_TUBO = 5.8;    // metros por tubo de catálogo → un cople por unión
+
+// ── Catálogo: número de parte por tipo y diámetro ──────────────────────────
+//  Extraído de materiales.js. Un hueco significa que esa pieza no existe en el
+//  catálogo para ese diámetro; se reporta como tal, nunca se inventa.
+const CAT = {
+  20:  { tubo:'92060 00', cople:'12000 00', tee:'32000 01', valvula:'A2020 01', abrazadera:'DN20 CLAMP IRON' },
+  25:  { tubo:'92560 00', cople:'12500 00', tee:'32500 01', tapon:'82500 01', valvula:'A2525 01', abrazadera:'DN25 CLAMP IRON' },
+  40:  { tubo:'94060 00', cople:'14000 00', codo90:'24000 01', tee:'34000 01', tapon:'84000 01', valvula:'A4040 01', abrazadera:'DN40 CLAMP IRON' },
+  50:  { tubo:'95060 00', cople:'15000 00', codo90:'25000 01', tee:'35000 01', tapon:'85000 01', valvula:'A5050 01', bridado:'75000 01', abrazadera:'AIN-1 1/2' },
+  65:  { tubo:'96560 00', cople:'16500 00', codo90:'26500 01', tee:'36500 01', tapon:'86500 01', valvula:'A6565 31', bridado:'76500 01', abrazadera:'AIN-2 1/2' },
+  80:  { tubo:'98060 00', cople:'18000 00', codo90:'28000 01', tee:'38000 01', tapon:'88000 01', bridado:'78000 01' },
+  100: { tubo:'91B60 00', cople:'11B00 00', codo90:'21B00 01', tee:'31B00 01', bridado:'71B00 01' },
+  150: { tubo:'91W60 00', cople:'11W00 00', codo90:'21W00 01', tee:'31W00 01', tapon:'81W00 01', bridado:'71W00 01' },
+  200: { tubo:'92B60 00', cople:'12B00 00', codo90:'22B00 01', tee:'32B00 01', tapon:'82B00 01', bridado:'72B00 01' },
+};
+/* Tees con reducción, reductores y derivaciones de abrazadera.
+   Clave «mayor>menor». Tabla extraída de materiales.js, no deducida del patrón
+   del número de parte: hay combinaciones que simplemente no existen. */
+const CAT_RED = {
+  '25>20':  {teeRed:'32520 01', reductor:'42520 01', derivacion:'62520 01'},
+  '40>20':  {teeRed:'34020 01', reductor:'44020 01', derivacion:'64020 01'},
+  '40>25':  {teeRed:'34025 01', reductor:'44025 01', derivacion:'64025 01'},
+  '50>20':  {teeRed:null,       reductor:null,       derivacion:'65020 01'},
+  '50>25':  {teeRed:'35025 01', reductor:'45025 01', derivacion:'65025 01'},
+  '50>40':  {teeRed:'35040 01', reductor:'45040 01'},
+  '65>20':  {teeRed:null,       reductor:null,       derivacion:'66520 01'},
+  '65>25':  {teeRed:null,       reductor:null,       derivacion:'66525 01'},
+  '65>40':  {teeRed:'36540 01', reductor:'46540 01'},
+  '65>50':  {teeRed:'36550 01', reductor:'46550 01'},
+  '80>50':  {teeRed:'38050 01', reductor:null},
+  '80>65':  {teeRed:'38065 01', reductor:null},
+  '150>80': {teeRed:'31W80 01', reductor:null},
+  '150>100':{teeRed:'31W1B 01', reductor:null},
+  '200>100':{teeRed:'32B1B 01', reductor:null},
+  '200>150':{teeRed:'32B1W 01', reductor:null},
+};
+
+const DIAMETROS = [20, 25, 40, 50, 65, 80, 100, 150, 200];
+// Un color por diámetro, el más grueso más oscuro: se lee el calibre de un vistazo
+const COLOR = {
+  20:'#22c55e', 25:'#84cc16', 40:'#eab308', 50:'#f97316',
+  65:'#ef4444', 80:'#ec4899', 100:'#a855f7', 150:'#3b82f6', 200:'#0ea5e9',
+};
+const GROSOR = { 20:2.5, 25:3, 40:3.5, 50:4, 65:4.5, 80:5, 100:5.5, 150:6.5, 200:7.5 };
+
+/* Accesorios que se colocan a mano, con su símbolo de DTI.
+   `np` dice de dónde sale el número de parte: 'diam' lo busca por diámetro en
+   CAT, null significa que el catálogo PIPRO no lo incluye. */
+const ACCESORIOS = {
+  valvula:   { nombre:'Válvula de esfera',   simbolo:'moño',     np:'valvula' },
+  mariposa:  { nombre:'Válvula de mariposa', simbolo:'mariposa', np:null },
+  filtro:    { nombre:'Filtro',              simbolo:'filtro',   np:null },
+  regulador: { nombre:'Regulador',           simbolo:'regulador',np:null },
+  manometro: { nombre:'Manómetro',           simbolo:'circulo',  np:null, letra:'PI' },
+  purga:     { nombre:'Purga / trampa',      simbolo:'purga',    np:null },
+  bajada:    { nombre:'Bajada a punto de uso', simbolo:'bajada', np:null },
+  equipo:    { nombre:'Compresor / equipo',  simbolo:'equipo',   np:null },
+  soporte:   { nombre:'Abrazadera de soporte', simbolo:'soporte', np:'abrazadera' },
+};
+
+// ── Estado ─────────────────────────────────────────────────────────────────
+const S = {
+  nodos: [],        // {id, i, j, k}  coordenadas isométricas enteras
+  tramos: [],       // {id, a, b, diam, metros, acc:[{tipo}]}
+  seq: 1,
+  herramienta: 'trazar',
+  diam: 50,
+  trazando: null,   // id del nodo desde el que se está trazando
+  previo: null,     // {i,j,k} punta del segmento de vista previa
+  sel: null,        // tramo seleccionado
+  vista: { x: 0, y: 0, z: 1 },
+  historial: [],
+};
+
+// ── Proyección isométrica ──────────────────────────────────────────────────
+//  Tres ejes a 120°: X baja a la derecha, Y baja a la izquierda, Z es vertical.
+const CELDA = 38;
+const COS30 = Math.cos(Math.PI / 6);
+function proy(n) {
+  return {
+    x: (n.i - n.j) * CELDA * COS30,
+    y: (n.i + n.j) * CELDA * 0.5 - n.k * CELDA,
+  };
+}
+// Las seis direcciones por las que puede correr un tubo
+const DIRS = [
+  { d:'X+', i: 1, j: 0, k: 0 }, { d:'X-', i:-1, j: 0, k: 0 },
+  { d:'Y+', i: 0, j: 1, k: 0 }, { d:'Y-', i: 0, j:-1, k: 0 },
+  { d:'Z+', i: 0, j: 0, k: 1 }, { d:'Z-', i: 0, j: 0, k:-1 },
+];
+
+const svg = document.getElementById('lienzo');
+const NS = 'http://www.w3.org/2000/svg';
+function crear(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// ── Nodos ──────────────────────────────────────────────────────────────────
+function nodoPorId(id) { return S.nodos.find(n => n.id === id) || null; }
+
+/* La proyección isométrica es ambigua: toda la familia (i+t, j+t, k+t) cae en
+   el mismo punto de la pantalla. Si dos clics en el mismo sitio devolvieran
+   celdas distintas de esa familia, saldrían dos nodos encimados y el trazo
+   perdería la conexión — ni tee ni codo, y un tapón de más.
+   Por eso la identidad de un nodo es SU PUNTO EN PANTALLA, no la terna. */
+function nodoEnPunto(p, tol) {
+  const t = tol || 1;
+  return S.nodos.find(n => {
+    const q = proy(n);
+    return Math.abs(q.x - p.x) < t && Math.abs(q.y - p.y) < t;
+  }) || null;
+}
+function nodoEn(i, j, k) { return nodoEnPunto(proy({ i, j, k })); }
+function creaNodo(i, j, k) {
+  let n = nodoEn(i, j, k);
+  if (!n) { n = { id: S.seq++, i, j, k }; S.nodos.push(n); }
+  return n;
+}
+/** Nodo dibujado cerca de un punto de pantalla, para empezar una derivación. */
+function nodoCercaDeRaton(mx, my) {
+  const x = (mx - S.vista.x) / S.vista.z, y = (my - S.vista.y) / S.vista.z;
+  const r = 14 / S.vista.z;
+  let mejor = null, mejorD = r * r;
+  S.nodos.forEach(n => {
+    if (!gradoDe(n.id)) return;
+    const p = proy(n);
+    const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+    if (d < mejorD) { mejorD = d; mejor = n; }
+  });
+  return mejor;
+}
+function gradoDe(id) { return S.tramos.filter(t => t.a === id || t.b === id).length; }
+
+/** Dirección unitaria del tramo, vista desde el nodo `desde`. */
+function dirDesde(t, desde) {
+  const a = nodoPorId(t.a), b = nodoPorId(t.b);
+  const [p, q] = (t.a === desde) ? [a, b] : [b, a];
+  return { i: Math.sign(q.i - p.i), j: Math.sign(q.j - p.j), k: Math.sign(q.k - p.k) };
+}
+
+// ── Pantalla ↔ isométrico ──────────────────────────────────────────────────
+function pantallaAIso(px, py) {
+  const { x, y, z } = S.vista;
+  const mx = (px - x) / z, my = (py - y) / z;
+  /* Se prueban las celdas candidatas alrededor y se toma la más cercana:
+     invertir la proyección a mano deja huecos por el redondeo. */
+  const kAprox = Math.round(-(my - (mx / (CELDA * COS30)) * CELDA * 0.5) / CELDA);
+  let mejor = null, mejorD = Infinity;
+  for (let dk = -2; dk <= 2; dk++) {
+    const k = kAprox + dk;
+    const s = (my + k * CELDA) / (CELDA * 0.5);   // i + j
+    const d = mx / (CELDA * COS30);               // i - j
+    const i0 = Math.round((s + d) / 2), j0 = Math.round((s - d) / 2);
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+      const c = { i: i0 + di, j: j0 + dj, k };
+      const p = proy(c);
+      const dist = (p.x - mx) ** 2 + (p.y - my) ** 2;
+      if (dist < mejorD) { mejorD = dist; mejor = c; }
+    }
+  }
+  return mejor;
+}
+
+/** Punta del segmento de vista previa: dirección isométrica más cercana. */
+function snapDireccion(desde, iso) {
+  const di = iso.i - desde.i, dj = iso.j - desde.j, dk = iso.k - desde.k;
+  if (!di && !dj && !dk) return null;
+  const p0 = proy(desde), pm = proy(iso);
+  const vx = pm.x - p0.x, vy = pm.y - p0.y;
+  const largoRaton = Math.hypot(vx, vy);
+  let mejor = null, mejorPunt = -Infinity;
+  for (const d of DIRS) {
+    const pd = proy({ i: desde.i + d.i, j: desde.j + d.j, k: desde.k + d.k });
+    const ux = pd.x - p0.x, uy = pd.y - p0.y;
+    const n = Math.hypot(ux, uy) || 1;
+    const punt = (vx * ux + vy * uy) / n;     // proyección sobre la dirección
+    if (punt > mejorPunt) { mejorPunt = punt; mejor = d; }
+  }
+  if (!mejor || mejorPunt <= 0) return null;
+  const pasos = Math.max(1, Math.round(mejorPunt / CELDA));
+  return { i: desde.i + mejor.i * pasos, j: desde.j + mejor.j * pasos, k: desde.k + mejor.k * pasos, dir: mejor.d, pasos };
+}
+
+// ── Dibujo ─────────────────────────────────────────────────────────────────
+function render() {
+  const W = svg.clientWidth || 800, H = svg.clientHeight || 600;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const g = crear('g', { transform: `translate(${S.vista.x},${S.vista.y}) scale(${S.vista.z})` });
+  svg.appendChild(g);
+
+  dibujarRejilla(g, W, H);
+
+  // Tramos
+  S.tramos.forEach(t => {
+    const a = proy(nodoPorId(t.a)), b = proy(nodoPorId(t.b));
+    if (S.sel === t.id) {
+      g.appendChild(crear('line', { x1:a.x, y1:a.y, x2:b.x, y2:b.y,
+        class:'tubo-sel', 'stroke-width': (GROSOR[t.diam] + 5) / S.vista.z }));
+    }
+    const l = crear('line', { x1:a.x, y1:a.y, x2:b.x, y2:b.y, class:'tubo',
+      stroke: COLOR[t.diam], 'stroke-width': GROSOR[t.diam] });
+    l.dataset.tramo = t.id;
+    g.appendChild(l);
+
+    // Etiqueta con la longitud anotada
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const txt = t.metros + ' m';
+    g.appendChild(crear('rect', { x: mx - txt.length * 3 - 3, y: my - 14, rx: 3,
+      width: txt.length * 6 + 6, height: 12, class:'etq-fondo' }));
+    const e = crear('text', { x: mx, y: my - 5, class:'etq', 'text-anchor':'middle' });
+    e.textContent = txt;
+    g.appendChild(e);
+
+    // Accesorios colocados sobre el tramo
+    (t.acc || []).forEach((ac, idx) => {
+      const f = (idx + 1) / ((t.acc.length) + 1);
+      dibujarSimbolo(g, a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, ac, t.id, idx);
+    });
+  });
+
+  // Nodos
+  S.nodos.forEach(n => {
+    if (!gradoDe(n.id)) return;
+    const p = proy(n);
+    const act = S.trazando === n.id;
+    g.appendChild(crear('circle', { cx:p.x, cy:p.y, r: act ? 5 : 3.5,
+      class: act ? 'nodo-activo' : 'nodo' }));
+  });
+
+  // Vista previa del segmento en curso
+  if (S.trazando && S.previo) {
+    const a = proy(nodoPorId(S.trazando)), b = proy(S.previo);
+    g.appendChild(crear('line', { x1:a.x, y1:a.y, x2:b.x, y2:b.y,
+      stroke: COLOR[S.diam], 'stroke-width': GROSOR[S.diam],
+      class:'eje-guia', 'stroke-linecap':'round' }));
+  }
+
+  actualizarPista();
+  renderPaneles();
+}
+
+function dibujarRejilla(g, W, H) {
+  const r = crear('g', { class:'rejilla' });
+  const n = 26;
+  for (let a = -n; a <= n; a++) {
+    // Líneas a lo largo de cada eje, en el plano k=0
+    const ejes = [
+      [{ i:a, j:-n, k:0 }, { i:a, j:n, k:0 }],
+      [{ i:-n, j:a, k:0 }, { i:n, j:a, k:0 }],
+    ];
+    ejes.forEach(([p, q]) => {
+      const A = proy(p), B = proy(q);
+      r.appendChild(crear('line', { x1:A.x, y1:A.y, x2:B.x, y2:B.y }));
+    });
+  }
+  g.appendChild(r);
+}
+
+/** Símbolos de DTI, en polígonos simples. */
+function dibujarSimbolo(g, x, y, ac, tramoId, idx) {
+  const def = ACCESORIOS[ac.tipo] || {};
+  const s = crear('g', { transform:`translate(${x},${y})` });
+  s.dataset.acc = tramoId + ':' + idx;
+  s.style.cursor = 'pointer';
+  const R = 7;
+  switch (def.simbolo) {
+    case 'moño':      // dos triángulos opuestos: válvula
+      s.appendChild(crear('path', { d:`M${-R},${-R} L0,0 L${-R},${R} Z M${R},${-R} L0,0 L${R},${R} Z`, class:'simb' }));
+      break;
+    case 'mariposa':
+      s.appendChild(crear('path', { d:`M${-R},${-R} L0,0 L${-R},${R} Z M${R},${-R} L0,0 L${R},${R} Z`, class:'simb' }));
+      s.appendChild(crear('line', { x1:0, y1:-R-3, x2:0, y2:R+3, class:'simb' }));
+      break;
+    case 'filtro':    // rombo con diagonal
+      s.appendChild(crear('path', { d:`M0,${-R} L${R},0 L0,${R} L${-R},0 Z`, class:'simb' }));
+      s.appendChild(crear('line', { x1:-R, y1:0, x2:R, y2:0, class:'simb' }));
+      break;
+    case 'regulador': // cuadrado con flecha
+      s.appendChild(crear('rect', { x:-R, y:-R, width:R*2, height:R*2, rx:1, class:'simb' }));
+      s.appendChild(crear('path', { d:`M${-R+2},${R-2} L${R-2},${-R+2}`, class:'simb' }));
+      break;
+    case 'circulo':   // instrumento DTI
+      s.appendChild(crear('circle', { r:R+1, class:'simb' }));
+      break;
+    case 'purga':     // triángulo hacia abajo
+      s.appendChild(crear('path', { d:`M${-R},${-R} L${R},${-R} L0,${R+2} Z`, class:'simb' }));
+      break;
+    case 'bajada':    // círculo con cruz: punto de uso
+      s.appendChild(crear('circle', { r:R, class:'simb' }));
+      s.appendChild(crear('path', { d:`M${-R},0 H${R} M0,${-R} V${R}`, class:'simb' }));
+      break;
+    case 'equipo':    // rectángulo
+      s.appendChild(crear('rect', { x:-R-3, y:-R, width:(R+3)*2, height:R*2, rx:2, class:'simb' }));
+      break;
+    case 'soporte':   // triángulo de apoyo
+      s.appendChild(crear('path', { d:`M0,0 L${-R},${R+2} L${R},${R+2} Z`, class:'simb' }));
+      break;
+    default:
+      s.appendChild(crear('circle', { r:R, class:'simb' }));
+  }
+  if (def.letra) {
+    const t = crear('text', { y:3, class:'simb-txt' });
+    t.textContent = def.letra;
+    s.appendChild(t);
+  }
+  g.appendChild(s);
+}
+
+function actualizarPista() {
+  const p = document.getElementById('pista');
+  if (S.herramienta === 'trazar') {
+    p.innerHTML = S.trazando
+      ? '<b>Clic</b> para fijar la vuelta · <b>Esc</b> o <b>doble clic</b> para terminar el trazo'
+      : '<b>Clic</b> en el lienzo para empezar a trazar · se pega solo a los tres ejes del isométrico';
+  } else if (S.herramienta === 'accesorio') {
+    p.innerHTML = '<b>Clic sobre un tramo</b> para colocar el accesorio elegido en la barra';
+  } else {
+    p.innerHTML = '<b>Clic</b> sobre un tramo o un accesorio para quitarlo';
+  }
+  p.innerHTML += ' · Arrastra con el botón derecho o la rueda para mover';
+}
+
+// ── Interacción ────────────────────────────────────────────────────────────
+function posRaton(ev) {
+  const r = svg.getBoundingClientRect();
+  return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+}
+
+svg.addEventListener('mousemove', ev => {
+  if (arrastre) {
+    S.vista.x = arrastre.vx + (ev.clientX - arrastre.x);
+    S.vista.y = arrastre.vy + (ev.clientY - arrastre.y);
+    render();
+    return;
+  }
+  if (S.herramienta !== 'trazar' || !S.trazando) return;
+  const m = posRaton(ev);
+  const iso = pantallaAIso(m.x, m.y);
+  const nuevo = snapDireccion(nodoPorId(S.trazando), iso);
+  if (nuevo) { S.previo = nuevo; render(); }
+});
+
+svg.addEventListener('click', ev => {
+  const m = posRaton(ev);
+  const tramoId = ev.target.dataset && ev.target.dataset.tramo;
+  const accId = ev.target.parentNode && ev.target.parentNode.dataset && ev.target.parentNode.dataset.acc;
+
+  if (S.herramienta === 'borrar') {
+    if (accId) { const [tid, idx] = accId.split(':'); quitarAccesorio(+tid, +idx); return; }
+    if (tramoId) { quitarTramo(+tramoId); return; }
+    return;
+  }
+
+  if (S.herramienta === 'accesorio') {
+    if (tramoId) ponerAccesorio(+tramoId, document.getElementById('sel-accesorio').value);
+    return;
+  }
+
+  // Trazar
+  if (!S.trazando) {
+    // Empezar sobre un nodo ya dibujado = derivar de ahí (tee)
+    const cerca = nodoCercaDeRaton(m.x, m.y);
+    if (cerca) { S.trazando = cerca.id; S.previo = null; render(); return; }
+    if (tramoId) { S.sel = +tramoId; setPanel('tramos'); render(); return; }
+    const iso = pantallaAIso(m.x, m.y);
+    S.trazando = creaNodo(iso.i, iso.j, iso.k).id;
+    S.previo = null;
+    render();
+    return;
+  }
+  if (!S.previo) return;
+  instantanea();
+  const a = S.trazando;
+  const nb = creaNodo(S.previo.i, S.previo.j, S.previo.k);
+  // Longitud sugerida: una celda = un metro, redondeado a medio metro
+  const metros = Math.max(0.5, Math.round(distanciaCeldas(nodoPorId(a), nb) * 2) / 2);
+  S.tramos.push({ id: S.seq++, a, b: nb.id, diam: S.diam, metros, acc: [] });
+  S.trazando = nb.id;
+  S.previo = null;
+  render();
+});
+
+svg.addEventListener('dblclick', () => { S.trazando = null; S.previo = null; render(); });
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') { S.trazando = null; S.previo = null; render(); }
+  if (ev.key === 'z' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); deshacer(); }
+});
+
+// Desplazamiento y acercamiento
+let arrastre = null;
+svg.addEventListener('contextmenu', e => e.preventDefault());
+svg.addEventListener('mousedown', ev => {
+  if (ev.button === 2 || ev.button === 1) {
+    arrastre = { x: ev.clientX, y: ev.clientY, vx: S.vista.x, vy: S.vista.y };
+  }
+});
+window.addEventListener('mouseup', () => { arrastre = null; });
+svg.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const m = posRaton(ev);
+  const f = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+  const z = Math.min(4, Math.max(0.25, S.vista.z * f));
+  S.vista.x = m.x - (m.x - S.vista.x) * (z / S.vista.z);
+  S.vista.y = m.y - (m.y - S.vista.y) * (z / S.vista.z);
+  S.vista.z = z;
+  render();
+}, { passive: false });
+
+function distanciaCeldas(a, b) {
+  return Math.abs(a.i - b.i) + Math.abs(a.j - b.j) + Math.abs(a.k - b.k);
+}
+
+// ── Acciones ───────────────────────────────────────────────────────────────
+function instantanea() {
+  S.historial.push(JSON.stringify({ nodos: S.nodos, tramos: S.tramos, seq: S.seq }));
+  if (S.historial.length > 60) S.historial.shift();
+}
+function deshacer() {
+  const h = S.historial.pop();
+  if (!h) { toast('Nada que deshacer'); return; }
+  const d = JSON.parse(h);
+  S.nodos = d.nodos; S.tramos = d.tramos; S.seq = d.seq;
+  S.trazando = null; S.previo = null; S.sel = null;
+  render();
+}
+function quitarTramo(id) {
+  instantanea();
+  S.tramos = S.tramos.filter(t => t.id !== id);
+  S.nodos = S.nodos.filter(n => gradoDe(n.id) > 0);
+  if (S.sel === id) S.sel = null;
+  render();
+}
+function ponerAccesorio(tramoId, tipo) {
+  const t = S.tramos.find(x => x.id === tramoId);
+  if (!t || !ACCESORIOS[tipo]) return;
+  instantanea();
+  (t.acc = t.acc || []).push({ tipo });
+  render();
+}
+function quitarAccesorio(tramoId, idx) {
+  const t = S.tramos.find(x => x.id === tramoId);
+  if (!t || !t.acc) return;
+  instantanea();
+  t.acc.splice(idx, 1);
+  render();
+}
+function limpiarTodo() {
+  if (S.tramos.length && !confirm('¿Borrar todo el trazo?')) return;
+  instantanea();
+  S.nodos = []; S.tramos = []; S.sel = null; S.trazando = null; S.previo = null;
+  render();
+}
+function setHerramienta(h) {
+  S.herramienta = h;
+  S.trazando = null; S.previo = null;
+  ['trazar','accesorio','borrar'].forEach(x =>
+    document.getElementById('h-' + x).classList.toggle('on', x === h));
+  svg.style.cursor = h === 'borrar' ? 'not-allowed' : 'crosshair';
+  render();
+}
+function setDiam(d) {
+  S.diam = d;
+  if (S.sel) {
+    const t = S.tramos.find(x => x.id === S.sel);
+    if (t) { instantanea(); t.diam = d; }
+  }
+  pintarDiametros();
+  render();
+}
+function ajustarVista() {
+  if (!S.nodos.length) { S.vista = { x: svg.clientWidth / 2, y: svg.clientHeight / 2, z: 1 }; render(); return; }
+  const ps = S.nodos.filter(n => gradoDe(n.id)).map(proy);
+  if (!ps.length) { S.vista = { x: svg.clientWidth / 2, y: svg.clientHeight / 2, z: 1 }; render(); return; }
+  const x0 = Math.min(...ps.map(p => p.x)), x1 = Math.max(...ps.map(p => p.x));
+  const y0 = Math.min(...ps.map(p => p.y)), y1 = Math.max(...ps.map(p => p.y));
+  const W = svg.clientWidth, H = svg.clientHeight;
+  const z = Math.min(3, Math.max(0.25, Math.min((W - 120) / Math.max(1, x1 - x0), (H - 120) / Math.max(1, y1 - y0))));
+  S.vista = { z, x: W / 2 - ((x0 + x1) / 2) * z, y: H / 2 - ((y0 + y1) / 2) * z };
+  render();
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LISTA DE MATERIAL
+   Sale de la topología del trazo, no de lo que se haya escrito a mano:
+     · tubos y coples, por la regla de los 5.8 m
+     · un codo por cada vuelta, una tee por cada bifurcación
+     · un tapón por cada punta libre, un reductor por cada cambio de diámetro
+   ════════════════════════════════════════════════════════════════════════════ */
+function calcularMaterial() {
+  const items = {};   // clave → {tipo, diam, nombre, np, cant}
+  const avisos = [];
+  const sumar = (tipo, diam, nombre, np, cant) => {
+    const k = tipo + '|' + diam + '|' + (np || '');
+    if (!items[k]) items[k] = { tipo, diam, nombre, np: np || null, cant: 0 };
+    items[k].cant += cant;
+  };
+  const np = (diam, tipo) => (CAT[diam] || {})[tipo] || null;
+
+  // ── Tubos y coples por tramo ──
+  S.tramos.forEach(t => {
+    const tubos = Math.ceil(t.metros / TRAMO_TUBO);
+    sumar('tubo', t.diam, `Tubo ${t.diam} mm (tramo de ${TRAMO_TUBO} m)`, np(t.diam,'tubo'), tubos);
+    // Un cople por cada unión entre tubos consecutivos del mismo tramo
+    const coples = Math.max(0, tubos - 1);
+    if (coples) sumar('cople', t.diam, `Cople unión ${t.diam} mm`, np(t.diam,'cople'), coples);
+  });
+
+  // ── Piezas por nodo, según cómo lleguen los tramos ──
+  S.nodos.forEach(n => {
+    const conectados = S.tramos.filter(t => t.a === n.id || t.b === n.id);
+    const grado = conectados.length;
+    if (!grado) return;
+    const diams = [...new Set(conectados.map(t => t.diam))].sort((a,b) => b-a);
+    const mayor = diams[0];
+
+    if (grado === 1) {
+      sumar('tapon', mayor, `Tapón ${mayor} mm`, np(mayor,'tapon'), 1);
+
+    } else if (grado === 2) {
+      const [d1, d2] = conectados.map(t => dirDesde(t, n.id));
+      const colineal = (d1.i === -d2.i && d1.j === -d2.j && d1.k === -d2.k);
+      if (!colineal) {
+        sumar('codo90', mayor, `Codo 90° ${mayor} mm`, np(mayor,'codo90'), 1);
+      } else if (diams.length === 1) {
+        // Recta que sigue: la unión entre tramos también lleva su cople
+        sumar('cople', mayor, `Cople unión ${mayor} mm`, np(mayor,'cople'), 1);
+      }
+      if (diams.length > 1) {
+        const clave = diams[0] + '>' + diams[1];
+        const r = (CAT_RED[clave] || {}).reductor || null;
+        sumar('reductor', diams[0], `Reductor ${diams[0]} a ${diams[1]} mm`, r, 1);
+      }
+
+    } else {
+      /* Tres o más tramos. Los dos de mayor diámetro forman la corrida; cada
+         tramo extra es una derivación y lleva su propia tee, del tamaño de
+         ESA derivación, no del diámetro mayor del nodo. */
+      const porDiam = conectados.map(t => t.diam).sort((a, b) => b - a);
+      const corrida = porDiam[0];
+      porDiam.slice(2).forEach(ramal => {
+        if (ramal === corrida) {
+          sumar('tee', corrida, `Tee ${corrida} mm`, np(corrida,'tee'), 1);
+          return;
+        }
+        const red = CAT_RED[corrida + '>' + ramal] || {};
+        if (red.teeRed) {
+          sumar('teeRed', corrida, `Tee ${corrida} mm con reducción a ${ramal} mm`, red.teeRed, 1);
+        } else if (red.derivacion) {
+          // Sin tee reducida para ese salto; la casa lo resuelve con derivación
+          sumar('derivacion', corrida, `Derivación abrazadera ${corrida} a ${ramal} mm`, red.derivacion, 1);
+        } else {
+          sumar('teeRed', corrida, `Tee ${corrida} mm con reducción a ${ramal} mm`, null, 1);
+        }
+      });
+      if (grado > 3) {
+        avisos.push(`Hay un nodo con ${grado} tramos (${porDiam.join(', ')} mm). ` +
+          `El catálogo PIPRO no maneja cruces: se contaron ${grado - 2} tees en cascada. ` +
+          `Revisa que así se vaya a armar en campo.`);
+      }
+    }
+  });
+
+  // ── Accesorios colocados a mano ──
+  S.tramos.forEach(t => (t.acc || []).forEach(ac => {
+    const def = ACCESORIOS[ac.tipo];
+    if (!def) return;
+    sumar(ac.tipo, t.diam, `${def.nombre} ${t.diam} mm`,
+          def.np ? np(t.diam, def.np) : null, 1);
+  }));
+
+  const lista = Object.values(items).sort((a, b) =>
+    b.diam - a.diam || a.tipo.localeCompare(b.tipo));
+
+  const sinNP = lista.filter(x => !x.np);
+  if (sinNP.length) {
+    avisos.push(`${sinNP.length} partida(s) no tienen número de parte en el catálogo PIPRO para ese diámetro: se listan igual, pero hay que asignarles uno a mano.`);
+  }
+  return { lista, avisos, metros: resumenMetros() };
+}
+
+function resumenMetros() {
+  const m = {};
+  S.tramos.forEach(t => { m[t.diam] = (m[t.diam] || 0) + t.metros; });
+  return m;
+}
+
+// ── Paneles ────────────────────────────────────────────────────────────────
+function setPanel(p) {
+  document.querySelectorAll('.panel-tab').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  document.getElementById('panel-materiales').hidden = p !== 'materiales';
+  document.getElementById('panel-tramos').hidden = p !== 'tramos';
+}
+
+function renderPaneles() {
+  // ── Lista de material ──
+  const cont = document.getElementById('panel-materiales');
+  if (!S.tramos.length) {
+    cont.innerHTML = `<div class="vacio">Traza la red en el lienzo y aquí aparece la lista de material,
+      con los codos, tees, tapones y coples que exige el trazo.</div>`;
+  } else {
+    const { lista, avisos, metros } = calcularMaterial();
+    let html = avisos.map(a => `<div class="aviso">${GD.esc(a)}</div>`).join('');
+
+    html += `<div class="p-tit">Tubería por diámetro</div><table class="mat-tabla"><tbody>`;
+    Object.keys(metros).sort((a,b) => b-a).forEach(d => {
+      html += `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${COLOR[d]};margin-right:6px;"></span>${d} mm</td>
+               <td class="cant">${metros[d].toFixed(1)} m</td></tr>`;
+    });
+    html += `</tbody></table>`;
+
+    html += `<div class="p-tit">Material necesario</div>
+      <table class="mat-tabla"><thead><tr><th>Pieza</th><th>No. parte</th><th style="text-align:center;">Cant.</th></tr></thead><tbody>`;
+    let diamActual = null;
+    lista.forEach(x => {
+      if (x.diam !== diamActual) {
+        diamActual = x.diam;
+        html += `<tr class="mat-grupo"><td colspan="3">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${COLOR[x.diam]};margin-right:6px;"></span>${x.diam} mm</td></tr>`;
+      }
+      html += `<tr><td>${GD.esc(x.nombre)}</td>
+        <td class="np">${x.np ? GD.esc(x.np) : '<span class="sin-np">sin No. parte</span>'}</td>
+        <td class="cant">${x.cant}</td></tr>`;
+    });
+    html += `</tbody></table>
+      <div style="margin-top:12px;display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="herr" onclick="exportarExcel()">📊 Excel</button>
+        <button class="herr" onclick="enviarACotizador()" title="Agrega estas piezas al carrito del cotizador">🛒 Al cotizador</button>
+      </div>`;
+    cont.innerHTML = html;
+  }
+
+  // ── Tramos ──
+  const ct = document.getElementById('panel-tramos');
+  if (!S.tramos.length) {
+    ct.innerHTML = `<div class="vacio">Todavía no hay tramos trazados.</div>`;
+  } else {
+    ct.innerHTML = `<div class="aviso" style="border-left-color:var(--gd-blue);">
+        El dibujo es esquemático, como un isométrico de tubería: la medida no se toma del trazo.
+        <b>Escribe aquí los metros reales de cada tramo</b> y la lista se recalcula sola.
+      </div>` +
+      S.tramos.map((t, n) => {
+        const a = nodoPorId(t.a), b = nodoPorId(t.b);
+        const d = DIRS.find(x => Math.sign(b.i-a.i)===x.i && Math.sign(b.j-a.j)===x.j && Math.sign(b.k-a.k)===x.k);
+        return `<div class="tramo ${S.sel===t.id?'sel':''}" onclick="seleccionarTramo(${t.id})">
+          <span class="barra-color" style="background:${COLOR[t.diam]}"></span>
+          <span>
+            <b>#${n+1}</b> · ${t.diam} mm <span class="dir">${d ? d.d : ''}</span>
+            ${(t.acc||[]).length ? `<br><span class="dir">${t.acc.map(a=>ACCESORIOS[a.tipo].nombre).join(', ')}</span>` : ''}
+          </span>
+          <span style="display:flex;align-items:center;gap:4px;">
+            <input type="number" min="0.1" step="0.1" value="${t.metros}"
+                   onclick="event.stopPropagation()" onchange="setMetros(${t.id}, this.value)"> m
+            <button class="quitar" onclick="event.stopPropagation();quitarTramo(${t.id})" title="Quitar">✕</button>
+          </span>
+        </div>`;
+      }).join('');
+  }
+}
+
+function seleccionarTramo(id) {
+  S.sel = (S.sel === id) ? null : id;
+  const t = S.tramos.find(x => x.id === id);
+  if (t) { S.diam = t.diam; pintarDiametros(); }
+  render();
+}
+function setMetros(id, v) {
+  const t = S.tramos.find(x => x.id === id);
+  if (!t) return;
+  instantanea();
+  t.metros = Math.max(0.1, Math.round(parseFloat(v) * 10) / 10 || 0.1);
+  render();
+}
+
+function pintarDiametros() {
+  document.getElementById('diam-fila').innerHTML = DIAMETROS.map(d =>
+    `<button class="diam-btn ${S.diam===d?'on':''}" onclick="setDiam(${d})"
+             style="${S.diam===d?`border-color:${COLOR[d]};`:''}">
+       <span class="punto" style="background:${COLOR[d]}"></span>${d}</button>`).join('');
+  document.getElementById('leyenda').innerHTML =
+    '<div style="font-weight:600;margin-bottom:4px;">Diámetros</div>' +
+    DIAMETROS.map(d => `<div><i style="background:${COLOR[d]}"></i>${d} mm</div>`).join('');
+}
+
+// ── Salidas ────────────────────────────────────────────────────────────────
+function exportarExcel() {
+  const { lista, metros } = calcularMaterial();
+  if (!lista.length) { toast('No hay material que exportar'); return; }
+  const filas = [['LISTA DE MATERIAL — ISOMÉTRICO PIPRO'], [],
+                 ['Tubería por diámetro'], ['Diámetro', 'Metros']];
+  Object.keys(metros).sort((a,b) => b-a).forEach(d => filas.push([d + ' mm', +metros[d].toFixed(1)]));
+  filas.push([], ['Material'], ['Pieza', 'No. de parte', 'Diámetro', 'Cantidad']);
+  lista.forEach(x => filas.push([x.nombre, x.np || 'SIN NÚMERO DE PARTE', x.diam + ' mm', x.cant]));
+
+  const ws = XLSX.utils.aoa_to_sheet(filas);
+  ws['!cols'] = [{wch:44},{wch:20},{wch:11},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Lista de material');
+  XLSX.writeFile(wb, 'Isometrico_lista_material.xlsx');
+  toast('📊 Lista descargada');
+}
+
+/** Manda las piezas con número de parte al carrito del cotizador. */
+function enviarACotizador() {
+  const { lista } = calcularMaterial();
+  const conNP = lista.filter(x => x.np);
+  if (!conNP.length) { toast('Ninguna pieza tiene número de parte para enviar'); return; }
+  const sinNP = lista.length - conNP.length;
+  try {
+    window.parent.postMessage({
+      type: 'gd-isometrico-material',
+      items: conNP.map(x => ({ numero_parte: x.np, descripcion: x.nombre, cantidad: x.cant })),
+    }, window.location.origin);
+    toast(`🛒 ${conNP.length} partidas enviadas al cotizador` + (sinNP ? ` · ${sinNP} sin No. de parte se quedaron fuera` : ''));
+  } catch (e) {
+    toast('No se pudo enviar al cotizador');
+  }
+}
+
+function guardarDibujo() {
+  const datos = JSON.stringify({ v: 1, nodos: S.nodos, tramos: S.tramos, seq: S.seq }, null, 1);
+  const blob = new Blob([datos], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'isometrico-pipro.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 800);
+  toast('💾 Trazo guardado');
+}
+
+function abrirDibujo(inp) {
+  const f = inp.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!Array.isArray(d.nodos) || !Array.isArray(d.tramos)) throw new Error('formato');
+      instantanea();
+      S.nodos = d.nodos; S.tramos = d.tramos;
+      S.seq = d.seq || (Math.max(0, ...d.nodos.map(n=>n.id), ...d.tramos.map(t=>t.id)) + 1);
+      S.sel = null; S.trazando = null; S.previo = null;
+      ajustarVista();
+      toast('📂 Trazo cargado');
+    } catch (err) {
+      toast('El archivo no es un trazo válido');
+    }
+    inp.value = '';
+  };
+  r.readAsText(f);
+}
+
+function toast(msg) {
+  let t = document.getElementById('__toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '__toast';
+    t.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);' +
+      'background:var(--gd-graphite,#1C2229);color:#fff;padding:10px 16px;border-radius:8px;' +
+      'font-size:13px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.3);transition:opacity .25s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.style.opacity = '0'; }, 2600);
+}
+
+function togglePanel() { document.getElementById('panel').classList.toggle('oculto'); }
+
+// ── Arranque ───────────────────────────────────────────────────────────────
+document.getElementById('sel-accesorio').innerHTML =
+  Object.entries(ACCESORIOS).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join('');
+pintarDiametros();
+S.vista = { x: 0, y: 0, z: 1 };
+window.addEventListener('resize', () => render());
+setTimeout(() => { ajustarVista(); if (window.GD && GD.refrescar) GD.refrescar(); }, 50);
+</script>
+</body>
+</html>

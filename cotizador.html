@@ -5348,6 +5348,28 @@ function aplicarPermisos() {
 }
 
 /** Llamado por el portal desde el menú de cuenta (postMessage). */
+/* Material que manda el módulo de isométrico. Se cruza por número de parte
+   contra el catálogo para traer la descripción y el precio buenos; lo que no
+   esté en el catálogo entra como material rápido, con precio 0 para que salte
+   a la vista que falta ponérselo. */
+window.gdMaterialExterno = function (items) {
+  let delCatalogo = 0, sueltos = 0;
+  items.forEach(it => {
+    const np = String(it.numero_parte || '').trim();
+    const cant = Math.max(1, parseInt(it.cantidad, 10) || 1);
+    if (!np) return;
+    const m = materialDeCatalogo(np);
+    if (m) { addToCart(m, cant); delCatalogo++; }
+    else {
+      addToCart({ descripcion: String(it.descripcion || np).slice(0, 160), numero_parte: np, precio: 0 }, cant);
+      sueltos++;
+    }
+  });
+  renderCart();
+  toast(`📐 ${delCatalogo} partidas del isométrico agregadas al carrito` +
+        (sueltos ? ` · ${sueltos} sin precio, revísalas` : ''));
+};
+
 window.gdAbrirAdmin = function () {
   const t = document.querySelector('.mod-tab[data-tab="admin"], [onclick*="\'admin\'"]');
   if (typeof setTab === 'function') setTab('admin');
