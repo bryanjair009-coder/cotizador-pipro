@@ -200,10 +200,8 @@ está oculta, porque sus campos conservan el último valor aunque no haya
 abrazaderas). La sección 5b aparece con `hayMaterialControl()` y `generateAll()`
 genera siempre los 5 archivos cuando hay material.
 
-- **PDF de control de material** (`generateRequisicionPDF`) → compras. Secciones
-  A (cotización: Cantidad, En almacén, Por surtir) y B (soportería: Cantidad,
-  Unidad). **Sin precios ni costos.** El faltante PIPRO sale como «Canal PIPRO»
-  salvo solicitud especial (`state.incluirPipro`).
+- El **PDF de control de material** se eliminó a petición del departamento
+  (2026-10). No reponerlo sin pedirlo: los dos Excel ya cubren esa información.
 - **Excel de control de costos** (`generateRequisicionExcel`), hoja «Control de
   costos» con secciones A y B y, por sección, dos totales: venta total y
   **comparable** (sólo partidas con costo). Hoja «Balance de utilidad»: A, B y
@@ -219,8 +217,12 @@ genera siempre los 5 archivos cuando hay material.
   cantidad entregada (acumulada), fecha, recibió y observaciones. Pendiente
   `MAX(0,D-N(E))` y estado (Pendiente/Parcial/Entregado) por fórmula; avance por
   sección y del proyecto. `N()` es a propósito: trata la celda vacía como cero.
-- `generateAll()` genera **6 archivos** cuando hay material: cotización (3) +
-  control de material (PDF) + control de costos + control de entregas.
+- `generateAll()` genera **5 archivos** cuando hay material: cotización (3) +
+  control de costos + control de entregas. En la sección 6 hay además **un
+  botón por archivo**; los dos de control se deshabilitan solos desde
+  `actualizarBotonGenerar()` cuando no hay material. `init()` llama a
+  `renderRequisicion()` para que ese estado sea correcto desde el primer
+  pintado, no sólo después del primer cambio en el carrito.
 - Las fórmulas de los dos Excel se verificaron recalculando en Excel real
   (COM), capturando entregas y costos: no basta con que SheetJS las escriba.
 - **Quién ve qué costo** (`_costoVisible`): lo capturado a mano por la persona

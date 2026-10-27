@@ -516,6 +516,12 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
 /* ── GENERATE BUTTONS ─────────────────────────────────────────────────────────── */
 .gen-row{display:flex;gap:10px;flex-wrap:wrap;}
 .gen-row .btn{flex:1;min-width:130px;}
+.gen-row .btn:disabled{opacity:.45;cursor:not-allowed;}
+.gen-grupo{
+  font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--gd-text-soft);margin:14px 0 7px;
+}
+.gen-grupo:first-of-type{margin-top:0;}
 
 /* ── UTILITY ──────────────────────────────────────────────────────────────────── */
 .hidden{display:none!important;}
@@ -1246,7 +1252,7 @@ Descuento = Base × %"></button>
       5b. Control de material y costos
       <button class="gd-i" type="button"
               data-info-title="Control de material y costos"
-              data-info="Los dos documentos incluyen <b>todas las partidas de la cotización</b> con su número de parte <b>y la soportería</b> del proyecto.<br><br>El <b>PDF de control de material</b> va a compras: marca cuánto sale de almacén y cuánto hay que surtir, sin precios. El faltante de <b>material PIPRO</b> se surte por su propio canal, salvo solicitud especial.<br><br>El <b>Excel de control de costos</b> lleva proveedor y costo unitario de cada pieza para capturar; la utilidad y el margen se calculan solos."
+              data-info="Los dos Excel incluyen <b>todas las partidas de la cotización</b> con su número de parte <b>y la soportería</b> del proyecto.<br><br>El <b>control de costos</b> lleva proveedor y costo unitario de cada pieza para capturar; la utilidad y el margen se calculan solos.<br><br>El <b>control de entregas</b> sirve para ir registrando en obra lo que se entrega de cada pieza.<br><br>El faltante de <b>material PIPRO</b> se surte por su propio canal, salvo solicitud especial."
               data-formula="Por surtir = Cantidad − En almacén
 Precio de venta soportería = costo × 1.40"></button>
     </div>
@@ -1270,7 +1276,6 @@ Precio de venta soportería = costo × 1.40"></button>
       </div>
       <div class="req-nota" id="req-nota"></div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-secondary btn-sm" onclick="generateRequisicionPDF()">🖨 PDF de control de material</button>
         <button class="btn btn-secondary btn-sm" onclick="generateRequisicionExcel()">📊 Excel de control de costos</button>
         <button class="btn btn-secondary btn-sm" onclick="generateEntregasExcel()">📦 Excel de control de entregas</button>
       </div>
@@ -1290,14 +1295,25 @@ Precio de venta soportería = costo × 1.40"></button>
 
     <div style="display:flex;align-items:center;gap:10px;margin:14px 0 12px;">
       <span style="flex:1;height:1px;background:var(--gd-border);"></span>
-      <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gd-text-soft);">o uno solo</span>
+      <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gd-text-soft);">o uno por uno</span>
       <span style="flex:1;height:1px;background:var(--gd-border);"></span>
     </div>
 
+    <!-- Un botón por archivo. Los de control sólo tienen sentido con material
+         en la cotización, así que se habilitan solos desde renderRequisicion(). -->
+    <div class="gen-grupo">Para el cliente</div>
     <div class="gen-row">
-      <button class="btn btn-secondary" onclick="generatePDF()">🖨 PDF</button>
-      <button class="btn btn-secondary" onclick="generateWord()">📄 Word (.doc)</button>
-      <button class="btn btn-secondary" onclick="generateExcel()">📊 Excel (.xlsx)</button>
+      <button class="btn btn-secondary" onclick="generatePDF()">🖨 Cotización PDF</button>
+      <button class="btn btn-secondary" onclick="generateWord()">📄 Cotización Word</button>
+      <button class="btn btn-secondary" onclick="generateExcel()">📊 Cotización Excel</button>
+    </div>
+
+    <div class="gen-grupo">Control interno — no se le entrega al cliente</div>
+    <div class="gen-row">
+      <button class="btn btn-secondary" id="btn-gen-costos" onclick="generateRequisicionExcel()"
+              title="Costo de compra y margen de cada pieza, con la soportería">📊 Control de costos</button>
+      <button class="btn btn-secondary" id="btn-gen-entregas" onclick="generateEntregasExcel()"
+              title="Lo cotizado y la soportería, para registrar lo entregado en obra">📦 Control de entregas</button>
     </div>
     <div id="gen-progreso" style="display:none;margin-top:12px;"></div>
   </div>
@@ -3571,18 +3587,25 @@ function renderRequisicion() {
     (res.cotizado ? `<b>Valor cotizado del material sin stock: ${fmtMXN(res.cotizado)}.</b><br>` : '') +
     `Los dos documentos incluyen <b>todo el material de la cotización</b> con su número de parte` +
     (R.sopPartidas ? ` <b>y la soportería</b> (${R.sopPartidas} partidas, ${R.sopPiezas.toLocaleString('es-MX')} piezas)` : '') +
-    `, no sólo lo que falta. El <b>PDF de control de material</b> marca qué sale de almacén y qué hay que surtir, sin precios. ` +
-    `El <b>Excel de control de costos</b> lleva proveedor y costo unitario por pieza y calcula solo la utilidad y el margen, mano de obra incluida. ` +
-    `El <b>Excel de control de entregas</b> lista lo cotizado para ir registrando lo entregado en obra.`;
+    `, no sólo lo que falta. El <b>control de costos</b> lleva proveedor y costo unitario por pieza y calcula solo la utilidad y el margen, mano de obra incluida. ` +
+    `El <b>control de entregas</b> lista lo cotizado para ir registrando lo entregado en obra.`;
 }
 
 /** El botón de «generar todo» dice cuántos archivos va a bajar de verdad. */
 function actualizarBotonGenerar() {
   const btn = el('btn-gen-todo');
   if (!btn) return;
-  btn.innerHTML = hayMaterialControl()
-    ? '📦 Generar los 6 archivos · Cotización (PDF + Word + Excel) + Control de material, costos y entregas'
+  const hay = hayMaterialControl();
+  btn.innerHTML = hay
+    ? '📦 Generar los 5 archivos · Cotización (PDF + Word + Excel) + Control de costos y entregas'
     : '📦 Generar los 3 archivos · PDF + Word + Excel';
+  // Los botones de control no sirven sin material: se desactivan en vez de fallar
+  ['btn-gen-costos', 'btn-gen-entregas'].forEach(id => {
+    const b = el(id);
+    if (!b) return;
+    b.disabled = !hay;
+    if (!hay) b.title = 'Agrega material a la cotización o captura soportería';
+  });
 }
 
 function getCartSubtotal() {
@@ -4765,197 +4788,6 @@ function _reqEncabezadoDatos() {
   };
 }
 
-/** Texto de la columna «Por surtir» de una partida de la cotización. */
-function _porSurtirTxt(p) {
-  if (!p.falta) return '—';
-  if (p.pipro && !state.incluirPipro) return 'Canal PIPRO';
-  return String(p.falta);
-}
-
-function generateRequisicionPDF() {
-  if (!validateForm()) return;
-  const mats = getMaterialControl();
-  const sop  = getSoporteria();
-  if (!mats.length && !sop.length) { toast('No hay material en la cotización'); return; }
-
-  const D = _reqEncabezadoDatos();
-  const R = getControlResumen();
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
-  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();
-  const ML = 13, HTOP = 24, FBOT = PH - 12;
-  const RED = [200, 16, 46], DARK = [30, 30, 38], GRAY = [150, 150, 160], LGRAY = [220, 220, 225];
-
-  function drawHeader() {
-    doc.setFillColor(...RED); doc.rect(0, 0, PW, 1.5, 'F');
-    const logo = window.LOGO_GD || null;
-    if (logo) { try { doc.addImage(logo, 'PNG', ML, 4, 30, 11); } catch(e) {} }
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
-    doc.text('Control de Material', ML + 33, 9);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    doc.text('Gardner Denver México  ·  Requisición y lista completa del proyecto', ML + 33, 14);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
-    doc.text(D.folioReq, PW - ML, 9, { align: 'right' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    doc.text(D.fechaStr, PW - ML, 14, { align: 'right' });
-    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.3); doc.line(ML, 20, PW - ML, 20);
-  }
-  function drawFooter() {
-    doc.setDrawColor(...LGRAY); doc.setLineWidth(0.2); doc.line(ML, FBOT - 2, PW - ML, FBOT - 2);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-    doc.text('USO INTERNO  ·  GARDNER DENVER México, S.A. DE C.V.', ML, FBOT);
-    doc.text(D.folioReq, PW - ML, FBOT, { align: 'right' });
-  }
-  const pagesReady = new Set();
-  function setupPage() {
-    const pg = doc.internal.getCurrentPageInfo().pageNumber;
-    if (pagesReady.has(pg)) return;
-    pagesReady.add(pg);
-    drawHeader(); drawFooter();
-  }
-  function nuevaPaginaSi(yy, falta) {
-    if (yy + falta > FBOT - 10) { doc.addPage(); setupPage(); return HTOP + 5; }
-    return yy;
-  }
-  function secTitle(txt, yy) {
-    yy = nuevaPaginaSi(yy, 20);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...RED);
-    doc.text(txt, ML, yy);
-    doc.setDrawColor(...RED); doc.setLineWidth(0.4); doc.line(ML, yy + 1, PW - ML, yy + 1);
-    doc.setTextColor(...DARK);
-    return yy + 7;
-  }
-  const estiloTabla = {
-    margin: { left: ML, right: ML, top: HTOP + 5, bottom: 20 },
-    theme: 'plain',
-    styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 2.4, textColor: [40, 40, 40] },
-    headStyles: { fillColor: [31, 56, 100], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
-    footStyles: { fillColor: [214, 228, 240], textColor: [30, 30, 38], fontStyle: 'bold', fontSize: 8 },
-    alternateRowStyles: { fillColor: [237, 244, 251] },
-    didDrawPage: () => setupPage(),
-  };
-
-  setupPage();
-  let y = HTOP + 4;
-
-  y = secTitle('DATOS DEL PROYECTO', y);
-  doc.setFontSize(8.5);
-  [
-    ['Cliente / Proyecto:', D.empresa + (D.proyecto ? '  ·  ' + D.proyecto : '')],
-    ['Cotización relacionada:', D.folioCot],
-    ['Fecha:', D.fechaStr],
-    ['Solicita:', D.solicita || 'Departamento de Ingeniería'],
-    ['Resumen:', `${R.partidas} partidas de cotización` +
-                 (R.sopPartidas ? ` + ${R.sopPartidas} de soportería` : '') +
-                 ` · ${R.piezasSurtir.toLocaleString('es-MX')} piezas por surtir vía compras`],
-  ].forEach(([lbl, val]) => {
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(...GRAY);
-    doc.text(lbl, ML, y);
-    doc.setFont('helvetica', 'normal'); doc.setTextColor(...DARK);
-    const t = doc.splitTextToSize(String(val), PW - ML * 2 - 42);
-    doc.text(t, ML + 42, y);
-    y += 5.2 * Math.max(1, t.length);
-  });
-  y += 3;
-
-  /* Sin precios ni costos: este PDF se le manda a compras por correo. */
-  if (mats.length) {
-    y = secTitle('A. MATERIAL DE LA COTIZACIÓN', y);
-    doc.autoTable({
-      ...estiloTabla,
-      startY: y,
-      head: [['#', 'No. de Parte', 'Descripción', 'Cantidad', 'En almacén', 'Por surtir']],
-      body: mats.map((p, i) => [
-        String(i + 1), p.it.numero_parte, p.it.descripcion,
-        String(p.cantidad), String(p.almacen), _porSurtirTxt(p),
-      ]),
-      foot: [['', '', 'TOTALES', String(R.piezas), String(R.piezasAlmacen), String(R.piezasSurtirMat)]],
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 9 },
-        1: { font: 'courier', fontSize: 8, cellWidth: 34 },
-        2: { cellWidth: 'auto' },
-        3: { halign: 'center', cellWidth: 18 },
-        4: { halign: 'center', cellWidth: 19 },
-        5: { halign: 'center', cellWidth: 22 },
-      },
-      didParseCell: (data) => {
-        const p = mats[data.row.index];
-        if (data.section === 'body' && p) {
-          if (p.pipro) data.cell.styles.fillColor = [226, 239, 250];
-          else if (p.falta) data.cell.styles.fillColor = [255, 248, 214];
-          if (data.column.index === 5 && p.falta && p.compras) data.cell.styles.fontStyle = 'bold';
-        }
-        if (data.section === 'foot' && data.column.index === 2) data.cell.styles.halign = 'right';
-        if (data.section === 'foot' && data.column.index >= 3) data.cell.styles.halign = 'center';
-      },
-    });
-    y = doc.lastAutoTable.finalY + 6;
-  }
-
-  if (sop.length) {
-    y = secTitle('B. SOPORTERÍA', y);
-    doc.autoTable({
-      ...estiloTabla,
-      startY: y,
-      head: [['#', 'No. de Parte', 'Descripción', 'Cantidad', 'Unidad']],
-      body: sop.map((s, i) => [
-        String(i + 1), s.np, s.desc + (s.consumible ? '  (consumible)' : ''),
-        String(s.cantidad), s.unidad,
-      ]),
-      foot: [['', '', 'TOTAL DE PIEZAS', String(R.sopPiezas), '']],
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 9 },
-        1: { font: 'courier', fontSize: 8, cellWidth: 40 },
-        2: { cellWidth: 'auto' },
-        3: { halign: 'center', cellWidth: 20 },
-        4: { halign: 'center', cellWidth: 18 },
-      },
-      didParseCell: (data) => {
-        if (data.section === 'foot' && data.column.index === 2) data.cell.styles.halign = 'right';
-        if (data.section === 'foot' && data.column.index === 3) data.cell.styles.halign = 'center';
-      },
-    });
-    y = doc.lastAutoTable.finalY + 6;
-  }
-
-  // Leyenda
-  const leyenda = [];
-  if (mats.some(p => p.falta && !p.pipro)) leyenda.push('Amarillo: partida que no alcanza a cubrirse con almacén; la cantidad en «Por surtir» es lo que hay que comprar.');
-  if (mats.some(p => p.pipro)) leyenda.push(state.incluirPipro
-    ? 'Azul: material PIPRO, incluido en la compra por solicitud especial.'
-    : 'Azul: material PIPRO. Lo que falta se surte por su propio canal («Canal PIPRO»), no por compras.');
-  if (leyenda.length) {
-    y = nuevaPaginaSi(y, 6 + leyenda.length * 5);
-    doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-    leyenda.forEach(t => {
-      const l = doc.splitTextToSize(t, PW - ML * 2);
-      doc.text(l, ML, y); y += l.length * 4 + 1;
-    });
-    y += 2;
-  }
-
-  // Firmas
-  y = nuevaPaginaSi(y, 34);
-  y = Math.max(y + 8, FBOT - 34);
-  const anchoF = (PW - ML * 2 - 16) / 3;
-  ['Solicita', 'Autoriza', 'Recibe compras'].forEach((rol, i) => {
-    const x = ML + i * (anchoF + 8);
-    doc.setDrawColor(...GRAY); doc.setLineWidth(0.3);
-    doc.line(x, y + 12, x + anchoF, y + 12);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-    doc.text(rol.toUpperCase(), x, y + 16);
-    if (i === 0 && D.solicita) {
-      doc.setFontSize(7.5); doc.setTextColor(...DARK);
-      doc.text(D.solicita, x, y + 10.5);
-    }
-  });
-
-  const suf = state.editandoFolio ? '-EDITADO' : '';
-  doc.save(('Control_Material_' + D.folioReq + suf).replace(/[\/:*?"<>|]/g, '_') + '.pdf');
-  toast('🖨 PDF de control de material descargado');
-}
-
 /* Celda con fórmula. Lleva también el valor ya calculado: así el número se ve
    correcto en cuanto se abre el archivo, y si alguien corrige un costo dentro
    de Excel, la fórmula recalcula el balance sola. */
@@ -5431,10 +5263,9 @@ async function generateAll() {
     ['Word',  generateWord],
     ['Excel', generateExcel],
   ];
-  // El control de material y el de costos cubren todo el proyecto (cotización
-  // + soportería), así que salen en el mismo paquete siempre que haya material.
+  // Los dos controles cubren todo el proyecto (cotización + soportería), así
+  // que salen en el mismo paquete siempre que haya material.
   if (hayMaterialControl()) {
-    pasos.push(['Control de material (PDF)', generateRequisicionPDF]);
     pasos.push(['Control de costos (Excel)', generateRequisicionExcel]);
     pasos.push(['Control de entregas (Excel)', generateEntregasExcel]);
   }
@@ -6736,6 +6567,10 @@ async function init() {
   // Cargar materiales — Supabase es la fuente de verdad
   await loadMateriales();
   actualizarContadorMateriales();
+
+  // Deja los botones de control en su estado real desde el primer pintado:
+  // con el carrito vacío salían habilitados hasta que algo más los refrescara
+  renderRequisicion();
 
   // Dimensionar campos y preparar los iconos de información ya renderizados
   GD.refrescar();
