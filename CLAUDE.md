@@ -202,6 +202,17 @@ genera siempre los 5 archivos cuando hay material.
 
 - El **PDF de control de material** se eliminó a petición del departamento
   (2026-10). No reponerlo sin pedirlo: los dos Excel ya cubren esa información.
+- **Carga para editar:** el Word y el Excel llevan el estado completo embebido
+  (`COT_DATA_V1`, base64, desde `serializeCotizacion()`), y eso incluye el
+  carrito entero — costo, origen del costo, precio manual, disponibilidad y
+  categoría. Por eso el control interno sale con lo editado sin trabajo extra.
+  **La soportería NO se serializa** (vive en los inputs de su tabla, y no sale
+  en la cotización del cliente): al cargar un archivo no se restaura, pero
+  tampoco se borra la que ya esté capturada, y si se captura después entra al
+  control. Es el comportamiento acordado con el departamento.
+- **Nunca añadir `-EDITADO` al nombre de archivo.** `getFolio()` ya lo trae en
+  modo edición, junto con `-v2`, `-v3`… Añadirlo otra vez producía
+  `…-EDITADO-EDITADO.xlsx`.
 - **Un solo Excel de control interno** (`generateControlInterno`,
   `Control_Interno_<folio>.xlsx`) con tres hojas. Los constructores
   `_hojasCostos(wb, mats, sop)` y `_hojaEntregas(wb, mats, sop)` sólo añaden

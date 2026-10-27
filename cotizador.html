@@ -5246,8 +5246,10 @@ function generateControlInterno() {
   _hojasCostos(wb, mats, sop);    // Control de costos + Balance de utilidad
   _hojaEntregas(wb, mats, sop);   // Control de entregas
 
-  const suf = state.editandoFolio ? '-EDITADO' : '';
-  XLSX.writeFile(wb, ('Control_Interno_' + D.folioCot + suf).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
+  /* Sin sufijo extra: en modo edición `getFolio()` ya devuelve el folio con
+     «-EDITADO» (y «-v2», «-v3»…). Añadirlo aquí producía nombres como
+     «…-EDITADO-EDITADO.xlsx». */
+  XLSX.writeFile(wb, ('Control_Interno_' + D.folioCot).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
   toast('📋 Excel de control interno descargado');
 }
 
