@@ -80,7 +80,8 @@ export function verifyPassword(plain, stored) {
 
 /** Reglas mínimas de contraseña para el portal. */
 export function validarPassword(pw) {
-  if (typeof pw !== 'string' || pw.length < 10) return 'La contraseña debe tener al menos 10 caracteres.';
+  // Mínimo 6 por decisión del dueño: los técnicos la teclean en el teléfono.
+  if (typeof pw !== 'string' || pw.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
   if (!/[a-zA-Z]/.test(pw)) return 'La contraseña debe incluir al menos una letra.';
   if (!/[0-9]/.test(pw))    return 'La contraseña debe incluir al menos un número.';
   return null;

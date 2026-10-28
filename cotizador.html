@@ -1844,17 +1844,27 @@ Precio de venta soportería = costo × 1.40"></button>
         <div class="gd-field">
           <label>Rol
             <button class="gd-i" data-info-title="Roles"
-                    data-info="<b>Usuario</b>: cotiza, genera reportes y captura requisiciones.<br><b>Administrador</b>: además edita el catálogo, los porcentajes de utilidad y las cuentas."></button>
+                    data-info="<b>Usuario</b>: cotiza, genera reportes y captura requisiciones.<br><b>Técnico</b>: entra únicamente al control de incidencias, a registrar sus horas.<br><b>Administrador</b>: además edita el catálogo, los porcentajes de utilidad y las cuentas."></button>
           </label>
-          <select id="nu-rol">
+          <select id="nu-rol" onchange="usuarioRolCambio()">
             <option value="usuario">Usuario</option>
             <option value="tecnico">Técnico (sólo incidencias)</option>
             <option value="admin">Administrador</option>
           </select>
         </div>
+        <!-- Sólo para técnicos: sin este código su renglón del archivo de carga
+             sale sin la columna A e iScala lo rechaza, así que es obligatorio. -->
+        <div class="gd-field" id="nu-cod-campo" hidden>
+          <label>Código de recurso
+            <button class="gd-i" data-info-title="Código de recurso"
+                    data-info="Es el código del técnico en <b>iScala</b> y va en la <b>columna A</b> del archivo de carga de incidencias.<br><br>Sin él, iScala rechaza todos los renglones de ese técnico, por eso se pide al crear la cuenta."
+                    data-fuente="Lo asigna el área que administra iScala"></button>
+          </label>
+          <input type="text" id="nu-codigo" maxlength="20" placeholder="ej. 2011" autocomplete="off">
+        </div>
         <div class="gd-field">
           <label>Contraseña inicial</label>
-          <input type="text" id="nu-pwd" maxlength="64" placeholder="mínimo 10 caracteres" autocomplete="off" data-chars="22">
+          <input type="text" id="nu-pwd" maxlength="64" placeholder="mínimo 6 caracteres" autocomplete="off" data-chars="22">
         </div>
         <div class="gd-field">
           <label>&nbsp;</label>
@@ -5669,11 +5679,15 @@ async function renderUsuarios() {
         <td>${GD.esc(u.nombre || '')}</td>
         <td><span class="gd-user-rol${u.rol === 'admin' ? ' admin' : ''}">${
           { admin:'Admin', tecnico:'Técnico' }[u.rol] || 'Usuario'}</span>${
-          u.rol === 'tecnico' ? `<br><span style="font-size:.7rem;color:var(--gd-text-mute);">Cód. recurso: ${
-            GD.esc(u.codigo_recurso || '— sin asignar')}</span>` : ''}</td>
+          u.rol === 'tecnico' ? `<br><span style="font-size:.7rem;color:${
+            u.codigo_recurso ? 'var(--gd-text-mute)' : '#dc2626'};font-weight:${u.codigo_recurso ? '400' : '700'};">Cód. recurso: ${
+            GD.esc(u.codigo_recurso || 'SIN ASIGNAR')}</span>` : ''}</td>
         <td style="font-size:.82rem;color:var(--gd-text-mute);">${GD.esc(acceso)}</td>
         <td>${u.activo ? '🟢 Activo' : '⚪ Inactivo'}${u.debe_cambiar_password ? ' · 🔑' : ''}</td>
         <td style="white-space:nowrap;">
+          ${u.rol === 'tecnico' ? `<button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}"
+             data-cod="${GD.esc(u.codigo_recurso || '')}" onclick="usuarioCodigo(this)"
+             title="Cambiar el código de recurso de iScala">🏷️</button>` : ''}
           <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" onclick="usuarioReset(this)" title="Asignar una contraseña nueva">🔑</button>
           <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" data-activo="${u.activo}" onclick="usuarioActivar(this)" title="Activar o desactivar">${u.activo ? '🚫' : '✅'}</button>
           <button class="btn btn-danger btn-sm" data-u="${GD.esc(u.usuario)}" onclick="usuarioEliminar(this)" title="Eliminar la cuenta">🗑</button>
@@ -5685,22 +5699,56 @@ async function renderUsuarios() {
   }
 }
 
+/* El código de recurso sólo aplica a los técnicos: es su identificador en
+   iScala. Se muestra y se exige únicamente para ese rol. */
+function usuarioRolCambio() {
+  const esTec = el('nu-rol').value === 'tecnico';
+  el('nu-cod-campo').hidden = !esTec;
+  if (!esTec) el('nu-codigo').value = '';
+}
+
 async function usuarioCrear() {
   const usuario  = (el('nu-usuario').value || '').trim().toLowerCase();
   const nombre   = (el('nu-nombre').value || '').trim();
   const rol      = el('nu-rol').value;
   const password = el('nu-pwd').value;
+  const codigo   = (el('nu-codigo').value || '').trim().toUpperCase();
+
+  /* Sin código, los renglones de ese técnico salen del archivo de carga con la
+     columna A vacía e iScala los rechaza en bloque. Más vale no dejar crear la
+     cuenta que descubrirlo al cierre de mes. */
+  if (rol === 'tecnico' && !codigo) {
+    alert('❌ Un técnico necesita su código de recurso de iScala: es la columna A del archivo de carga.');
+    el('nu-codigo').focus();
+    return;
+  }
   try {
-    await apiUsuarios({ accion: 'crear', usuario, nombre, rol, password });
+    await apiUsuarios({ accion: 'crear', usuario, nombre, rol, password, codigo_recurso: codigo });
     toast(`✅ Usuario "${usuario}" creado.`);
     el('nu-usuario').value = ''; el('nu-nombre').value = ''; el('nu-pwd').value = '';
+    el('nu-codigo').value = '';
+    renderUsuarios();
+  } catch (e) { alert('❌ ' + e.message); }
+}
+
+/** Cambia el código de recurso de un técnico ya creado. */
+async function usuarioCodigo(btn) {
+  const u = btn.dataset.u;
+  const actual = btn.dataset.cod || '';
+  const codigo = prompt(`Código de recurso de iScala para "${u}":`, actual);
+  if (codigo === null) return;
+  const limpio = codigo.trim().toUpperCase();
+  if (!limpio) { alert('❌ El código no puede quedar vacío: sin él iScala rechaza sus renglones.'); return; }
+  try {
+    await apiUsuarios({ accion: 'actualizar', usuario: u, codigo_recurso: limpio });
+    toast(`✅ Código de "${u}" actualizado a ${limpio}.`);
     renderUsuarios();
   } catch (e) { alert('❌ ' + e.message); }
 }
 
 async function usuarioReset(btn) {
   const u = btn.dataset.u;
-  const password = prompt(`Nueva contraseña para "${u}" (mínimo 10 caracteres, con letras y números):`);
+  const password = prompt(`Nueva contraseña para "${u}" (mínimo 6 caracteres, con letras y números):`);
   if (!password) return;
   try {
     await apiUsuarios({ accion: 'actualizar', usuario: u, password });

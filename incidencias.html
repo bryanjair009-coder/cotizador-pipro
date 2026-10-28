@@ -218,7 +218,6 @@ tbody tr:hover{background:var(--gd-bg-soft);}
     <div class="tabs">
       <button class="tab active" data-sec="mensual"  onclick="adminSec('mensual')">📅 Registro mensual</button>
       <button class="tab"        data-sec="empresas" onclick="adminSec('empresas')">🏭 Empresas y proyectos</button>
-      <button class="tab"        data-sec="tecnicos" onclick="adminSec('tecnicos')">👷 Códigos de recurso</button>
     </div>
 
     <!-- ── Registro mensual ─────────────────────────────────────────────── -->
@@ -314,24 +313,6 @@ tbody tr:hover{background:var(--gd-bg-soft);}
       </div>
     </div>
 
-    <!-- ── Códigos de recurso ───────────────────────────────────────────── -->
-    <div id="sec-tecnicos" hidden>
-      <div class="card">
-        <div class="sec-title">Código de recurso por técnico</div>
-        <div class="aviso aviso-info">
-          Es la <b>columna A</b> del archivo de carga. Un técnico sin código deja esa
-          celda vacía y iScala rechaza el renglón, así que conviene llenarlos antes
-          de cerrar el mes.
-        </div>
-        <div class="tabla-wrap">
-          <table>
-            <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th style="width:170px;">Código de recurso</th><th></th></tr></thead>
-            <tbody id="tbody-cods"><tr><td colspan="5" class="vacio">Cargando…</td></tr></tbody>
-          </table>
-        </div>
-        <div id="aviso-cods" style="margin-top:10px;"></div>
-      </div>
-    </div>
   </section>
 
 </div>
@@ -493,11 +474,18 @@ function calcularHoras() {
 
 async function cargarProyectos() {
   try {
-    // El técnico pide sólo lo que necesita: ni el folio viaja a su navegador
-    const cols = S.sesion.rol === 'admin' ? '*' : 'id,empresa,activo';
-    const filtro = S.sesion.rol === 'admin' ? '' : '&activo=is.true';
-    S.proyectos = await SB.getAll('proyectos', `?select=${cols}&order=empresa.asc${filtro}`) || [];
-  } catch (e) { S.proyectos = []; }
+    /* El administrador pide la fila completa SIN `select`: el proxy rechaza
+       `select=*` (el asterisco se usa para leer tablas relacionadas, y por eso
+       está prohibido). Pedirlo así dejaba la tabla de empresas siempre vacía.
+       El técnico sí nombra columnas, aunque el folio lo quita el servidor. */
+    const q = S.sesion.rol === 'admin'
+      ? '?order=empresa.asc'
+      : '?select=id,empresa,activo&order=empresa.asc&activo=is.true';
+    S.proyectos = await SB.getAll('proyectos', q) || [];
+  } catch (e) {
+    S.proyectos = [];
+    if (el('aviso-proy')) avisoProy('err', 'No se pudieron leer los proyectos: ' + esc(e.message));
+  }
 
   const sel = el('empresa');
   if (sel) {
@@ -606,7 +594,7 @@ async function cargarMisRegistros() {
 
 function adminSec(id) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.sec === id));
-  ['mensual','empresas','tecnicos'].forEach(x => { el('sec-' + x).hidden = x !== id; });
+  ['mensual','empresas'].forEach(x => { el('sec-' + x).hidden = x !== id; });
 }
 
 async function cargarUsuarios() {
@@ -618,7 +606,7 @@ async function cargarUsuarios() {
     });
     S.usuarios = r.ok ? await r.json() : [];
   } catch (e) { S.usuarios = []; }
-  pintarCodigos();
+  // El código de recurso se asigna al crear la cuenta, en el panel de usuarios
   const ft = el('filtro-tec');
   const tecs = S.usuarios.filter(u => u.rol === 'tecnico');
   ft.innerHTML = '<option value="">Todos</option>' +
@@ -821,44 +809,6 @@ async function borrarProyecto(id) {
   } catch (e) { avisoProy('err', 'No se pudo eliminar: ' + esc(e.message)); }
 }
 
-// ── Códigos de recurso ─────────────────────────────────────────────────────
-function pintarCodigos() {
-  const t = el('tbody-cods');
-  if (!t) return;
-  // Primero los técnicos: son los que necesitan código
-  const orden = [...S.usuarios].sort((a, b) =>
-    (a.rol === 'tecnico' ? 0 : 1) - (b.rol === 'tecnico' ? 0 : 1) ||
-    String(a.usuario).localeCompare(b.usuario));
-  t.innerHTML = orden.length ? orden.map(u => `<tr>
-      <td class="mono">${esc(u.usuario)}</td>
-      <td>${esc(u.nombre || '')}</td>
-      <td><span class="pill pill-cat">${esc(u.rol)}</span></td>
-      <td><input type="text" class="mono" maxlength="20" value="${esc(u.codigo_recurso || '')}"
-             placeholder="${u.rol === 'tecnico' ? 'ej. 2011' : '—'}"
-             onchange="guardarCodigo('${esc(u.usuario)}', this.value)"></td>
-      <td><span id="cod-ok-${esc(u.usuario)}" style="font-size:12px;"></span></td>
-    </tr>`).join('') : '<tr><td colspan="5" class="vacio">No se pudieron cargar los usuarios.</td></tr>';
-}
-
-async function guardarCodigo(usuario, valor) {
-  const marca = el('cod-ok-' + usuario);
-  if (marca) marca.textContent = '⏳';
-  try {
-    const r = await fetch('/api/usuarios', {
-      method:'POST', credentials:'same-origin',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ accion:'actualizar', usuario, codigo_recurso: valor }),
-    });
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Error ' + r.status);
-    const u = S.usuarios.find(x => x.usuario === usuario);
-    if (u) u.codigo_recurso = valor.trim().toUpperCase() || null;
-    if (marca) { marca.textContent = '✓'; setTimeout(() => { marca.textContent = ''; }, 1800); }
-    pintarMes();   // el aviso de «sin código» se recalcula
-  } catch (e) {
-    if (marca) marca.textContent = '!';
-    el('aviso-cods').innerHTML = `<div class="aviso aviso-err">No se pudo guardar: ${esc(e.message)}</div>`;
-  }
-}
 </script>
 </body>
 </html>

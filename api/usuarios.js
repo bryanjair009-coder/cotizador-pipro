@@ -75,6 +75,13 @@ export default async function handler(req, res) {
         if (!ROLES.includes(body.rol)) {
           return res.status(400).json({ error: 'Rol no válido' });
         }
+        /* Un técnico sin código de recurso deja la columna A del archivo de
+           carga vacía e iScala rechaza todos sus renglones. Se exige aquí y no
+           sólo en la pantalla, para que la cuenta no pueda nacer incompleta. */
+        const codigo = codigoRecurso(body.codigo_recurso);
+        if (body.rol === 'tecnico' && !codigo) {
+          return res.status(400).json({ error: 'Un técnico necesita su código de recurso de iScala.' });
+        }
         const existe = await sb.select('usuarios', `?usuario=eq.${encodeURIComponent(usuario)}&select=usuario&limit=1`);
         if (existe?.length) return res.status(409).json({ error: 'Ese usuario ya existe.' });
 
@@ -82,7 +89,7 @@ export default async function handler(req, res) {
           usuario,
           nombre: String(body.nombre || usuario).slice(0, 120),
           rol: body.rol,
-          codigo_recurso: codigoRecurso(body.codigo_recurso),
+          codigo_recurso: codigo,
           password_hash: hashPassword(body.password),
           activo: true,
           debe_cambiar_password: true,

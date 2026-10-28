@@ -36,8 +36,12 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 - **Credenciales sólo en variables de entorno de Vercel:** `SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`.
 - **Sesiones:** HMAC-SHA256 en cookie HttpOnly + Secure + SameSite=Strict, 10 h.
-- **Contraseñas:** scrypt N=16384 con sal. Mínimo 10 caracteres con letra y número.
-- **Roles:** `admin` (catálogo, utilidades, cuentas) y `usuario`. `GD.sesion.esAdmin`.
+- **Contraseñas:** scrypt N=16384 con sal. **Mínimo 6** caracteres con letra y
+  número (bajó de 10 a 6 en 2026-10, a petición del dueño: los técnicos la
+  teclean en el teléfono). El mínimo vive en `validarPassword()`; los textos de
+  la interfaz que lo mencionan están en cotizador.html e index.html.
+- **Roles:** `admin` (catálogo, utilidades, cuentas), `usuario` y `tecnico`
+  (sólo incidencias). `GD.sesion.esAdmin`.
 - **XSS:** usar SIEMPRE `GD.esc()` antes de meter datos en `innerHTML`.
 - **Nunca** volver a poner una contraseña o llave en el HTML/JS del cliente.
 - Puesta en marcha: ver `PUESTA_EN_MARCHA.md`; SQL en `SUPABASE_SEGURIDAD.sql`.
@@ -344,6 +348,11 @@ genera siempre los 5 archivos cuando hay material.
   el proyecto se corrige o se da de baja, lo ya reportado no cambia.
 - Índice único por (usuario, fecha, horarios, folio, actividad): un doble clic
   en «Enviar» no duplica el renglón.
+- **`select=*` NO funciona contra `/api/db`**: `sanearQuery()` rechaza el
+  asterisco (se usa para leer tablas relacionadas). Para traer la fila completa
+  se omite el `select`. Pedirlo con `*` devolvía 400, el catch dejaba la lista
+  vacía y la tabla de empresas se veía vacía aunque el alta sí hubiera
+  guardado.
 - Un turno cuya salida es menor o igual que la entrada **cruza la medianoche**
   (se le suman 24 h) en vez de dar negativo: los técnicos sí hacen paros
   nocturnos.
@@ -361,8 +370,11 @@ genera siempre los 5 archivos cuando hay material.
 - **Fecha en `YYYYMMDD`**, no con guiones. Se confirma en la hoja «Sheet2» del
   machote, que es el log de errores del cargador: `[=034]20250231`.
 - El **Codigo Recurso** (columna A) es por técnico, de `usuarios.codigo_recurso`.
-  Un técnico sin código deja la celda vacía: el panel lo avisa en rojo antes de
-  descargar, porque iScala rechazaría esos renglones.
+  **Se pide al crear la cuenta y es obligatorio para el rol `tecnico`**, en la
+  pantalla y en `api/usuarios.js`: una cuenta de técnico no puede nacer sin él,
+  porque sus renglones saldrían con la columna A vacía e iScala los rechaza en
+  bloque. Se corrige después con el botón 🏷️ de la tabla de usuarios. El panel
+  mensual también avisa en rojo antes de descargar.
 - Las **actividades** salen de «ACTIVIDADES Iscala» y viven en `ACTIVIDADES`
   dentro de incidencias.html: el técnico elige el **texto** (columna H) y el
   **código** (columna D) va solo. Las dos cosas salen de la misma lista para

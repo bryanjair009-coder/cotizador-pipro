@@ -481,7 +481,7 @@ document.addEventListener('keydown', e => {
 async function cambiarPwd() {
   const actual = prompt('Contraseña actual:');
   if (!actual) return;
-  const nueva = prompt('Nueva contraseña (mínimo 10 caracteres, con letras y números):');
+  const nueva = prompt('Nueva contraseña (mínimo 6 caracteres, con letras y números):');
   if (!nueva) return;
   if (nueva !== prompt('Repite la nueva contraseña:')) { alert('Las contraseñas no coinciden.'); return; }
   const r = await fetch('/api/usuarios', {
