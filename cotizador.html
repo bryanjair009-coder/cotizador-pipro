@@ -1848,6 +1848,7 @@ Precio de venta soportería = costo × 1.40"></button>
           </label>
           <select id="nu-rol">
             <option value="usuario">Usuario</option>
+            <option value="tecnico">Técnico (sólo incidencias)</option>
             <option value="admin">Administrador</option>
           </select>
         </div>
@@ -5666,7 +5667,10 @@ async function renderUsuarios() {
       return `<tr${u.activo ? '' : ' style="opacity:.5;"'}>
         <td><b>${GD.esc(u.usuario)}</b></td>
         <td>${GD.esc(u.nombre || '')}</td>
-        <td><span class="gd-user-rol${u.rol === 'admin' ? ' admin' : ''}">${u.rol === 'admin' ? 'Admin' : 'Usuario'}</span></td>
+        <td><span class="gd-user-rol${u.rol === 'admin' ? ' admin' : ''}">${
+          { admin:'Admin', tecnico:'Técnico' }[u.rol] || 'Usuario'}</span>${
+          u.rol === 'tecnico' ? `<br><span style="font-size:.7rem;color:var(--gd-text-mute);">Cód. recurso: ${
+            GD.esc(u.codigo_recurso || '— sin asignar')}</span>` : ''}</td>
         <td style="font-size:.82rem;color:var(--gd-text-mute);">${GD.esc(acceso)}</td>
         <td>${u.activo ? '🟢 Activo' : '⚪ Inactivo'}${u.debe_cambiar_password ? ' · 🔑' : ''}</td>
         <td style="white-space:nowrap;">

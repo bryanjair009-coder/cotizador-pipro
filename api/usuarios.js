@@ -9,7 +9,17 @@ import { hashPassword, verifyPassword, validarPassword } from './_lib/auth.js';
 import { sb, bitacora } from './_lib/sb.js';
 import { proteger, rateLimit, leerJSON } from './_lib/guard.js';
 
-const COLUMNAS_SEGURAS = 'usuario,nombre,rol,activo,ultimo_acceso,debe_cambiar_password,created_at';
+const COLUMNAS_SEGURAS = 'usuario,nombre,rol,activo,ultimo_acceso,debe_cambiar_password,created_at,codigo_recurso';
+
+const ROLES = ['admin', 'usuario', 'tecnico'];
+
+/* «Codigo Recurso» de iScala: va en la columna A del archivo de carga y sólo
+   lo tienen los técnicos. Se guarda como texto —hay códigos con ceros a la
+   izquierda— y vacío significa «todavía no se lo asignan». */
+function codigoRecurso(v) {
+  const t = String(v ?? '').trim().toUpperCase().slice(0, 20);
+  return t || null;
+}
 
 export default async function handler(req, res) {
   const s = proteger(req, res);
@@ -62,7 +72,7 @@ export default async function handler(req, res) {
         }
         const err = validarPassword(body.password);
         if (err) return res.status(400).json({ error: err });
-        if (!['admin', 'usuario'].includes(body.rol)) {
+        if (!ROLES.includes(body.rol)) {
           return res.status(400).json({ error: 'Rol no válido' });
         }
         const existe = await sb.select('usuarios', `?usuario=eq.${encodeURIComponent(usuario)}&select=usuario&limit=1`);
@@ -72,6 +82,7 @@ export default async function handler(req, res) {
           usuario,
           nombre: String(body.nombre || usuario).slice(0, 120),
           rol: body.rol,
+          codigo_recurso: codigoRecurso(body.codigo_recurso),
           password_hash: hashPassword(body.password),
           activo: true,
           debe_cambiar_password: true,
@@ -87,12 +98,13 @@ export default async function handler(req, res) {
         const cambios = {};
         if (body.nombre !== undefined) cambios.nombre = String(body.nombre).slice(0, 120);
         if (body.rol !== undefined) {
-          if (!['admin', 'usuario'].includes(body.rol)) return res.status(400).json({ error: 'Rol no válido' });
+          if (!ROLES.includes(body.rol)) return res.status(400).json({ error: 'Rol no válido' });
           if (usuario === s.u && body.rol !== 'admin') {
             return res.status(400).json({ error: 'No puedes quitarte a ti mismo el rol de administrador.' });
           }
           cambios.rol = body.rol;
         }
+        if (body.codigo_recurso !== undefined) cambios.codigo_recurso = codigoRecurso(body.codigo_recurso);
         if (body.activo !== undefined) {
           if (usuario === s.u && body.activo === false) {
             return res.status(400).json({ error: 'No puedes desactivar tu propia cuenta.' });

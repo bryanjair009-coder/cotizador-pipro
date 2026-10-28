@@ -18,6 +18,13 @@ const PERMISOS = {
   requisiciones: { select: 'todos', upsert: 'todos', delete: 'todos' },
   meta:          { select: 'todos', upsert: 'mixto', delete: 'admin' },
   bitacora:      { select: 'admin' },
+  // Quién da de alta una empresa con proyecto activo: sólo el administrador.
+  // Leerlas sí puede cualquiera, porque el técnico necesita el desplegable.
+  proyectos:     { select: 'todos', upsert: 'admin', delete: 'admin' },
+  /* Incidencias: cada quien las suyas. `propio` no es un rol, es una marca que
+     se resuelve más abajo acotando la consulta y forzando el `usuario` de cada
+     renglón que se escribe. Un administrador las ve y las corrige todas. */
+  incidencias:   { select: 'propio', upsert: 'propio', delete: 'admin' },
 };
 
 // Claves de `meta` que mueven dinero: sólo administrador
@@ -81,6 +88,35 @@ function permitido(rol, exigido) {
   return exigido === 'todos' || (exigido === 'admin' && rol === 'admin');
 }
 
+/* Columnas que un no-administrador NO debe recibir, por tabla.
+   El `select` lo arma el navegador, así que pedir «sólo estas columnas» desde
+   el cliente no protege nada: un técnico podría mandar `select=*`. El folio de
+   proyecto es dato reservado —se ve en el panel de administrador y en el
+   archivo de carga, en ningún otro lado—, así que se quita aquí, al salir. */
+const COLUMNAS_RESERVADAS = {
+  proyectos:   ['folio', 'nota'],
+  incidencias: ['folio'],
+};
+function quitarReservadas(tabla, filas) {
+  const fuera = COLUMNAS_RESERVADAS[tabla];
+  if (!fuera || !Array.isArray(filas)) return filas;
+  return filas.map(f => {
+    const copia = { ...f };
+    fuera.forEach(c => delete copia[c]);
+    return copia;
+  });
+}
+
+/* Acota una consulta a los renglones del propio usuario.
+   Se AÑADE el filtro en vez de confiar en el que venga del navegador: si el
+   cliente ya mandó un `usuario=eq.otro`, PostgREST aplicaría los dos y no
+   devolvería nada, que es justo lo que debe pasar. */
+function acotarAlUsuario(qs, usuario) {
+  const base = sanearQuery(qs).replace(/^\?/, '');
+  const mio  = 'usuario=eq.' + encodeURIComponent(usuario);
+  return '?' + (base ? base + '&' + mio : mio);
+}
+
 export default async function handler(req, res) {
   const s = proteger(req, res);
   if (!s) return;
@@ -106,14 +142,19 @@ export default async function handler(req, res) {
       if (tocaAdmin && s.r !== 'admin') {
         return res.status(403).json({ error: 'Sólo un administrador puede modificar los porcentajes de utilidad.', code: 'SIN_PERMISO' });
       }
+    } else if (exigido === 'propio') {
+      // Lo resuelve cada operación más abajo; aquí basta con tener sesión.
     } else if (!permitido(s.r, exigido)) {
       return res.status(403).json({ error: 'No tienes permisos para esta operación.', code: 'SIN_PERMISO' });
     }
 
+    // Un administrador ve y corrige todo; los demás, sólo lo suyo
+    const soloLoPropio = exigido === 'propio' && s.r !== 'admin';
+
     switch (op) {
       case 'select': {
-        const out = await sb.select(table, sanearQuery(query));
-        return res.status(200).json(out);
+        const out = await sb.select(table, soloLoPropio ? acotarAlUsuario(query, s.u) : sanearQuery(query));
+        return res.status(200).json(s.r === 'admin' ? out : quitarReservadas(table, out));
       }
 
       case 'upsert': {
@@ -121,6 +162,31 @@ export default async function handler(req, res) {
         const filas = Array.isArray(data) ? data : [data];
         if (filas.length > 1000) return res.status(413).json({ error: 'Máximo 1000 registros por petición' });
         if (onConflict && !IDENT.test(onConflict)) return res.status(400).json({ error: 'on_conflict no válido' });
+
+        /* El `usuario` lo pone el servidor a partir de la sesión, no el
+           navegador: si no, un técnico podría registrarle horas a otro. */
+        if (soloLoPropio) filas.forEach(f => { f.usuario = s.u; });
+
+        /* La empresa y el folio se copian del proyecto aquí, no se aceptan del
+           navegador. Dos razones: el técnico nunca recibe el folio (es dato
+           reservado al administrador), y aunque lo recibiera no debe poder
+           cargarle horas a un folio que no le corresponde. */
+        if (table === 'incidencias') {
+          const ids = [...new Set(filas.map(f => +f.proyecto_id).filter(Boolean))];
+          if (!ids.length) return res.status(400).json({ error: 'Falta el proyecto de la incidencia.' });
+          const proys = await sb.select('proyectos',
+            `?select=id,empresa,folio,activo&id=in.(${ids.join(',')})`);
+          const porId = new Map((proys || []).map(p => [String(p.id), p]));
+          for (const f of filas) {
+            const p = porId.get(String(f.proyecto_id));
+            if (!p) return res.status(400).json({ error: 'El proyecto de la incidencia no existe.' });
+            if (p.activo === false && s.r !== 'admin') {
+              return res.status(400).json({ error: `El proyecto de ${p.empresa} ya no está activo.` });
+            }
+            f.empresa = p.empresa;
+            f.folio   = p.folio;
+          }
+        }
 
         const out = await sb.upsert(table, filas, onConflict);
         await bitacora(s, 'ESCRITURA', table,

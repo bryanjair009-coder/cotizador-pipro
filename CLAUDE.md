@@ -14,6 +14,7 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 |---|---|
 | `index.html` | Portal (6 iframes) + pantalla de acceso + menú de cuenta |
 | `cotizador.html` | Cotizaciones (IP = con MO, IT = sin MO) + panel admin |
+| `incidencias.html` | Control de incidencias de técnicos + archivo de carga iScala |
 | `isometrico.html` | Trazo isométrico de la red + lista de material |
 | `presiones.html` | Estudio de caídas de presión + PDF ejecutivo |
 | `requisiciones.html` | Requisiciones de material (React via Babel CDN) |
@@ -321,6 +322,51 @@ genera siempre los 5 archivos cuando hay material.
 - `clasificarMaterial()`: sin regla que coincida, sólo lo que está en el
   catálogo se asume PIPRO; un material rápido (`TEMP-…`) cae en `otros`. Antes
   un tornillo capturado a mano se iba por «Canal PIPRO» y no lo compraba nadie.
+
+## Control de incidencias (incidencias.html, 2026-10)
+
+- **Migración: `SUPABASE_INCIDENCIAS.sql`, correr ANTES de desplegar.** Crea
+  `proyectos`, `incidencias` y `usuarios.codigo_recurso`, y suma el rol
+  `tecnico` al CHECK de `usuarios`.
+- **Rol `tecnico`**: sólo ve el control de incidencias. Tres candados, de
+  fuera hacia dentro:
+  1. `index.html` no le arma el carril ni el iframe de los demás módulos.
+     Un módulo **sin** `roles` lo ven admin y usuario, **no** el técnico
+     (`ROLES_POR_DEFECTO`); el técnico entra sólo a lo que lo nombre.
+  2. `gd-ui.js` corta la página si un técnico abre otro módulo por URL.
+  3. `api/db.js`, que es el único que cuenta: decide qué tabla toca cada rol.
+- **El folio de proyecto no sale del servidor** para quien no es administrador
+  (`COLUMNAS_RESERVADAS` en api/db.js). Pedir `select=id,empresa` desde el
+  navegador no protege nada: el `select` lo arma el cliente y podría mandar
+  `select=*`. El técnico elige **empresa**; el servidor copia empresa y folio
+  del proyecto al guardar, y también fija el `usuario` con la sesión.
+- Empresa y folio se **copian** a la incidencia, no se referencian: si mañana
+  el proyecto se corrige o se da de baja, lo ya reportado no cambia.
+- Índice único por (usuario, fecha, horarios, folio, actividad): un doble clic
+  en «Enviar» no duplica el renglón.
+- Un turno cuya salida es menor o igual que la entrada **cruza la medianoche**
+  (se le suman 24 h) en vez de dar negativo: los técnicos sí hacen paros
+  nocturnos.
+
+### Archivo de carga iScala (el machote)
+
+- Columnas, en este orden: `Codigo Recurso · Proyecto · ID · Cod Actividade ·
+  Tipo de Costo · Fecha · Horas · Texto · Centro de Costo · FECHA OK`.
+  Constantes del machote: **ID `000000`, Tipo de Costo `A`, Centro de Costo
+  `300`**. La hoja se llama `Sheet1`, como en el original.
+- **Todas las celdas van como TEXTO** (`t:'s'`, formato `@`). El machote tiene
+  cada columna de datos con `numFmtId="49"`, que es `@`. Si la fecha o las
+  horas se escriben como número, `000000` pierde sus ceros y el cargador de
+  iScala rechaza el renglón.
+- **Fecha en `YYYYMMDD`**, no con guiones. Se confirma en la hoja «Sheet2» del
+  machote, que es el log de errores del cargador: `[=034]20250231`.
+- El **Codigo Recurso** (columna A) es por técnico, de `usuarios.codigo_recurso`.
+  Un técnico sin código deja la celda vacía: el panel lo avisa en rojo antes de
+  descargar, porque iScala rechazaría esos renglones.
+- Las **actividades** salen de «ACTIVIDADES Iscala» y viven en `ACTIVIDADES`
+  dentro de incidencias.html: el técnico elige el **texto** (columna H) y el
+  **código** (columna D) va solo. Las dos cosas salen de la misma lista para
+  que no se desparejen.
 
 ## Isométrico (isometrico.html, 2026-10)
 

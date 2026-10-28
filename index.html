@@ -269,7 +269,7 @@ iframe.activo { opacity: 1; pointer-events: auto; }
 
 <script src="gd-ui.js?v=20260906"></script>
 <script>
-const V = '20260906';
+const V = '20261028';
 
 /* Los módulos, agrupados por lo que hace la persona con ellos.
    El orden no es alfabético: es el del flujo de trabajo real. */
@@ -278,10 +278,17 @@ const V = '20260906';
    fuera (localStorage, un mensaje, la URL) puede terminar convertida en la
    ruta de un archivo: el único origen posible es esta lista. Es la corrección
    al hallazgo «Client Dangerous File Inclusion» del análisis de seguridad. */
+/* `roles` acota quién ve el módulo. Sin `roles`, lo ve todo el mundo.
+   Un técnico sólo tiene el control de incidencias: ni el carril ni el iframe
+   de los demás módulos se crean para él. */
 const GRUPOS = [
   { grupo: 'Comercial', modulos: [
     { id: 'cotizador',     ruta: 'cotizador.html',     ico: '📋', nombre: 'Cotizador',        titulo: 'Cotizador PIPRO' },
     { id: 'requisiciones', ruta: 'requisiciones.html', ico: '📦', nombre: 'Requisiciones',    titulo: 'Requisiciones' },
+  ]},
+  { grupo: 'Operación', modulos: [
+    { id: 'incidencias',   ruta: 'incidencias.html',   ico: '🕐', nombre: 'Incidencias',      titulo: 'Control de Incidencias',
+      roles: ['admin', 'tecnico'] },
   ]},
   { grupo: 'Ingeniería', modulos: [
     { id: 'isometrico',    ruta: 'isometrico.html',    ico: '📐', nombre: 'Isométrico',        titulo: 'Isométrico PIPRO' },
@@ -293,14 +300,30 @@ const GRUPOS = [
     { id: 'fugas',         ruta: 'fugas.html',         ico: '🔍', nombre: 'Reporte de fugas',    titulo: 'Reporte de Fugas' },
   ]},
 ].map(g => Object.freeze({ ...g, modulos: g.modulos.map(Object.freeze) }));
-const MODULOS = GRUPOS.flatMap(g => g.modulos);
+
+/* Sólo los módulos del rol de esta sesión. Se llenan en construir(), que corre
+   ya con la sesión en mano: antes de entrar no hay carril ni marcos. */
+let MODULOS = [];
 const buscarModulo = id => MODULOS.find(m => m.id === id);
 
+/* Un módulo sin `roles` es de las herramientas de oficina: lo ven el
+   administrador y el usuario, NO el técnico. El técnico entra sólo a lo que lo
+   nombre expresamente; si no, con dejar `roles` sin poner se le abriría el
+   cotizador entero. */
+const ROLES_POR_DEFECTO = ['admin', 'usuario'];
+const puedeVer = (m, rol) => (m.roles || ROLES_POR_DEFECTO).includes(rol);
+
 /* ── Construcción del carril y los marcos ─────────────────────────────── */
-function construir() {
+function construir(rol) {
   const nav = document.getElementById('nav');
   const lienzo = document.getElementById('lienzo');
-  nav.innerHTML = GRUPOS.map(g => `
+
+  const grupos = GRUPOS
+    .map(g => ({ ...g, modulos: g.modulos.filter(m => puedeVer(m, rol)) }))
+    .filter(g => g.modulos.length);
+  MODULOS = grupos.flatMap(g => g.modulos);
+
+  nav.innerHTML = grupos.map(g => `
     <div class="gd-rail-group">${g.grupo}</div>
     ${g.modulos.map(m => `
       <button class="gd-rail-item" data-id="${m.id}" onclick="ir('${m.id}')"
@@ -310,6 +333,7 @@ function construir() {
   `).join('');
 
   const cargador = document.getElementById('cargando');
+  lienzo.querySelectorAll('iframe').forEach(f => f.remove());
   MODULOS.forEach(m => {
     const f = document.createElement('iframe');
     f.id = 'f-' + m.id;
@@ -425,11 +449,15 @@ async function entrar() {
     nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '··';
   document.getElementById('cuenta-n').textContent = nombre;
   const rol = document.getElementById('cuenta-r');
-  rol.textContent = s.rol === 'admin' ? 'Administrador' : 'Usuario';
+  rol.textContent = { admin:'Administrador', tecnico:'Técnico' }[s.rol] || 'Usuario';
   rol.classList.toggle('admin', s.rol === 'admin');
   document.getElementById('menu-admin').hidden = s.rol !== 'admin';
 
-  let inicial = 'cotizador';
+  // El carril se arma con el rol: un técnico sólo ve su control de incidencias
+  construir(s.rol);
+  if (!MODULOS.length) return true;
+
+  let inicial = MODULOS[0].id;
   try { const g = localStorage.getItem('gd-tab'); if (g && buscarModulo(g)) inicial = g; } catch(e) {}
   ir(inicial);
   return true;
@@ -480,6 +508,7 @@ window.addEventListener('message', e => {
      hace el cotizador, que es quien conoce el catálogo. */
   if (e.data && e.data.type === 'gd-isometrico-material' && Array.isArray(e.data.items)) {
     const f = document.getElementById('f-cotizador');
+    if (!f) return;            // un rol sin cotizador no tiene a dónde mandarlo
     const enviar = () => {
       try { f.contentWindow.postMessage({ type: 'gd-material-externo', items: e.data.items }, location.origin); } catch (err) {}
     };
@@ -499,7 +528,7 @@ window.addEventListener('message', e => {
 });
 
 /* ── Arranque ─────────────────────────────────────────────────────────── */
-construir();
+// El carril se construye en entrar(), cuando ya se sabe el rol de la sesión
 aplicarTema(temaActual());
 (async () => {
   if (!await entrar()) setTimeout(() => document.getElementById('auth-user').focus(), 60);

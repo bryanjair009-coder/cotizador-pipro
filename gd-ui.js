@@ -537,6 +537,32 @@ GD.sesion = {
   },
 };
 
+/* ── Candado de módulo para el rol «tecnico» ────────────────────────────────
+   El portal no le arma el carril ni los marcos de los demás módulos, pero eso
+   es la fachada: escribiendo la URL a mano llegaría igual al cotizador. El
+   corte va aquí, en el archivo que cargan todos los módulos, para que valga
+   también para los que se agreguen después.
+
+   Es una barrera de interfaz, no de datos: los permisos de verdad están en
+   api/db.js, que es lo que decide qué tablas puede tocar cada rol. */
+const MODULOS_DEL_TECNICO = ['incidencias.html'];
+
+(async function candadoTecnico() {
+  const archivo = location.pathname.split('/').pop() || 'index.html';
+  if (archivo === 'index.html' || MODULOS_DEL_TECNICO.includes(archivo)) return;
+  const s = await GD.sesion.cargar();
+  if (!s || s.rol !== 'tecnico') return;
+  document.documentElement.innerHTML =
+    '<head><meta charset="utf-8"><title>Sin acceso</title></head><body style="margin:0;' +
+    'font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;' +
+    'min-height:100vh;background:#0f1115;color:#e6e8ec;text-align:center;padding:24px;">' +
+    '<div><div style="font-size:42px;margin-bottom:14px;">🔒</div>' +
+    '<h1 style="font-size:17px;margin:0 0 8px;">Este módulo no es para tu perfil</h1>' +
+    '<p style="font-size:13.5px;line-height:1.6;opacity:.75;margin:0;">Tu cuenta es de <b>técnico</b>: ' +
+    'tu acceso es el <b>Control de incidencias</b>.<br>' +
+    '<a href="index.html" style="color:#ff6b81;">Volver al portal</a></p></div></body>';
+})();
+
 /* Un módulo cargado dentro del portal avisa hacia arriba cuando expira la
    sesión, para que el portal muestre de nuevo la pantalla de acceso. */
 window.addEventListener('gd-sesion-expirada', () => {

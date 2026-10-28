@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Incidencias · Gardner Denver México</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
+<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
+<script src="gd-theme-sync.js?v=20260905"></script>
+<script src="gd-ui.js?v=20260905"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js" integrity="sha384-OUW9euuUyxyHcAhTqbhI+Iyb8LMssXt/cpz0yXhs9UWG2/R/uaWdakx/4cfww7Vb" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="supabase-client.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{font-family:var(--gd-font-sans);background:var(--gd-bg);color:var(--gd-text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+.mod-header{background:var(--gd-bg-elev);border-bottom:1px solid var(--gd-border);padding:10px 22px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;}
+.mod-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:var(--gd-red-light);color:var(--gd-red-ink);font-size:18px;border:1px solid var(--gd-red-light);}
+.mod-title{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1.2;}
+.mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;font-weight:500;}
+.mod-wrap{padding:18px;max-width:1180px;margin:0 auto;}
+
+.sec-title{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gd-text-mute);margin:22px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--gd-red);}
+.sec-title:first-child{margin-top:0;}
+.sec-title::before{content:'';display:inline-block;width:4px;height:16px;background:var(--gd-red);border-radius:2px;}
+.card{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:12px;padding:18px;margin-bottom:12px;}
+label{display:block;font-size:12px;font-weight:600;color:var(--gd-text-mute);margin-bottom:6px;}
+input[type=text],input[type=date],input[type=time],input[type=month],input[type=number],textarea,select{
+  width:100%;padding:9px 12px;border:1px solid var(--gd-border-strong);border-radius:8px;
+  font-family:inherit;font-size:13.5px;color:var(--gd-text);background:var(--gd-bg-elev);
+  transition:border-color .15s,box-shadow .15s;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gd-red);box-shadow:0 0 0 3px rgba(200,16,46,.12);}
+textarea{resize:vertical;line-height:1.55;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+@media(max-width:860px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:8px;border:1px solid transparent;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s;}
+.btn-primary{background:var(--gd-red);color:#fff;}
+.btn-primary:hover{background:var(--gd-red-dark);}
+.btn-secondary{background:var(--gd-bg-elev);color:var(--gd-text);border-color:var(--gd-border-strong);}
+.btn-secondary:hover{border-color:var(--gd-red);}
+.btn-sm{padding:6px 11px;font-size:12px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-icon-del{background:none;border:none;cursor:pointer;font-size:14px;opacity:.6;padding:2px 5px;}
+.btn-icon-del:hover{opacity:1;}
+
+/* ── El día de hoy, bien grande: el técnico no teclea la fecha ───────────── */
+.hoy{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  background:linear-gradient(135deg,var(--gd-red-light),transparent);
+  border:1px solid var(--gd-border);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+.hoy-dia{font-size:30px;font-weight:800;line-height:1;color:var(--gd-red-ink);}
+.hoy-txt{font-size:13px;font-weight:600;text-transform:capitalize;}
+.hoy-sub{font-size:11.5px;color:var(--gd-text-soft);margin-top:3px;}
+.hoy.extemp{background:linear-gradient(135deg,#fff3cd,transparent);}
+
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--gd-text-mute);cursor:pointer;}
+.sw input{width:auto;}
+
+.horas-box{display:flex;align-items:center;justify-content:center;flex-direction:column;
+  border:1px dashed var(--gd-border-strong);border-radius:8px;padding:8px;min-height:42px;}
+.horas-v{font-size:19px;font-weight:800;color:var(--gd-red-ink);line-height:1;}
+.horas-l{font-size:10.5px;color:var(--gd-text-soft);margin-top:3px;}
+
+.aviso{border-radius:8px;padding:10px 13px;font-size:12.5px;line-height:1.5;margin-bottom:10px;}
+.aviso-info{background:var(--gd-red-light);border:1px solid var(--gd-border);}
+.aviso-ok{background:#d4f5dd;border:1px solid #16a34a;color:#14532d;}
+.aviso-err{background:#fde2e2;border:1px solid #dc2626;color:#7f1d1d;}
+.aviso-warn{background:#fff3cd;border:1px solid #f59e0b;color:#713f12;}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{background:var(--gd-bg-soft);text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--gd-text-mute);padding:8px 9px;border-bottom:2px solid var(--gd-border-strong);white-space:nowrap;}
+td{padding:7px 9px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
+tbody tr:hover{background:var(--gd-bg-soft);}
+.tabla-wrap{overflow:auto;max-height:460px;border:1px solid var(--gd-border);border-radius:8px;}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;}
+.vacio{text-align:center;color:var(--gd-text-mute);padding:22px;font-size:12.5px;}
+
+.pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10.5px;font-weight:700;}
+.pill-ex{background:#fff3cd;color:#713f12;}
+.pill-cat{background:var(--gd-bg-soft);color:var(--gd-text-mute);}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--gd-border);margin-bottom:16px;flex-wrap:wrap;}
+.tab{background:none;border:none;border-bottom:2px solid transparent;padding:9px 14px;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:600;color:var(--gd-text-mute);}
+.tab.active{color:var(--gd-red-ink);border-bottom-color:var(--gd-red);}
+
+.cifras{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+.cifra{background:var(--gd-bg-elev);border:1px solid var(--gd-border);border-radius:10px;padding:12px 14px;}
+.cifra-l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gd-text-mute);}
+.cifra-v{font-size:21px;font-weight:800;margin-top:3px;}
+.cifra-v.acento{color:var(--gd-red-ink);}
+.cifra-v.peq{font-size:13px;font-weight:700;}
+
+.bloqueo{max-width:460px;margin:70px auto;text-align:center;}
+.bloqueo-ico{font-size:40px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<div class="mod-header">
+  <span class="mod-icon">🕐</span>
+  <div>
+    <div class="mod-title">Control de Incidencias</div>
+    <div class="mod-sub" id="sub-header">Registro de horas de técnicos</div>
+  </div>
+</div>
+
+<div class="mod-wrap">
+
+  <!-- Nadie que no sea técnico o administrador tiene nada que hacer aquí -->
+  <div id="bloqueo" class="bloqueo" hidden>
+    <div class="bloqueo-ico">🔒</div>
+    <div class="sec-title" style="justify-content:center;border:none;">Sin acceso</div>
+    <p style="font-size:13px;color:var(--gd-text-soft);line-height:1.6;">
+      El control de incidencias es para los <b>técnicos</b> (registro de sus horas)
+      y para los <b>administradores</b> (consulta mensual y archivo de carga).
+      Tu cuenta <b id="bloqueo-quien">—</b> no tiene ese perfil.
+    </p>
+  </div>
+
+  <!-- ════════════════ VISTA DEL TÉCNICO ════════════════ -->
+  <section id="vista-tecnico" hidden>
+
+    <div class="hoy" id="caja-hoy">
+      <div>
+        <div class="hoy-dia" id="hoy-dia">—</div>
+      </div>
+      <div style="flex:1;min-width:180px;">
+        <div class="hoy-txt" id="hoy-txt">—</div>
+        <div class="hoy-sub" id="hoy-sub">La fecha se toma sola; no hay que escribirla.</div>
+      </div>
+      <label class="sw">
+        <input type="checkbox" id="extemporanea" onchange="cambiarExtemporanea()">
+        Registro extemporáneo
+      </label>
+    </div>
+
+    <div class="card" id="caja-fecha-ex" hidden>
+      <label for="fecha-ex">¿De qué día es la incidencia?</label>
+      <input type="date" id="fecha-ex" onchange="pintarFecha()">
+      <div class="hoy-sub" style="margin-top:6px;">
+        Sólo para días anteriores que se quedaron sin registrar. Quedan marcados como extemporáneos.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title">Incidencia del día</div>
+      <div id="form-aviso"></div>
+
+      <div class="grid-2" style="margin-bottom:14px;">
+        <div>
+          <label for="empresa">Empresa donde estás trabajando</label>
+          <select id="empresa"><option value="">Cargando…</option></select>
+        </div>
+        <div>
+          <label for="actividad">Actividad realizada</label>
+          <select id="actividad"></select>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:14px;">
+        <div>
+          <label for="h-entrada">Hora de entrada (24 h)</label>
+          <input type="time" id="h-entrada" step="60" oninput="calcularHoras()">
+        </div>
+        <div>
+          <label for="h-salida">Hora de salida (24 h)</label>
+          <input type="time" id="h-salida" step="60" oninput="calcularHoras()">
+        </div>
+        <div>
+          <label>Horas trabajadas</label>
+          <div class="horas-box">
+            <div class="horas-v" id="horas-v">—</div>
+            <div class="horas-l" id="horas-l">entrada y salida</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label for="nota">Nota (opcional, para ti y para el administrador)</label>
+        <input type="text" id="nota" maxlength="200" placeholder="Equipo atendido, número de serie, observación…">
+      </div>
+
+      <button class="btn btn-primary" id="btn-enviar" onclick="enviarIncidencia()">📨 Enviar registro</button>
+    </div>
+
+    <div class="card">
+      <div class="sec-title">Mis registros</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <label style="margin:0;">Mes</label>
+        <input type="month" id="mes-tec" style="width:170px;" onchange="cargarMisRegistros()">
+        <span id="resumen-tec" style="font-size:12.5px;font-weight:700;"></span>
+      </div>
+      <div class="tabla-wrap">
+        <table>
+          <thead><tr>
+            <th>Fecha</th><th>Empresa</th><th>Actividad</th>
+            <th>Entrada</th><th>Salida</th><th class="num">Horas</th><th>Nota</th>
+          </tr></thead>
+          <tbody id="tbody-tec"><tr><td colspan="7" class="vacio">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="hoy-sub" style="margin-top:8px;">
+        Si algo quedó mal, avísale a tu administrador: él puede corregirlo o borrarlo.
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════ VISTA DEL ADMINISTRADOR ════════════════ -->
+  <section id="vista-admin" hidden>
+    <div class="tabs">
+      <button class="tab active" data-sec="mensual"  onclick="adminSec('mensual')">📅 Registro mensual</button>
+      <button class="tab"        data-sec="empresas" onclick="adminSec('empresas')">🏭 Empresas y proyectos</button>
+      <button class="tab"        data-sec="tecnicos" onclick="adminSec('tecnicos')">👷 Códigos de recurso</button>
+    </div>
+
+    <!-- ── Registro mensual ─────────────────────────────────────────────── -->
+    <div id="sec-mensual">
+      <div class="cifras">
+        <div class="cifra"><div class="cifra-l">Registros del mes</div><div class="cifra-v" id="ci-reg">—</div></div>
+        <div class="cifra"><div class="cifra-l">Horas totales</div><div class="cifra-v acento" id="ci-horas">—</div></div>
+        <div class="cifra"><div class="cifra-l">Técnicos</div><div class="cifra-v" id="ci-tec">—</div></div>
+        <div class="cifra"><div class="cifra-l">Extemporáneos</div><div class="cifra-v" id="ci-ex">—</div></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="width:180px;">
+            <label for="mes-adm">Mes</label>
+            <input type="month" id="mes-adm" onchange="cargarMes()">
+          </div>
+          <div style="width:200px;">
+            <label for="filtro-tec">Técnico</label>
+            <select id="filtro-tec" onchange="pintarMes()"><option value="">Todos</option></select>
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <label for="filtro-emp">Empresa</label>
+            <select id="filtro-emp" onchange="pintarMes()"><option value="">Todas</option></select>
+          </div>
+          <button class="btn btn-primary" id="btn-descargar" onclick="descargarCarga()">⬇️ Descargar archivo de carga</button>
+        </div>
+        <div id="aviso-mes" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">Vista previa del archivo de carga</div>
+        <div class="hoy-sub" style="margin-bottom:10px;">
+          Esto es exactamente lo que se va a descargar, con los mismos encabezados y el mismo
+          orden de columnas que el machote. Todas las celdas salen como <b>texto</b>, que es
+          como las espera iScala.
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr>
+              <th>Codigo Recurso</th><th>Proyecto</th><th>ID</th><th>Cod Actividade</th>
+              <th>Tipo de Costo</th><th>Fecha</th><th>Horas</th><th>Texto</th>
+              <th>Centro de Costo</th><th>FECHA OK</th>
+            </tr></thead>
+            <tbody id="tbody-carga"><tr><td colspan="10" class="vacio">Elige un mes</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">Detalle del mes</div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Técnico</th><th>Empresa</th><th>Folio</th><th>Actividad</th>
+              <th>Entrada</th><th>Salida</th><th class="num">Horas</th><th>Nota</th><th></th>
+            </tr></thead>
+            <tbody id="tbody-adm"><tr><td colspan="10" class="vacio">Elige un mes</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Empresas y proyectos ─────────────────────────────────────────── -->
+    <div id="sec-empresas" hidden>
+      <div class="card">
+        <div class="sec-title">Alta de empresa con proyecto activo</div>
+        <div class="aviso aviso-info">
+          El técnico sólo ve el <b>nombre de la empresa</b> en su desplegable.
+          El <b>folio de proyecto</b> se queda aquí y en el archivo de carga.
+          Sólo aparecen en el desplegable las empresas marcadas como activas.
+        </div>
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div><label for="np-empresa">Empresa</label>
+            <input type="text" id="np-empresa" maxlength="120" placeholder="Nombre como lo verá el técnico"></div>
+          <div><label for="np-folio">Folio de proyecto</label>
+            <input type="text" id="np-folio" maxlength="40" placeholder="QS00004131" class="mono"></div>
+          <div><label for="np-nota">Nota (opcional)</label>
+            <input type="text" id="np-nota" maxlength="120" placeholder="Planta, contrato…"></div>
+        </div>
+        <button class="btn btn-primary" onclick="guardarProyecto()">＋ Agregar proyecto</button>
+        <div id="aviso-proy" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="sec-title">Proyectos registrados</div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Empresa</th><th>Folio</th><th>Nota</th><th>Activo</th><th></th></tr></thead>
+            <tbody id="tbody-proy"><tr><td colspan="5" class="vacio">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Códigos de recurso ───────────────────────────────────────────── -->
+    <div id="sec-tecnicos" hidden>
+      <div class="card">
+        <div class="sec-title">Código de recurso por técnico</div>
+        <div class="aviso aviso-info">
+          Es la <b>columna A</b> del archivo de carga. Un técnico sin código deja esa
+          celda vacía y iScala rechaza el renglón, así que conviene llenarlos antes
+          de cerrar el mes.
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th style="width:170px;">Código de recurso</th><th></th></tr></thead>
+            <tbody id="tbody-cods"><tr><td colspan="5" class="vacio">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+        <div id="aviso-cods" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTROL DE INCIDENCIAS
+
+   Dos vistas en un solo módulo:
+     · técnico        → registra sus horas del día (o extemporáneas)
+     · administrador  → consulta el mes, define empresas/folios y descarga el
+                        archivo de carga de iScala
+
+   El folio de proyecto NO se le muestra nunca al técnico: él elige empresa.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const el = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+/* ── Actividades (archivo «ACTIVIDADES Iscala») ────────────────────────────
+   El técnico sólo ve el texto; el código va al archivo de carga. Las dos
+   cosas salen de aquí, para que nunca se desparejen. */
+const ACTIVIDADES = [
+  { cat:'AP', cod:'AP001', txt:'Arranque (SU)' },
+  { cat:'AP', cod:'AP002', txt:'Auditoria (AU)' },
+  { cat:'AP', cod:'AP003', txt:'Garantía Comercial Cust Center (NC)' },
+  { cat:'AP', cod:'AP004', txt:'Garantía de Fábrica (WA)' },
+  { cat:'AP', cod:'AP005', txt:'Inspeción (IP)' },
+  { cat:'AP', cod:'AP006', txt:'Instalación (IN)' },
+  { cat:'AP', cod:'AP007', txt:'Servicio con Cliente (FR)' },
+  { cat:'AP', cod:'AP008', txt:'Servicio en Contracto de Mtt (SC)' },
+  { cat:'AP', cod:'AP009', txt:'Servicio en Taller' },
+  { cat:'AP', cod:'AP010', txt:'Servicio de Cortesía a cliente (CO)' },
+  { cat:'AP', cod:'AP011', txt:'En espera de Refacciones (WP)' },
+  { cat:'AP', cod:'AP012', txt:'Retrabajo' },
+  { cat:'NA', cod:'NA001', txt:'Visita de Cortesía a cliente (CO)' },
+  { cat:'NA', cod:'NA002', txt:'Oficina/Administrativo (NB)' },
+  { cat:'NA', cod:'NA003', txt:'Sin servicio asignado (SN)' },
+  { cat:'ND', cod:'ND001', txt:'Accidente de Trabajo (AD)' },
+  { cat:'ND', cod:'ND002', txt:'Curso Capacitacion o Certif.(TR)' },
+  { cat:'ND', cod:'ND003', txt:'Día Festivo (HO)' },
+  { cat:'ND', cod:'ND004', txt:'Falta Justificada (EX/MD)' },
+  { cat:'ND', cod:'ND005', txt:'Incapacidad (IC)' },
+  { cat:'ND', cod:'ND006', txt:'Vacaciones (VA)' },
+];
+const CAT_NOMBRE = { AP:'Actividad productiva', NA:'No asignado', ND:'No disponible' };
+const ACT_POR_COD = Object.fromEntries(ACTIVIDADES.map(a => [a.cod, a]));
+
+/* Constantes del machote. El archivo las trae prellenadas en todos los
+   renglones, así que van fijas y no se preguntan. */
+const CARGA_ID       = '000000';   // columna C · ID
+const CARGA_TIPO     = 'A';        // columna E · Tipo de Costo
+const CARGA_CENTRO   = '300';      // columna I · Centro de Costo
+
+const S = { sesion:null, proyectos:[], incidencias:[], usuarios:[] };
+
+// ── Utilidades de fecha y hora ─────────────────────────────────────────────
+const hoyISO = () => {
+  // Fecha local, no UTC: toISOString() en México adelanta el día por la tarde
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const mesDe = iso => iso.slice(0, 7);
+const fechaLarga = iso => {
+  const [a,m,d] = iso.split('-').map(Number);
+  return new Date(a, m-1, d).toLocaleDateString('es-MX',
+    { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+};
+const diaDe  = iso => String(+iso.slice(8,10));
+const aYYYYMMDD = iso => iso.replace(/-/g, '');          // 2026-10-28 → 20261028
+const aDDMMYYYY = iso => { const [a,m,d] = iso.split('-'); return `${d}/${m}/${a}`; };
+
+/* Horas entre dos horarios de 24 h. Un turno que termina antes de empezar
+   cruzó la medianoche: se cuenta hasta el día siguiente en vez de dar
+   negativo, porque los técnicos sí hacen paros nocturnos. */
+function horasEntre(entrada, salida) {
+  if (!entrada || !salida) return null;
+  const [h1,m1] = entrada.split(':').map(Number);
+  const [h2,m2] = salida.split(':').map(Number);
+  if ([h1,m1,h2,m2].some(n => !Number.isFinite(n))) return null;
+  let min = (h2*60 + m2) - (h1*60 + m1);
+  const nocturno = min <= 0;
+  if (nocturno) min += 24*60;
+  return { horas: Math.round(min / 60 * 100) / 100, nocturno };
+}
+/* Las horas van al archivo como texto, sin ceros de adorno: «8», no «8.00». */
+const horasTexto = h => String(Math.round(h * 100) / 100);
+
+// ── Arranque ───────────────────────────────────────────────────────────────
+(async function iniciar() {
+  S.sesion = await GD.sesion.cargar();
+  const rol = S.sesion && S.sesion.rol;
+  if (rol === 'admin') {
+    el('vista-admin').hidden = false;
+    el('sub-header').textContent = 'Consulta mensual y archivo de carga · Administrador';
+    el('mes-adm').value = mesDe(hoyISO());
+    await cargarProyectos();
+    await cargarUsuarios();
+    await cargarMes();
+  } else if (rol === 'tecnico') {
+    el('vista-tecnico').hidden = false;
+    el('sub-header').textContent = 'Registro de horas · ' + (S.sesion.nombre || S.sesion.usuario);
+    el('mes-tec').value = mesDe(hoyISO());
+    el('fecha-ex').max = hoyISO();
+    pintarActividades();
+    pintarFecha();
+    await cargarProyectos();
+    await cargarMisRegistros();
+  } else {
+    el('bloqueo').hidden = false;
+    el('bloqueo-quien').textContent = S.sesion ? (S.sesion.usuario + ' · ' + S.sesion.rol) : 'sin sesión';
+  }
+})();
+
+// ═══════════════════ VISTA DEL TÉCNICO ═══════════════════
+
+function fechaElegida() {
+  return el('extemporanea').checked ? (el('fecha-ex').value || '') : hoyISO();
+}
+
+function cambiarExtemporanea() {
+  const ex = el('extemporanea').checked;
+  el('caja-fecha-ex').hidden = !ex;
+  el('caja-hoy').classList.toggle('extemp', ex);
+  if (ex && !el('fecha-ex').value) el('fecha-ex').value = hoyISO();
+  pintarFecha();
+}
+
+function pintarFecha() {
+  const f = fechaElegida();
+  const ex = el('extemporanea').checked;
+  if (!f) { el('hoy-dia').textContent = '—'; el('hoy-txt').textContent = 'Elige la fecha'; return; }
+  el('hoy-dia').textContent = diaDe(f);
+  el('hoy-txt').textContent = fechaLarga(f);
+  el('hoy-sub').textContent = ex
+    ? 'Registro extemporáneo: quedará marcado como tal.'
+    : 'La fecha se toma sola; no hay que escribirla.';
+}
+
+function pintarActividades() {
+  const sel = el('actividad');
+  const cats = [...new Set(ACTIVIDADES.map(a => a.cat))];
+  sel.innerHTML = '<option value="">Elige la actividad…</option>' +
+    cats.map(c => `<optgroup label="${esc(CAT_NOMBRE[c] || c)}">` +
+      ACTIVIDADES.filter(a => a.cat === c)
+        .map(a => `<option value="${esc(a.cod)}">${esc(a.txt)}</option>`).join('') +
+      '</optgroup>').join('');
+}
+
+function calcularHoras() {
+  const r = horasEntre(el('h-entrada').value, el('h-salida').value);
+  if (!r) { el('horas-v').textContent = '—'; el('horas-l').textContent = 'entrada y salida'; return; }
+  el('horas-v').textContent = horasTexto(r.horas);
+  el('horas-l').textContent = r.nocturno ? 'turno nocturno · cruza medianoche' : 'horas';
+}
+
+async function cargarProyectos() {
+  try {
+    // El técnico pide sólo lo que necesita: ni el folio viaja a su navegador
+    const cols = S.sesion.rol === 'admin' ? '*' : 'id,empresa,activo';
+    const filtro = S.sesion.rol === 'admin' ? '' : '&activo=is.true';
+    S.proyectos = await SB.getAll('proyectos', `?select=${cols}&order=empresa.asc${filtro}`) || [];
+  } catch (e) { S.proyectos = []; }
+
+  const sel = el('empresa');
+  if (sel) {
+    const activos = S.proyectos.filter(p => p.activo !== false);
+    sel.innerHTML = activos.length
+      ? '<option value="">Elige la empresa…</option>' +
+        activos.map(p => `<option value="${p.id}">${esc(p.empresa)}</option>`).join('')
+      : '<option value="">No hay proyectos activos — pídele a tu administrador que los dé de alta</option>';
+  }
+  if (el('tbody-proy')) pintarProyectos();
+  const fe = el('filtro-emp');
+  if (fe) {
+    const empresas = [...new Set(S.proyectos.map(p => p.empresa))].sort();
+    fe.innerHTML = '<option value="">Todas</option>' +
+      empresas.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+  }
+}
+
+function avisoForm(tipo, html) {
+  el('form-aviso').innerHTML = html ? `<div class="aviso aviso-${tipo}">${html}</div>` : '';
+}
+
+async function enviarIncidencia() {
+  const fecha = fechaElegida();
+  const pid   = el('empresa').value;
+  const cod   = el('actividad').value;
+  const ent   = el('h-entrada').value;
+  const sal   = el('h-salida').value;
+
+  if (!fecha)            return avisoForm('err', 'Falta la fecha de la incidencia.');
+  if (fecha > hoyISO())  return avisoForm('err', 'No se puede registrar una fecha futura.');
+  if (!pid)              return avisoForm('err', 'Elige la empresa donde estuviste trabajando.');
+  if (!cod)              return avisoForm('err', 'Elige la actividad realizada.');
+  if (!ent || !sal)      return avisoForm('err', 'Captura la hora de entrada y la de salida.');
+
+  const r = horasEntre(ent, sal);
+  if (!r || r.horas <= 0) return avisoForm('err', 'Los horarios no dan una duración válida.');
+  if (r.horas > 16 && !confirm(`Son ${horasTexto(r.horas)} horas seguidas. ¿Es correcto?`)) return;
+
+  const proy = S.proyectos.find(p => String(p.id) === String(pid));
+  const act  = ACT_POR_COD[cod];
+  if (!proy || !act) return avisoForm('err', 'No reconozco la empresa o la actividad. Recarga la página.');
+
+  const btn = el('btn-enviar');
+  btn.disabled = true;
+  avisoForm('info', 'Enviando…');
+  try {
+    /* Sólo se manda el id del proyecto. El `usuario`, la empresa y el folio
+       los pone el servidor: el técnico nunca recibe el folio, y aunque lo
+       recibiera no debe poder cargarle horas a un proyecto ajeno. */
+    await SB.upsert('incidencias', [{
+      fecha,
+      hora_entrada: ent,
+      hora_salida:  sal,
+      horas:        r.horas,
+      proyecto_id:  +pid,
+      actividad_cod: act.cod,
+      actividad_txt: act.txt,
+      extemporanea: el('extemporanea').checked,
+      nota: el('nota').value.trim() || null,
+    }]);
+    avisoForm('ok', `✅ Registrado: ${esc(proy.empresa)} · ${esc(act.txt)} · ${horasTexto(r.horas)} h el ${aDDMMYYYY(fecha)}.`);
+    el('h-entrada').value = ''; el('h-salida').value = ''; el('nota').value = '';
+    el('actividad').value = ''; calcularHoras();
+    await cargarMisRegistros();
+  } catch (e) {
+    const dup = /duplicate|unique/i.test(e.message || '');
+    avisoForm('err', dup
+      ? 'Ya tienes ese mismo registro (mismo día, mismo horario, misma empresa y actividad).'
+      : 'No se pudo guardar: ' + esc(e.message || e));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function cargarMisRegistros() {
+  const mes = el('mes-tec').value || mesDe(hoyISO());
+  const [a, m] = mes.split('-').map(Number);
+  const desde = `${mes}-01`;
+  const hasta = `${a}-${String(m).padStart(2,'0')}-${String(new Date(a, m, 0).getDate()).padStart(2,'0')}`;
+  let filas = [];
+  try {
+    // El servidor ya acota a los registros propios; aquí sólo se pide el mes
+    filas = await SB.getAll('incidencias',
+      `?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.desc`) || [];
+  } catch (e) {
+    el('tbody-tec').innerHTML = `<tr><td colspan="7" class="vacio">No se pudieron cargar: ${esc(e.message)}</td></tr>`;
+    return;
+  }
+  const horas = filas.reduce((s, f) => s + (+f.horas || 0), 0);
+  el('resumen-tec').textContent = filas.length
+    ? `${filas.length} registro(s) · ${horasTexto(horas)} horas`
+    : 'Sin registros este mes';
+  el('tbody-tec').innerHTML = filas.length ? filas.map(f => `<tr>
+      <td>${aDDMMYYYY(f.fecha)} ${f.extemporanea ? '<span class="pill pill-ex">extemp.</span>' : ''}</td>
+      <td>${esc(f.empresa)}</td>
+      <td>${esc(f.actividad_txt)}</td>
+      <td>${esc(f.hora_entrada)}</td>
+      <td>${esc(f.hora_salida)}</td>
+      <td class="num">${horasTexto(+f.horas)}</td>
+      <td>${esc(f.nota || '')}</td>
+    </tr>`).join('') : '<tr><td colspan="7" class="vacio">Todavía no hay registros este mes.</td></tr>';
+}
+
+// ═══════════════════ VISTA DEL ADMINISTRADOR ═══════════════════
+
+function adminSec(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.sec === id));
+  ['mensual','empresas','tecnicos'].forEach(x => { el('sec-' + x).hidden = x !== id; });
+}
+
+async function cargarUsuarios() {
+  try {
+    const r = await fetch('/api/usuarios', {
+      method:'POST', credentials:'same-origin',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ accion:'listar' }),
+    });
+    S.usuarios = r.ok ? await r.json() : [];
+  } catch (e) { S.usuarios = []; }
+  pintarCodigos();
+  const ft = el('filtro-tec');
+  const tecs = S.usuarios.filter(u => u.rol === 'tecnico');
+  ft.innerHTML = '<option value="">Todos</option>' +
+    tecs.map(u => `<option value="${esc(u.usuario)}">${esc(u.nombre || u.usuario)}</option>`).join('');
+}
+
+const codigoDe = usuario => (S.usuarios.find(u => u.usuario === usuario) || {}).codigo_recurso || '';
+const nombreDe = usuario => (S.usuarios.find(u => u.usuario === usuario) || {}).nombre || usuario;
+
+async function cargarMes() {
+  const mes = el('mes-adm').value;
+  if (!mes) return;
+  const [a, m] = mes.split('-').map(Number);
+  const desde = `${mes}-01`;
+  const hasta = `${a}-${String(m).padStart(2,'0')}-${String(new Date(a, m, 0).getDate()).padStart(2,'0')}`;
+  try {
+    S.incidencias = await SB.getAll('incidencias',
+      `?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.asc,usuario.asc`) || [];
+  } catch (e) {
+    S.incidencias = [];
+    el('aviso-mes').innerHTML = `<div class="aviso aviso-err">No se pudo leer el mes: ${esc(e.message)}</div>`;
+  }
+  pintarMes();
+}
+
+function filasFiltradas() {
+  const t = el('filtro-tec').value, e = el('filtro-emp').value;
+  return S.incidencias.filter(f => (!t || f.usuario === t) && (!e || f.empresa === e));
+}
+
+/* Un renglón de incidencia → un renglón del archivo de carga.
+   El orden de las claves es el orden de las columnas del machote. */
+function filaCarga(f) {
+  return {
+    A: codigoDe(f.usuario),       // Codigo Recurso
+    B: f.folio || '',             // Proyecto
+    C: CARGA_ID,                  // ID
+    D: f.actividad_cod,           // Cod Actividade
+    E: CARGA_TIPO,                // Tipo de Costo
+    F: aYYYYMMDD(f.fecha),        // Fecha
+    G: horasTexto(+f.horas || 0), // Horas
+    H: f.actividad_txt,           // Texto
+    I: CARGA_CENTRO,              // Centro de Costo
+    J: aDDMMYYYY(f.fecha),        // FECHA OK
+  };
+}
+
+function pintarMes() {
+  const filas = filasFiltradas();
+  const horas = filas.reduce((s, f) => s + (+f.horas || 0), 0);
+  el('ci-reg').textContent   = filas.length.toLocaleString('es-MX');
+  el('ci-horas').textContent = horasTexto(horas);
+  el('ci-tec').textContent   = new Set(filas.map(f => f.usuario)).size;
+  el('ci-ex').textContent    = filas.filter(f => f.extemporanea).length;
+
+  // Un técnico sin código de recurso deja la columna A vacía: hay que verlo
+  const sinCodigo = [...new Set(filas.filter(f => !codigoDe(f.usuario)).map(f => f.usuario))];
+  el('aviso-mes').innerHTML = !filas.length
+    ? '<div class="aviso aviso-info">No hay registros en ese mes.</div>'
+    : (sinCodigo.length
+      ? `<div class="aviso aviso-warn">⚠️ <b>${sinCodigo.length} técnico(s) sin código de recurso</b>
+           (${sinCodigo.map(esc).join(', ')}). Sus renglones saldrán con la columna
+           «Codigo Recurso» vacía e iScala los va a rechazar. Asígnaselos en
+           «Códigos de recurso» antes de descargar.</div>`
+      : `<div class="aviso aviso-ok">✅ ${filas.length} renglón(es) listos, todos con código de recurso.</div>`);
+
+  el('tbody-carga').innerHTML = filas.length ? filas.map(f => {
+    const c = filaCarga(f);
+    return `<tr>
+      <td class="mono">${esc(c.A) || '<span style="color:#dc2626;font-weight:700;">(falta)</span>'}</td>
+      <td class="mono">${esc(c.B)}</td><td class="mono">${esc(c.C)}</td>
+      <td class="mono">${esc(c.D)}</td><td class="mono">${esc(c.E)}</td>
+      <td class="mono">${esc(c.F)}</td><td class="mono num">${esc(c.G)}</td>
+      <td>${esc(c.H)}</td><td class="mono">${esc(c.I)}</td><td class="mono">${esc(c.J)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="10" class="vacio">Sin renglones para ese mes y filtro.</td></tr>';
+
+  el('tbody-adm').innerHTML = filas.length ? filas.map(f => `<tr>
+      <td>${aDDMMYYYY(f.fecha)} ${f.extemporanea ? '<span class="pill pill-ex">extemp.</span>' : ''}</td>
+      <td>${esc(nombreDe(f.usuario))}</td>
+      <td>${esc(f.empresa)}</td>
+      <td class="mono">${esc(f.folio)}</td>
+      <td>${esc(f.actividad_txt)} <span class="pill pill-cat mono">${esc(f.actividad_cod)}</span></td>
+      <td>${esc(f.hora_entrada)}</td><td>${esc(f.hora_salida)}</td>
+      <td class="num">${horasTexto(+f.horas)}</td>
+      <td>${esc(f.nota || '')}</td>
+      <td><button class="btn-icon-del" title="Eliminar este registro"
+            onclick="borrarIncidencia(${f.id})">🗑</button></td>
+    </tr>`).join('') : '<tr><td colspan="10" class="vacio">Sin registros para ese mes y filtro.</td></tr>';
+}
+
+async function borrarIncidencia(id) {
+  const f = S.incidencias.find(x => x.id === id);
+  if (!f) return;
+  if (!confirm(`¿Eliminar el registro de ${nombreDe(f.usuario)} del ${aDDMMYYYY(f.fecha)}` +
+               ` (${f.empresa}, ${horasTexto(+f.horas)} h)?\n\nNo se puede deshacer.`)) return;
+  try {
+    await SB.delete('incidencias', { id });
+    S.incidencias = S.incidencias.filter(x => x.id !== id);
+    pintarMes();
+  } catch (e) { alert('No se pudo eliminar: ' + e.message); }
+}
+
+/* ── Archivo de carga ───────────────────────────────────────────────────────
+   El machote tiene TODAS las columnas de datos en formato texto
+   (numFmtId 49 = «@»), incluidas Fecha y Horas. Si se escriben como número o
+   como fecha de Excel, el cargador de iScala las rechaza: por eso cada celda
+   se fuerza a `t:'s'` con formato '@'. */
+const ENCABEZADOS_CARGA = ['Codigo Recurso','Proyecto','ID','Cod Actividade','Tipo de Costo',
+                           'Fecha','Horas','Texto','Centro de Costo','FECHA OK'];
+
+function construirCarga(filas) {
+  const LETRAS = ['A','B','C','D','E','F','G','H','I','J'];
+  const ENCABEZADOS = ENCABEZADOS_CARGA;
+  const ws = {};
+  const txt = v => ({ v: String(v ?? ''), t: 's', z: '@' });
+  ENCABEZADOS.forEach((h, c) => { ws[XLSX.utils.encode_cell({ r:0, c })] = txt(h); });
+  filas.forEach((f, i) => {
+    const d = filaCarga(f);
+    LETRAS.forEach((L, c) => { ws[XLSX.utils.encode_cell({ r: i+1, c })] = txt(d[L]); });
+  });
+  ws['!ref']  = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{ r: filas.length, c: 9 } });
+  ws['!cols'] = [{wch:14},{wch:14},{wch:7},{wch:14},{wch:13},{wch:10},{wch:9},{wch:34},{wch:15},{wch:12}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');   // el machote la llama así
+  return wb;
+}
+
+function descargarCarga() {
+  const filas = filasFiltradas();
+  if (!filas.length) { alert('No hay registros para descargar en ese mes.'); return; }
+
+  const sinCodigo = [...new Set(filas.filter(f => !codigoDe(f.usuario)).map(f => f.usuario))];
+  if (sinCodigo.length && !confirm(
+      `${sinCodigo.length} técnico(s) no tienen código de recurso (${sinCodigo.join(', ')}).\n` +
+      `Esos renglones saldrán con la columna A vacía.\n\n¿Descargar de todas formas?`)) return;
+
+  const mes = el('mes-adm').value;
+  const tec = el('filtro-tec').value;
+  const nombre = `Carga_Incidencias_${mes}${tec ? '_' + tec : ''}.xlsx`;
+  XLSX.writeFile(construirCarga(filas), nombre.replace(/[\/:*?"<>|]/g, '_'));
+}
+
+// ── Empresas y proyectos ───────────────────────────────────────────────────
+function pintarProyectos() {
+  const t = el('tbody-proy');
+  if (!t) return;
+  t.innerHTML = S.proyectos.length ? S.proyectos.map(p => `<tr>
+      <td>${esc(p.empresa)}</td>
+      <td class="mono">${esc(p.folio)}</td>
+      <td>${esc(p.nota || '')}</td>
+      <td><label class="sw"><input type="checkbox" ${p.activo !== false ? 'checked' : ''}
+            onchange="activarProyecto(${p.id}, this.checked)"> ${p.activo !== false ? 'Activo' : 'Inactivo'}</label></td>
+      <td><button class="btn-icon-del" title="Eliminar" onclick="borrarProyecto(${p.id})">🗑</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="vacio">Todavía no hay proyectos. Agrega el primero arriba.</td></tr>';
+}
+
+function avisoProy(tipo, html) {
+  el('aviso-proy').innerHTML = html ? `<div class="aviso aviso-${tipo}">${html}</div>` : '';
+}
+
+async function guardarProyecto() {
+  const empresa = el('np-empresa').value.trim();
+  const folio   = el('np-folio').value.trim().toUpperCase();
+  if (!empresa) return avisoProy('err', 'Falta el nombre de la empresa.');
+  if (!folio)   return avisoProy('err', 'Falta el folio de proyecto.');
+  if (S.proyectos.some(p => (p.folio || '').toUpperCase() === folio)) {
+    return avisoProy('err', `El folio <b>${esc(folio)}</b> ya está registrado.`);
+  }
+  try {
+    await SB.upsert('proyectos', [{ empresa, folio, nota: el('np-nota').value.trim() || null, activo: true }]);
+    el('np-empresa').value = ''; el('np-folio').value = ''; el('np-nota').value = '';
+    avisoProy('ok', `✅ ${esc(empresa)} · ${esc(folio)} agregado.`);
+    await cargarProyectos();
+  } catch (e) { avisoProy('err', 'No se pudo guardar: ' + esc(e.message)); }
+}
+
+async function activarProyecto(id, activo) {
+  const p = S.proyectos.find(x => x.id === id);
+  if (!p) return;
+  try {
+    // Fila completa: un upsert de PostgREST borra lo que no se manda
+    await SB.upsert('proyectos', [{ id, empresa: p.empresa, folio: p.folio, nota: p.nota || null, activo }], 'id');
+    p.activo = activo;
+    pintarProyectos();
+    await cargarProyectos();
+  } catch (e) { avisoProy('err', 'No se pudo cambiar: ' + esc(e.message)); }
+}
+
+async function borrarProyecto(id) {
+  const p = S.proyectos.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`¿Eliminar "${p.empresa}" (${p.folio})?\n\n` +
+    `Las incidencias ya registradas conservan su empresa y folio, no se pierden.`)) return;
+  try {
+    await SB.delete('proyectos', { id });
+    await cargarProyectos();
+    avisoProy('ok', 'Proyecto eliminado.');
+  } catch (e) { avisoProy('err', 'No se pudo eliminar: ' + esc(e.message)); }
+}
+
+// ── Códigos de recurso ─────────────────────────────────────────────────────
+function pintarCodigos() {
+  const t = el('tbody-cods');
+  if (!t) return;
+  // Primero los técnicos: son los que necesitan código
+  const orden = [...S.usuarios].sort((a, b) =>
+    (a.rol === 'tecnico' ? 0 : 1) - (b.rol === 'tecnico' ? 0 : 1) ||
+    String(a.usuario).localeCompare(b.usuario));
+  t.innerHTML = orden.length ? orden.map(u => `<tr>
+      <td class="mono">${esc(u.usuario)}</td>
+      <td>${esc(u.nombre || '')}</td>
+      <td><span class="pill pill-cat">${esc(u.rol)}</span></td>
+      <td><input type="text" class="mono" maxlength="20" value="${esc(u.codigo_recurso || '')}"
+             placeholder="${u.rol === 'tecnico' ? 'ej. 2011' : '—'}"
+             onchange="guardarCodigo('${esc(u.usuario)}', this.value)"></td>
+      <td><span id="cod-ok-${esc(u.usuario)}" style="font-size:12px;"></span></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="vacio">No se pudieron cargar los usuarios.</td></tr>';
+}
+
+async function guardarCodigo(usuario, valor) {
+  const marca = el('cod-ok-' + usuario);
+  if (marca) marca.textContent = '⏳';
+  try {
+    const r = await fetch('/api/usuarios', {
+      method:'POST', credentials:'same-origin',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ accion:'actualizar', usuario, codigo_recurso: valor }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Error ' + r.status);
+    const u = S.usuarios.find(x => x.usuario === usuario);
+    if (u) u.codigo_recurso = valor.trim().toUpperCase() || null;
+    if (marca) { marca.textContent = '✓'; setTimeout(() => { marca.textContent = ''; }, 1800); }
+    pintarMes();   // el aviso de «sin código» se recalcula
+  } catch (e) {
+    if (marca) marca.textContent = '!';
+    el('aviso-cods').innerHTML = `<div class="aviso aviso-err">No se pudo guardar: ${esc(e.message)}</div>`;
+  }
+}
+</script>
+</body>
+</html>
