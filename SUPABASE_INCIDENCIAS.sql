@@ -38,8 +38,17 @@ CREATE TABLE IF NOT EXISTS proyectos (
   nota       text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
--- Una empresa puede tener varios proyectos, pero no dos veces el mismo folio
-CREATE UNIQUE INDEX IF NOT EXISTS proyectos_folio_uniq ON proyectos (folio);
+/* Una empresa puede tener varios proyectos, pero no dos veces el mismo folio.
+   Excepción: NONPROJECT no es un folio, es la ausencia de uno — lo usan los
+   trabajos que no están ligados a un proyecto facturable, así que varias
+   empresas pueden llevarlo a la vez. Por eso el índice es parcial.
+   (El índice viejo, sin la excepción, se reemplaza aquí.) */
+DROP INDEX IF EXISTS proyectos_folio_uniq;
+CREATE UNIQUE INDEX IF NOT EXISTS proyectos_folio_uniq
+  ON proyectos (folio) WHERE folio <> 'NONPROJECT';
+-- Lo que sí se evita es la misma empresa dos veces con NONPROJECT
+CREATE UNIQUE INDEX IF NOT EXISTS proyectos_nonproject_uniq
+  ON proyectos (empresa) WHERE folio = 'NONPROJECT';
 CREATE INDEX IF NOT EXISTS proyectos_activo_idx ON proyectos (activo) WHERE activo;
 
 

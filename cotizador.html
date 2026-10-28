@@ -5596,6 +5596,8 @@ function admSeccion(id) {
 
 // Constantes del machote: vienen prellenadas en todos sus renglones
 const INC_ID = '000000', INC_TIPO = 'A', INC_CENTRO = '300';
+// Folio comodín: trabajo sin proyecto facturable. Es el único que se repite.
+const INC_SIN_PROYECTO = 'NONPROJECT';
 const INC_ENCABEZADOS = ['Codigo Recurso','Proyecto','ID','Cod Actividade','Tipo de Costo',
                          'Fecha','Horas','Texto','Centro de Costo','FECHA OK'];
 
@@ -5781,7 +5783,15 @@ async function incGuardarProyecto() {
   const folio   = el('inc-np-folio').value.trim().toUpperCase();
   if (!empresa) return incAvisoProy('error', 'Falta el nombre de la empresa.');
   if (!folio)   return incAvisoProy('error', 'Falta el folio de proyecto.');
-  if (INC.proyectos.some(p => (p.folio || '').toUpperCase() === folio)) {
+  /* NONPROJECT no es un folio sino la falta de uno: lo llevan los trabajos
+     que no cuelgan de un proyecto facturable, así que puede repetirse entre
+     empresas. Lo único que se impide es la misma empresa dos veces. */
+  if (folio === INC_SIN_PROYECTO) {
+    if (INC.proyectos.some(p => (p.folio || '').toUpperCase() === folio &&
+                                (p.empresa || '').trim().toLowerCase() === empresa.toLowerCase())) {
+      return incAvisoProy('error', `<b>${GD.esc(empresa)}</b> ya está registrada como ${INC_SIN_PROYECTO}.`);
+    }
+  } else if (INC.proyectos.some(p => (p.folio || '').toUpperCase() === folio)) {
     return incAvisoProy('error', `El folio <b>${GD.esc(folio)}</b> ya está registrado.`);
   }
   try {
