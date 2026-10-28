@@ -287,8 +287,12 @@ const GRUPOS = [
     { id: 'requisiciones', ruta: 'requisiciones.html', ico: '📦', nombre: 'Requisiciones',    titulo: 'Requisiciones' },
   ]},
   { grupo: 'Operación', modulos: [
+    /* El registro de incidencias lo usa todo el mundo: el técnico de campo,
+       quien cotiza y el administrador que salió a un proyecto. La consulta
+       mensual y el archivo de carga están aparte, en el panel de
+       administrador del cotizador. */
     { id: 'incidencias',   ruta: 'incidencias.html',   ico: '🕐', nombre: 'Incidencias',      titulo: 'Control de Incidencias',
-      roles: ['admin', 'tecnico'] },
+      roles: ['admin', 'usuario', 'tecnico'] },
   ]},
   { grupo: 'Ingeniería', modulos: [
     { id: 'isometrico',    ruta: 'isometrico.html',    ico: '📐', nombre: 'Isométrico',        titulo: 'Isométrico PIPRO' },

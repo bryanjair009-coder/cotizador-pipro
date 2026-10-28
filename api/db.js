@@ -164,8 +164,12 @@ export default async function handler(req, res) {
         if (onConflict && !IDENT.test(onConflict)) return res.status(400).json({ error: 'on_conflict no válido' });
 
         /* El `usuario` lo pone el servidor a partir de la sesión, no el
-           navegador: si no, un técnico podría registrarle horas a otro. */
+           navegador: si no, un técnico podría registrarle horas a otro.
+           Al administrador se le respeta el que mande (necesita corregir
+           registros ajenos), pero si no manda ninguno es porque está
+           registrando los suyos. */
         if (soloLoPropio) filas.forEach(f => { f.usuario = s.u; });
+        else filas.forEach(f => { if (!f.usuario) f.usuario = s.u; });
 
         /* La empresa y el folio se copian del proyecto aquí, no se aceptan del
            navegador. Dos razones: el técnico nunca recibe el folio (es dato

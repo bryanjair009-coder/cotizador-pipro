@@ -14,7 +14,7 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 |---|---|
 | `index.html` | Portal (6 iframes) + pantalla de acceso + menú de cuenta |
 | `cotizador.html` | Cotizaciones (IP = con MO, IT = sin MO) + panel admin |
-| `incidencias.html` | Control de incidencias de técnicos + archivo de carga iScala |
+| `incidencias.html` | Registro de incidencias (horas) — lo usan todos los roles |
 | `isometrico.html` | Trazo isométrico de la red + lista de material |
 | `presiones.html` | Estudio de caídas de presión + PDF ejecutivo |
 | `requisiciones.html` | Requisiciones de material (React via Babel CDN) |
@@ -332,13 +332,26 @@ genera siempre los 5 archivos cuando hay material.
 - **Migración: `SUPABASE_INCIDENCIAS.sql`, correr ANTES de desplegar.** Crea
   `proyectos`, `incidencias` y `usuarios.codigo_recurso`, y suma el rol
   `tecnico` al CHECK de `usuarios`.
-- **Rol `tecnico`**: sólo ve el control de incidencias. Tres candados, de
+- **La cosa está partida en dos, a propósito:**
+  - `incidencias.html` es **sólo el registro** y lo usa **cualquiera con
+    sesión**: el técnico de campo, quien cotiza y el administrador que salió a
+    un proyecto. Cada quien ve y captura lo suyo.
+  - La **consulta mensual, el archivo de carga y el alta de empresas** están en
+    el **panel de administrador del cotizador** (pestaña «🕐 Incidencias»),
+    que es la parte reservada. Funciones con prefijo `inc*`.
+- **Rol `tecnico`**: sólo ve el registro de incidencias. Tres candados, de
   fuera hacia dentro:
   1. `index.html` no le arma el carril ni el iframe de los demás módulos.
      Un módulo **sin** `roles` lo ven admin y usuario, **no** el técnico
      (`ROLES_POR_DEFECTO`); el técnico entra sólo a lo que lo nombre.
-  2. `gd-ui.js` corta la página si un técnico abre otro módulo por URL.
+  2. `gd-ui.js` corta la página si un técnico abre otro módulo por URL. Como
+     el panel vive dentro del cotizador, ese candado también le cierra el
+     control mensual.
   3. `api/db.js`, que es el único que cuenta: decide qué tabla toca cada rol.
+- Al guardar una incidencia el servidor fija el `usuario`: forzado al de la
+  sesión para quien no es administrador, y para el administrador se rellena
+  con el suyo cuando no manda ninguno (así registra lo propio y puede corregir
+  lo ajeno).
 - **El folio de proyecto no sale del servidor** para quien no es administrador
   (`COLUMNAS_RESERVADAS` en api/db.js). Pedir `select=id,empresa` desde el
   navegador no protege nada: el `select` lo arma el cliente y podría mandar
@@ -369,12 +382,15 @@ genera siempre los 5 archivos cuando hay material.
   iScala rechaza el renglón.
 - **Fecha en `YYYYMMDD`**, no con guiones. Se confirma en la hoja «Sheet2» del
   machote, que es el log de errores del cargador: `[=034]20250231`.
-- El **Codigo Recurso** (columna A) es por técnico, de `usuarios.codigo_recurso`.
-  **Se pide al crear la cuenta y es obligatorio para el rol `tecnico`**, en la
-  pantalla y en `api/usuarios.js`: una cuenta de técnico no puede nacer sin él,
-  porque sus renglones saldrían con la columna A vacía e iScala los rechaza en
-  bloque. Se corrige después con el botón 🏷️ de la tabla de usuarios. El panel
-  mensual también avisa en rojo antes de descargar.
+- El **Codigo Recurso** (columna A) sale de `usuarios.codigo_recurso` y lo
+  necesita **cualquiera que registre incidencias**, no sólo los técnicos: si un
+  administrador sale a un proyecto y captura horas, sin código su renglón sale
+  con la columna A vacía e iScala lo rechaza. El campo se pide al crear la
+  cuenta para todos los roles, **obligatorio sólo para `tecnico`** (en la
+  pantalla y en `api/usuarios.js`), opcional para los demás porque una cuenta
+  de oficina que nunca sale a campo no lo necesita. Se corrige después con el
+  botón 🏷️ de la tabla de usuarios, y el panel mensual avisa en rojo quién
+  todavía no lo tiene antes de descargar.
 - Las **actividades** salen de «ACTIVIDADES Iscala» y viven en `ACTIVIDADES`
   dentro de incidencias.html: el técnico elige el **texto** (columna H) y el
   **código** (columna D) va solo. Las dos cosas salen de la misma lista para

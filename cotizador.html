@@ -1628,6 +1628,7 @@ Precio de venta soportería = costo × 1.40"></button>
       <button class="adm-tab active" data-sec="catalogo"   onclick="admSeccion('catalogo')"   role="tab">📦 Catálogo</button>
       <button class="adm-tab"        data-sec="costos"     onclick="admSeccion('costos')"     role="tab">💲 Costos de compra</button>
       <button class="adm-tab"        data-sec="utilidades" onclick="admSeccion('utilidades')" role="tab">💰 Utilidades</button>
+      <button class="adm-tab"        data-sec="incidencias" onclick="admSeccion('incidencias')" role="tab">🕐 Incidencias</button>
       <button class="adm-tab"        data-sec="usuarios"   onclick="admSeccion('usuarios')"   role="tab">👥 Usuarios</button>
       <button class="adm-tab"        data-sec="bitacora"   onclick="admSeccion('bitacora')"   role="tab">📜 Bitácora</button>
     </div>
@@ -1823,6 +1824,100 @@ Precio de venta soportería = costo × 1.40"></button>
 
     </section>
 
+    <!-- ── INCIDENCIAS ─────────────────────────────────────────────────── -->
+    <section class="adm-sec" id="adm-incidencias" hidden>
+
+    <div class="adm-cifras" style="margin-bottom:14px;">
+      <div class="adm-cifra"><div class="adm-cifra-l">Registros del mes</div><div class="adm-cifra-v" id="inc-n-reg">—</div></div>
+      <div class="adm-cifra"><div class="adm-cifra-l">Horas totales</div><div class="adm-cifra-v acento" id="inc-n-horas">—</div></div>
+      <div class="adm-cifra"><div class="adm-cifra-l">Personas</div><div class="adm-cifra-v" id="inc-n-pers">—</div></div>
+      <div class="adm-cifra"><div class="adm-cifra-l">Extemporáneos</div><div class="adm-cifra-v" id="inc-n-ex">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">
+        📅 Archivo de carga del mes
+        <button class="gd-i" type="button"
+                data-info-title="Archivo de carga"
+                data-info="Recopila las incidencias que capturó cada quien en la pestaña <b>Incidencias</b> del portal y las entrega con el formato del machote de iScala.<br><br>Todas las celdas salen como <b>texto</b> y la fecha en <b>AAAAMMDD</b>, que es como las espera el cargador."
+                data-fuente="El folio de proyecto sólo se ve aquí y en el archivo"></button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="width:180px;">
+          <label for="inc-mes">Mes</label>
+          <input type="month" id="inc-mes" onchange="incCargarMes()">
+        </div>
+        <div style="width:210px;">
+          <label for="inc-filtro-pers">Persona</label>
+          <select id="inc-filtro-pers" onchange="incPintar()"><option value="">Todas</option></select>
+        </div>
+        <div style="flex:1;min-width:190px;">
+          <label for="inc-filtro-emp">Empresa</label>
+          <select id="inc-filtro-emp" onchange="incPintar()"><option value="">Todas</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="incDescargar()">⬇️ Descargar archivo de carga</button>
+      </div>
+      <div id="inc-aviso" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;">Vista previa del archivo</div>
+      <div style="font-size:.78rem;color:var(--gd-text-mute);margin-bottom:8px;">
+        Esto es exactamente lo que se descarga: mismos encabezados y mismo orden que el machote.
+      </div>
+      <div class="admin-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Codigo Recurso</th><th>Proyecto</th><th>ID</th><th>Cod Actividade</th>
+            <th>Tipo de Costo</th><th>Fecha</th><th style="text-align:right;">Horas</th>
+            <th>Texto</th><th>Centro de Costo</th><th>FECHA OK</th>
+          </tr></thead>
+          <tbody id="inc-tbody-carga"><tr><td colspan="10" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Elige un mes</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;">Detalle del mes</div>
+      <div class="admin-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Fecha</th><th>Persona</th><th>Empresa</th><th>Folio</th><th>Actividad</th>
+            <th>Entrada</th><th>Salida</th><th style="text-align:right;">Horas</th><th>Nota</th><th></th>
+          </tr></thead>
+          <tbody id="inc-tbody-det"><tr><td colspan="10" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Elige un mes</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">
+        🏭 Empresas y proyectos
+        <button class="gd-i" type="button"
+                data-info-title="Empresas con proyecto activo"
+                data-info="Es lo que aparece en el desplegable de quien registra una incidencia. Sólo se listan las <b>activas</b>.<br><br>El <b>folio de proyecto</b> nunca sale de este panel: quien registra elige la empresa, y el servidor pega el folio al guardar."></button>
+      </div>
+      <div class="gd-fields" style="margin-bottom:12px;align-items:flex-end;">
+        <div class="gd-field gd-field-grow"><label>Empresa</label>
+          <input type="text" id="inc-np-empresa" maxlength="120" placeholder="Nombre como lo verán al registrar"></div>
+        <div class="gd-field"><label>Folio de proyecto</label>
+          <input type="text" id="inc-np-folio" maxlength="40" placeholder="QS00004131"></div>
+        <div class="gd-field gd-field-grow"><label>Nota (opcional)</label>
+          <input type="text" id="inc-np-nota" maxlength="120" placeholder="Planta, contrato…"></div>
+        <div class="gd-field"><label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="incGuardarProyecto()">➕ Agregar</button></div>
+      </div>
+      <div id="inc-aviso-proy" style="margin-bottom:10px;"></div>
+      <div class="admin-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Empresa</th><th>Folio</th><th>Nota</th><th style="width:120px;">Estado</th><th style="width:60px;"></th></tr></thead>
+          <tbody id="inc-tbody-proy"><tr><td colspan="5" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    </section>
+
     <!-- ── USUARIOS ────────────────────────────────────────────────────── -->
     <section class="adm-sec" id="adm-usuarios" hidden>
     <div class="card" id="usuarios-card">
@@ -1852,12 +1947,13 @@ Precio de venta soportería = costo × 1.40"></button>
             <option value="admin">Administrador</option>
           </select>
         </div>
-        <!-- Sólo para técnicos: sin este código su renglón del archivo de carga
-             sale sin la columna A e iScala lo rechaza, así que es obligatorio. -->
-        <div class="gd-field" id="nu-cod-campo" hidden>
-          <label>Código de recurso
+        <!-- Lo necesita cualquiera que vaya a registrar incidencias, no sólo el
+             técnico: sin él, su renglón del archivo de carga sale con la columna
+             A vacía e iScala lo rechaza. Para el técnico es obligatorio. -->
+        <div class="gd-field" id="nu-cod-campo">
+          <label><span id="nu-cod-lbl">Código de recurso</span>
             <button class="gd-i" data-info-title="Código de recurso"
-                    data-info="Es el código del técnico en <b>iScala</b> y va en la <b>columna A</b> del archivo de carga de incidencias.<br><br>Sin él, iScala rechaza todos los renglones de ese técnico, por eso se pide al crear la cuenta."
+                    data-info="Es el código de la persona en <b>iScala</b> y va en la <b>columna A</b> del archivo de carga de incidencias.<br><br>Lo necesita <b>cualquiera que registre incidencias</b>, no sólo los técnicos: si un administrador sale a un proyecto y captura sus horas, sin código iScala rechaza ese renglón.<br><br>Para el rol <b>Técnico</b> es obligatorio; para los demás se puede dejar en blanco y ponerlo después con el botón 🏷️."
                     data-fuente="Lo asigna el área que administra iScala"></button>
           </label>
           <input type="text" id="nu-codigo" maxlength="20" placeholder="ej. 2011" autocomplete="off">
@@ -5480,10 +5576,243 @@ function generateBoth() { generateAll(); }
 function admSeccion(id) {
   document.querySelectorAll('.adm-tab').forEach(t => t.classList.toggle('active', t.dataset.sec === id));
   document.querySelectorAll('.adm-sec').forEach(s => { s.hidden = s.id !== 'adm-' + id; });
-  if (id === 'usuarios') renderUsuarios();
+  if (id === 'usuarios') { renderUsuarios(); usuarioRolCambio(); }
   if (id === 'bitacora') renderBitacora();
   if (id === 'catalogo') renderAdminTable();
   if (id === 'costos')   renderCostosTable();
+  if (id === 'incidencias') incIniciar();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INCIDENCIAS · panel del administrador
+
+   El registro lo hace cada quien en el módulo «Incidencias» del portal; aquí
+   sólo se consulta el mes, se arma el archivo de carga de iScala y se dan de
+   alta las empresas con su folio de proyecto.
+
+   El folio vive únicamente en este panel y en el archivo: quien registra elige
+   la empresa y el servidor pega el folio al guardar.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+// Constantes del machote: vienen prellenadas en todos sus renglones
+const INC_ID = '000000', INC_TIPO = 'A', INC_CENTRO = '300';
+const INC_ENCABEZADOS = ['Codigo Recurso','Proyecto','ID','Cod Actividade','Tipo de Costo',
+                         'Fecha','Horas','Texto','Centro de Costo','FECHA OK'];
+
+const INC = { filas: [], proyectos: [], usuarios: [], listo: false };
+
+const incDDMMYYYY = iso => { const [a,m,d] = iso.split('-'); return `${d}/${m}/${a}`; };
+const incYYYYMMDD = iso => iso.replace(/-/g, '');
+const incHoras    = h => String(Math.round((+h || 0) * 100) / 100);
+
+async function incIniciar() {
+  if (!INC.listo) {
+    INC.listo = true;
+    const hoy = new Date();
+    el('inc-mes').value = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+    await incCargarUsuarios();
+    await incCargarProyectos();
+  }
+  await incCargarMes();
+}
+
+async function incCargarUsuarios() {
+  try {
+    INC.usuarios = await apiUsuarios({ accion: 'listar' }) || [];
+  } catch (e) { INC.usuarios = []; }
+}
+const incCodigoDe = u => (INC.usuarios.find(x => x.usuario === u) || {}).codigo_recurso || '';
+const incNombreDe = u => (INC.usuarios.find(x => x.usuario === u) || {}).nombre || u;
+
+async function incCargarProyectos() {
+  try {
+    // Sin `select`: el proxy rechaza el asterisco y aquí se quiere la fila completa
+    INC.proyectos = await window.SB.getAll('proyectos', '?order=empresa.asc') || [];
+    incAvisoProy('', '');
+  } catch (e) {
+    INC.proyectos = [];
+    incAvisoProy('error', 'No se pudieron leer los proyectos: ' + GD.esc(e.message));
+  }
+  incPintarProyectos();
+  const fe = el('inc-filtro-emp');
+  const empresas = [...new Set(INC.proyectos.map(p => p.empresa))].sort();
+  fe.innerHTML = '<option value="">Todas</option>' +
+    empresas.map(e => `<option value="${_attrEsc(e)}">${GD.esc(e)}</option>`).join('');
+}
+
+async function incCargarMes() {
+  const mes = el('inc-mes').value;
+  if (!mes) return;
+  const [a, m] = mes.split('-').map(Number);
+  const ultimo = String(new Date(a, m, 0).getDate()).padStart(2, '0');
+  try {
+    INC.filas = await window.SB.getAll('incidencias',
+      `?fecha=gte.${mes}-01&fecha=lte.${mes}-${ultimo}&order=fecha.asc`) || [];
+  } catch (e) {
+    INC.filas = [];
+    el('inc-aviso').innerHTML = `<div class="error-box">No se pudo leer el mes: ${GD.esc(e.message)}</div>`;
+  }
+  // El desplegable de personas se arma con quien de verdad registró algo
+  const quienes = [...new Set(INC.filas.map(f => f.usuario))].sort();
+  el('inc-filtro-pers').innerHTML = '<option value="">Todas</option>' +
+    quienes.map(u => `<option value="${_attrEsc(u)}">${GD.esc(incNombreDe(u))}</option>`).join('');
+  incPintar();
+}
+
+function incFiltradas() {
+  const p = el('inc-filtro-pers').value, e = el('inc-filtro-emp').value;
+  return INC.filas.filter(f => (!p || f.usuario === p) && (!e || f.empresa === e));
+}
+
+/** Un renglón de incidencia → un renglón del archivo de carga. */
+function incFilaCarga(f) {
+  return [
+    incCodigoDe(f.usuario),      // A · Codigo Recurso
+    f.folio || '',               // B · Proyecto
+    INC_ID,                      // C · ID
+    f.actividad_cod,             // D · Cod Actividade
+    INC_TIPO,                    // E · Tipo de Costo
+    incYYYYMMDD(f.fecha),        // F · Fecha
+    incHoras(f.horas),           // G · Horas
+    f.actividad_txt,             // H · Texto
+    INC_CENTRO,                  // I · Centro de Costo
+    incDDMMYYYY(f.fecha),        // J · FECHA OK
+  ];
+}
+
+function incPintar() {
+  const filas = incFiltradas();
+  const horas = filas.reduce((s, f) => s + (+f.horas || 0), 0);
+  el('inc-n-reg').textContent   = filas.length.toLocaleString('es-MX');
+  el('inc-n-horas').textContent = incHoras(horas);
+  el('inc-n-pers').textContent  = new Set(filas.map(f => f.usuario)).size;
+  el('inc-n-ex').textContent    = filas.filter(f => f.extemporanea).length;
+
+  // Sin código de recurso la columna A sale vacía e iScala rechaza el renglón
+  const sinCod = [...new Set(filas.filter(f => !incCodigoDe(f.usuario)).map(f => f.usuario))];
+  el('inc-aviso').innerHTML = !filas.length
+    ? '<div class="info-box">No hay registros en ese mes.</div>'
+    : (sinCod.length
+      ? `<div class="error-box">⚠️ <b>${sinCod.length} persona(s) sin código de recurso</b>
+           (${sinCod.map(u => GD.esc(incNombreDe(u))).join(', ')}). Sus renglones saldrán con la
+           columna «Codigo Recurso» vacía e iScala los va a rechazar: asígnaselos en
+           <b>Usuarios</b> con el botón 🏷️.</div>`
+      : `<div class="success-box">✅ ${filas.length} renglón(es) listos, todos con código de recurso.</div>`);
+
+  el('inc-tbody-carga').innerHTML = filas.length ? filas.map(f => {
+    const c = incFilaCarga(f);
+    return '<tr>' + c.map((v, i) =>
+      `<td style="font-family:ui-monospace,monospace;font-size:.76rem;${i === 6 ? 'text-align:right;' : ''}">${
+        i === 0 && !v ? '<b style="color:var(--gd-error);">(falta)</b>' : GD.esc(v)}</td>`).join('') + '</tr>';
+  }).join('') : '<tr><td colspan="10" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Sin renglones para ese mes y filtro.</td></tr>';
+
+  el('inc-tbody-det').innerHTML = filas.length ? filas.map(f => `<tr>
+      <td>${incDDMMYYYY(f.fecha)}${f.extemporanea ? ' <span style="font-size:.68rem;background:#fff3cd;color:#713f12;padding:1px 6px;border-radius:99px;font-weight:700;">extemp.</span>' : ''}</td>
+      <td>${GD.esc(incNombreDe(f.usuario))}</td>
+      <td>${GD.esc(f.empresa)}</td>
+      <td style="font-family:ui-monospace,monospace;font-size:.76rem;">${GD.esc(f.folio)}</td>
+      <td>${GD.esc(f.actividad_txt)} <span style="font-family:ui-monospace,monospace;font-size:.7rem;color:var(--gd-text-mute);">${GD.esc(f.actividad_cod)}</span></td>
+      <td>${GD.esc(f.hora_entrada)}</td><td>${GD.esc(f.hora_salida)}</td>
+      <td style="text-align:right;">${incHoras(f.horas)}</td>
+      <td>${GD.esc(f.nota || '')}</td>
+      <td><button class="btn-icon-del" title="Eliminar este registro" onclick="incBorrar(${+f.id})">🗑</button></td>
+    </tr>`).join('') : '<tr><td colspan="10" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Sin registros para ese mes y filtro.</td></tr>';
+}
+
+async function incBorrar(id) {
+  const f = INC.filas.find(x => +x.id === id);
+  if (!f) return;
+  if (!confirm(`¿Eliminar el registro de ${incNombreDe(f.usuario)} del ${incDDMMYYYY(f.fecha)}` +
+               ` (${f.empresa}, ${incHoras(f.horas)} h)?\n\nNo se puede deshacer.`)) return;
+  try {
+    await window.SB.delete('incidencias', { id });
+    INC.filas = INC.filas.filter(x => +x.id !== id);
+    incPintar();
+    toast('🗑 Registro eliminado');
+  } catch (e) { alert('No se pudo eliminar: ' + e.message); }
+}
+
+/* El machote trae TODAS las columnas de datos en formato texto (numFmtId 49).
+   Como número, «000000» pierde los ceros y la fecha deja de ser AAAAMMDD, y el
+   cargador de iScala rechaza el renglón. Por eso cada celda se fuerza a texto. */
+function incDescargar() {
+  const filas = incFiltradas();
+  if (!filas.length) { alert('No hay registros para descargar en ese mes.'); return; }
+
+  const sinCod = [...new Set(filas.filter(f => !incCodigoDe(f.usuario)).map(f => f.usuario))];
+  if (sinCod.length && !confirm(
+      `${sinCod.length} persona(s) sin código de recurso (${sinCod.map(incNombreDe).join(', ')}).\n` +
+      `Esos renglones saldrán con la columna A vacía.\n\n¿Descargar de todas formas?`)) return;
+
+  const txt = v => ({ v: String(v ?? ''), t: 's', z: '@' });
+  const ws = {};
+  INC_ENCABEZADOS.forEach((h, c) => { ws[XLSX.utils.encode_cell({ r: 0, c })] = txt(h); });
+  filas.forEach((f, i) => incFilaCarga(f).forEach((v, c) => {
+    ws[XLSX.utils.encode_cell({ r: i + 1, c })] = txt(v);
+  }));
+  ws['!ref']  = XLSX.utils.encode_range({ s: { r:0, c:0 }, e: { r: filas.length, c: 9 } });
+  ws['!cols'] = [{wch:14},{wch:14},{wch:7},{wch:14},{wch:13},{wch:10},{wch:9},{wch:34},{wch:15},{wch:12}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');   // el machote la llama así
+  const pers = el('inc-filtro-pers').value;
+  XLSX.writeFile(wb, `Carga_Incidencias_${el('inc-mes').value}${pers ? '_' + pers : ''}.xlsx`
+    .replace(/[\/:*?"<>|]/g, '_'));
+}
+
+// ── Empresas y proyectos ───────────────────────────────────────────────────
+function incAvisoProy(tipo, html) {
+  el('inc-aviso-proy').innerHTML = html ? `<div class="${tipo}-box">${html}</div>` : '';
+}
+
+function incPintarProyectos() {
+  el('inc-tbody-proy').innerHTML = INC.proyectos.length ? INC.proyectos.map(p => `<tr>
+      <td>${GD.esc(p.empresa)}</td>
+      <td style="font-family:ui-monospace,monospace;font-size:.78rem;">${GD.esc(p.folio)}</td>
+      <td>${GD.esc(p.nota || '')}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="incActivarProyecto(${+p.id}, ${p.activo === false})">
+            ${p.activo === false ? '⚪ Inactivo' : '🟢 Activo'}</button></td>
+      <td><button class="btn-icon-del" title="Eliminar" onclick="incBorrarProyecto(${+p.id})">🗑</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Todavía no hay proyectos. Agrega el primero arriba.</td></tr>';
+}
+
+async function incGuardarProyecto() {
+  const empresa = el('inc-np-empresa').value.trim();
+  const folio   = el('inc-np-folio').value.trim().toUpperCase();
+  if (!empresa) return incAvisoProy('error', 'Falta el nombre de la empresa.');
+  if (!folio)   return incAvisoProy('error', 'Falta el folio de proyecto.');
+  if (INC.proyectos.some(p => (p.folio || '').toUpperCase() === folio)) {
+    return incAvisoProy('error', `El folio <b>${GD.esc(folio)}</b> ya está registrado.`);
+  }
+  try {
+    await window.SB.upsert('proyectos', [{ empresa, folio, nota: el('inc-np-nota').value.trim() || null, activo: true }]);
+    el('inc-np-empresa').value = ''; el('inc-np-folio').value = ''; el('inc-np-nota').value = '';
+    await incCargarProyectos();
+    incAvisoProy('success', `✅ ${GD.esc(empresa)} · ${GD.esc(folio)} agregado.`);
+  } catch (e) { incAvisoProy('error', 'No se pudo guardar: ' + GD.esc(e.message)); }
+}
+
+async function incActivarProyecto(id, activo) {
+  const p = INC.proyectos.find(x => +x.id === id);
+  if (!p) return;
+  try {
+    // Fila completa: un upsert de PostgREST borra lo que no se manda
+    await window.SB.upsert('proyectos',
+      [{ id, empresa: p.empresa, folio: p.folio, nota: p.nota || null, activo }], 'id');
+    await incCargarProyectos();
+  } catch (e) { incAvisoProy('error', 'No se pudo cambiar: ' + GD.esc(e.message)); }
+}
+
+async function incBorrarProyecto(id) {
+  const p = INC.proyectos.find(x => +x.id === id);
+  if (!p) return;
+  if (!confirm(`¿Eliminar "${p.empresa}" (${p.folio})?\n\n` +
+    `Las incidencias ya registradas conservan su empresa y folio, no se pierden.`)) return;
+  try {
+    await window.SB.delete('proyectos', { id });
+    await incCargarProyectos();
+    incAvisoProy('success', 'Proyecto eliminado.');
+  } catch (e) { incAvisoProy('error', 'No se pudo eliminar: ' + GD.esc(e.message)); }
 }
 
 /* ── Costos de compra ───────────────────────────────────────────────────────
@@ -5678,16 +6007,17 @@ async function renderUsuarios() {
         <td><b>${GD.esc(u.usuario)}</b></td>
         <td>${GD.esc(u.nombre || '')}</td>
         <td><span class="gd-user-rol${u.rol === 'admin' ? ' admin' : ''}">${
-          { admin:'Admin', tecnico:'Técnico' }[u.rol] || 'Usuario'}</span>${
-          u.rol === 'tecnico' ? `<br><span style="font-size:.7rem;color:${
-            u.codigo_recurso ? 'var(--gd-text-mute)' : '#dc2626'};font-weight:${u.codigo_recurso ? '400' : '700'};">Cód. recurso: ${
-            GD.esc(u.codigo_recurso || 'SIN ASIGNAR')}</span>` : ''}</td>
+          { admin:'Admin', tecnico:'Técnico' }[u.rol] || 'Usuario'}</span>
+          <br><span style="font-size:.7rem;color:${
+            u.codigo_recurso ? 'var(--gd-text-mute)' : (u.rol === 'tecnico' ? '#dc2626' : 'var(--gd-text-mute)')
+            };font-weight:${!u.codigo_recurso && u.rol === 'tecnico' ? '700' : '400'};">Cód. recurso: ${
+            GD.esc(u.codigo_recurso || (u.rol === 'tecnico' ? 'SIN ASIGNAR' : '—'))}</span></td>
         <td style="font-size:.82rem;color:var(--gd-text-mute);">${GD.esc(acceso)}</td>
         <td>${u.activo ? '🟢 Activo' : '⚪ Inactivo'}${u.debe_cambiar_password ? ' · 🔑' : ''}</td>
         <td style="white-space:nowrap;">
-          ${u.rol === 'tecnico' ? `<button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}"
+          <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" data-rol="${GD.esc(u.rol)}"
              data-cod="${GD.esc(u.codigo_recurso || '')}" onclick="usuarioCodigo(this)"
-             title="Cambiar el código de recurso de iScala">🏷️</button>` : ''}
+             title="Cambiar el código de recurso de iScala">🏷️</button>
           <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" onclick="usuarioReset(this)" title="Asignar una contraseña nueva">🔑</button>
           <button class="btn btn-secondary btn-sm" data-u="${GD.esc(u.usuario)}" data-activo="${u.activo}" onclick="usuarioActivar(this)" title="Activar o desactivar">${u.activo ? '🚫' : '✅'}</button>
           <button class="btn btn-danger btn-sm" data-u="${GD.esc(u.usuario)}" onclick="usuarioEliminar(this)" title="Eliminar la cuenta">🗑</button>
@@ -5699,12 +6029,13 @@ async function renderUsuarios() {
   }
 }
 
-/* El código de recurso sólo aplica a los técnicos: es su identificador en
-   iScala. Se muestra y se exige únicamente para ese rol. */
+/* El código de recurso lo necesita cualquiera que registre incidencias, no
+   sólo el técnico. Obligatorio para el técnico, opcional para los demás: una
+   cuenta de oficina que nunca sale a campo no tiene por qué tener uno. */
 function usuarioRolCambio() {
   const esTec = el('nu-rol').value === 'tecnico';
-  el('nu-cod-campo').hidden = !esTec;
-  if (!esTec) el('nu-codigo').value = '';
+  el('nu-cod-lbl').textContent = esTec ? 'Código de recurso *' : 'Código de recurso (opcional)';
+  el('nu-codigo').placeholder = esTec ? 'ej. 2011 — obligatorio' : 'ej. 2011 — si registra incidencias';
 }
 
 async function usuarioCrear() {
@@ -5738,7 +6069,11 @@ async function usuarioCodigo(btn) {
   const codigo = prompt(`Código de recurso de iScala para "${u}":`, actual);
   if (codigo === null) return;
   const limpio = codigo.trim().toUpperCase();
-  if (!limpio) { alert('❌ El código no puede quedar vacío: sin él iScala rechaza sus renglones.'); return; }
+  // Para un técnico es obligatorio; una cuenta de oficina puede quedarse sin él
+  if (!limpio && btn.dataset.rol === 'tecnico') {
+    alert('❌ Un técnico no puede quedarse sin código: iScala rechazaría todos sus renglones.');
+    return;
+  }
   try {
     await apiUsuarios({ accion: 'actualizar', usuario: u, codigo_recurso: limpio });
     toast(`✅ Código de "${u}" actualizado a ${limpio}.`);
