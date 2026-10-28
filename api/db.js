@@ -27,6 +27,10 @@ const PERMISOS = {
   incidencias:   { select: 'propio', upsert: 'propio', delete: 'admin' },
 };
 
+/* Tablas que llevan columna `usuario` y por tanto admiten que el servidor la
+   rellene con la sesión. El resto no la tiene: escribirla las rompe. */
+const TIENEN_USUARIO = new Set(['incidencias']);
+
 // Claves de `meta` que mueven dinero: sólo administrador
 const META_ADMIN = new Set(['utilidades']);
 
@@ -167,9 +171,14 @@ export default async function handler(req, res) {
            navegador: si no, un técnico podría registrarle horas a otro.
            Al administrador se le respeta el que mande (necesita corregir
            registros ajenos), pero si no manda ninguno es porque está
-           registrando los suyos. */
-        if (soloLoPropio) filas.forEach(f => { f.usuario = s.u; });
-        else filas.forEach(f => { if (!f.usuario) f.usuario = s.u; });
+           registrando los suyos.
+           OJO: sólo para las tablas que tienen esa columna. Aplicarlo a
+           todas metía un `usuario` inexistente en `proyectos`, `materiales`
+           o `clientes` y PostgREST respondía PGRST204. */
+        if (TIENEN_USUARIO.has(table)) {
+          if (soloLoPropio) filas.forEach(f => { f.usuario = s.u; });
+          else filas.forEach(f => { if (!f.usuario) f.usuario = s.u; });
+        }
 
         /* La empresa y el folio se copian del proyecto aquí, no se aceptan del
            navegador. Dos razones: el técnico nunca recibe el folio (es dato
