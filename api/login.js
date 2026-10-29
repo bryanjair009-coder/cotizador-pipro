@@ -9,6 +9,7 @@
 import { verifyPassword, hashPassword, signSession, setSessionCookie } from './_lib/auth.js';
 import { sb, bitacora } from './_lib/sb.js';
 import { proteger, rateLimit, leerJSON } from './_lib/guard.js';
+import { areaDe } from './_lib/areas.js';
 
 const MAX_INTENTOS = 5;
 const BLOQUEO_MIN  = 15;
@@ -79,7 +80,8 @@ export default async function handler(req, res) {
       ultimo_acceso: new Date().toISOString(),
     });
 
-    setSessionCookie(res, signSession({ usuario: u.usuario, rol: u.rol, nombre: u.nombre }));
+    setSessionCookie(res, signSession({
+      usuario: u.usuario, rol: u.rol, nombre: u.nombre, area: areaDe({ a: u.area }) }));
     await bitacora({ u: u.usuario }, 'LOGIN', 'usuarios', 'Acceso concedido', req);
 
     return res.status(200).json({
@@ -87,6 +89,7 @@ export default async function handler(req, res) {
       usuario: u.usuario,
       nombre: u.nombre || u.usuario,
       rol: u.rol,
+      area: areaDe({ a: u.area }),
       debe_cambiar_password: !!u.debe_cambiar_password,
     });
 

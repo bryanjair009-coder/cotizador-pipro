@@ -1588,7 +1588,7 @@ Precio de venta soportería = costo × 1.40"></button>
      PAGE: ADMINISTRADOR
 ══════════════════════════════════════════════════════════════════════════════ -->
 <div class="page" id="page-admin">
-  <div class="sec-title">🔐 Panel de Administrador</div>
+  <div class="sec-title" id="sec-title-admin">🔐 Panel de Administrador</div>
 
   <!-- Sin rol de administrador -->
   <div id="admin-gate" class="card">
@@ -1604,8 +1604,10 @@ Precio de venta soportería = costo × 1.40"></button>
   <div id="admin-panel" style="display:none;">
 
     <!-- Estado de un vistazo, antes del detalle -->
+    <!-- `data-cifra-portal` marca lo que es del portal entero y no de un área:
+         el administrador de Servicio no lo ve. -->
     <div class="adm-cifras">
-      <div class="adm-cifra">
+      <div class="adm-cifra" data-cifra-portal>
         <div class="adm-cifra-l">Materiales en catálogo</div>
         <div class="adm-cifra-v" id="adm-n-materiales">—</div>
       </div>
@@ -1613,7 +1615,7 @@ Precio de venta soportería = costo × 1.40"></button>
         <div class="adm-cifra-l">Cuentas activas</div>
         <div class="adm-cifra-v" id="adm-n-usuarios">—</div>
       </div>
-      <div class="adm-cifra">
+      <div class="adm-cifra" data-cifra-portal>
         <div class="adm-cifra-l">Utilidad M.O.</div>
         <div class="adm-cifra-v acento" id="adm-util-mo">—</div>
       </div>
@@ -1847,6 +1849,16 @@ Precio de venta soportería = costo × 1.40"></button>
           <label for="inc-mes">Mes</label>
           <input type="month" id="inc-mes" onchange="incCargarMes()">
         </div>
+        <!-- Sólo para el administrador del portal: cada área lleva su propio
+             archivo de carga, así que se mira una a la vez. Mezclarlas
+             produciría un archivo que iScala no puede recibir. -->
+        <div style="width:170px;" id="inc-campo-area" hidden>
+          <label for="inc-area">Área</label>
+          <select id="inc-area" onchange="incCambiarArea()">
+            <option value="ingenieria">Ingeniería</option>
+            <option value="servicio">Servicio</option>
+          </select>
+        </div>
         <div style="width:210px;">
           <label for="inc-filtro-pers">Persona</label>
           <select id="inc-filtro-pers" onchange="incPintar()"><option value="">Todas</option></select>
@@ -1939,12 +1951,25 @@ Precio de venta soportería = costo × 1.40"></button>
         <div class="gd-field">
           <label>Rol
             <button class="gd-i" data-info-title="Roles"
-                    data-info="<b>Usuario</b>: cotiza, genera reportes y captura requisiciones.<br><b>Técnico</b>: entra únicamente al control de incidencias, a registrar sus horas.<br><b>Administrador</b>: además edita el catálogo, los porcentajes de utilidad y las cuentas."></button>
+                    data-info="<b>Usuario</b>: cotiza, genera reportes y captura requisiciones.<br><b>Técnico</b>: entra únicamente al control de incidencias, a registrar sus horas.<br><b>Administrador</b>: además edita el catálogo, los porcentajes de utilidad y las cuentas.<br><b>Admin de área</b>: administra las incidencias y el personal de SU área, y nada más."></button>
           </label>
           <select id="nu-rol" onchange="usuarioRolCambio()">
             <option value="usuario">Usuario</option>
             <option value="tecnico">Técnico (sólo incidencias)</option>
-            <option value="admin">Administrador</option>
+            <option value="admin_servicio">Admin de área (sólo incidencias)</option>
+            <option value="admin">Administrador del portal</option>
+          </select>
+        </div>
+        <!-- El área sólo la elige el administrador del portal: el de un área
+             da de alta en la suya y no ve esta casilla. -->
+        <div class="gd-field" id="nu-area-campo" hidden>
+          <label>Área
+            <button class="gd-i" data-info-title="Áreas"
+                    data-info="Ingeniería y Servicio comparten el portal pero <b>no los datos</b>: cada área tiene su propio personal, sus empresas con proyecto y sus horas. Una cuenta pertenece a un área y no ve la otra."></button>
+          </label>
+          <select id="nu-area">
+            <option value="ingenieria">Ingeniería</option>
+            <option value="servicio">Servicio</option>
           </select>
         </div>
         <!-- Lo necesita cualquiera que vaya a registrar incidencias, no sólo el
@@ -1974,6 +1999,7 @@ Precio de venta soportería = costo × 1.40"></button>
             <th style="width:130px;">Usuario</th>
             <th>Nombre</th>
             <th style="width:90px;">Rol</th>
+            <th style="width:100px;" id="th-area">Área</th>
             <th style="width:140px;">Último acceso</th>
             <th style="width:120px;">Estado</th>
             <th style="width:130px;text-align:center;">Acciones</th>
@@ -5576,7 +5602,7 @@ function generateBoth() { generateAll(); }
 function admSeccion(id) {
   document.querySelectorAll('.adm-tab').forEach(t => t.classList.toggle('active', t.dataset.sec === id));
   document.querySelectorAll('.adm-sec').forEach(s => { s.hidden = s.id !== 'adm-' + id; });
-  if (id === 'usuarios') { renderUsuarios(); usuarioRolCambio(); }
+  if (id === 'usuarios') { renderUsuarios(); usuariosPrepararFormulario(); }
   if (id === 'bitacora') renderBitacora();
   if (id === 'catalogo') renderAdminTable();
   if (id === 'costos')   renderCostosTable();
@@ -5601,7 +5627,9 @@ const INC_SIN_PROYECTO = 'NONPROJECT';
 const INC_ENCABEZADOS = ['Codigo Recurso','Proyecto','ID','Cod Actividade','Tipo de Costo',
                          'Fecha','Horas','Texto','Centro de Costo','FECHA OK'];
 
-const INC = { filas: [], proyectos: [], usuarios: [], listo: false };
+/* `area` sin valor significa «la de mi sesión»: sólo el administrador del
+   portal la cambia, para asomarse a la otra área. */
+const INC = { filas: [], proyectos: [], usuarios: [], listo: false, area: undefined };
 
 const incDDMMYYYY = iso => { const [a,m,d] = iso.split('-'); return `${d}/${m}/${a}`; };
 const incYYYYMMDD = iso => iso.replace(/-/g, '');
@@ -5612,9 +5640,24 @@ async function incIniciar() {
     INC.listo = true;
     const hoy = new Date();
     el('inc-mes').value = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+    /* El administrador del portal puede asomarse a la otra área; el de un
+       área no ve esta casilla y su `INC.area` se queda indefinida, que es lo
+       que el servidor interpreta como «la mía». */
+    if (GD.sesion.esAdmin) {
+      el('inc-campo-area').hidden = false;
+      el('inc-area').value = miArea();
+      INC.area = miArea();
+    }
     await incCargarUsuarios();
     await incCargarProyectos();
   }
+  await incCargarMes();
+}
+
+/** Cambia el área que se está mirando y recarga todo lo que depende de ella. */
+async function incCambiarArea() {
+  INC.area = el('inc-area').value;
+  await incCargarProyectos();
   await incCargarMes();
 }
 
@@ -5629,7 +5672,7 @@ const incNombreDe = u => (INC.usuarios.find(x => x.usuario === u) || {}).nombre 
 async function incCargarProyectos() {
   try {
     // Sin `select`: el proxy rechaza el asterisco y aquí se quiere la fila completa
-    INC.proyectos = await window.SB.getAll('proyectos', '?order=empresa.asc') || [];
+    INC.proyectos = await window.SB.getAll('proyectos', '?order=empresa.asc', INC.area) || [];
     incAvisoProy('', '');
   } catch (e) {
     INC.proyectos = [];
@@ -5649,7 +5692,7 @@ async function incCargarMes() {
   const ultimo = String(new Date(a, m, 0).getDate()).padStart(2, '0');
   try {
     INC.filas = await window.SB.getAll('incidencias',
-      `?fecha=gte.${mes}-01&fecha=lte.${mes}-${ultimo}&order=fecha.asc`) || [];
+      `?fecha=gte.${mes}-01&fecha=lte.${mes}-${ultimo}&order=fecha.asc`, INC.area) || [];
   } catch (e) {
     INC.filas = [];
     el('inc-aviso').innerHTML = `<div class="error-box">No se pudo leer el mes: ${GD.esc(e.message)}</div>`;
@@ -5722,6 +5765,7 @@ function incPintar() {
 }
 
 async function incBorrar(id) {
+  if (incSoloLectura()) return;
   const f = INC.filas.find(x => +x.id === id);
   if (!f) return;
   if (!confirm(`¿Eliminar el registro de ${incNombreDe(f.usuario)} del ${incDDMMYYYY(f.fecha)}` +
@@ -5778,7 +5822,20 @@ function incPintarProyectos() {
     </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Todavía no hay proyectos. Agrega el primero arriba.</td></tr>';
 }
 
+/* Mirar otra área sí; escribir en ella no. El servidor estampa siempre el
+   área de quien escribe, así que un alta hecha «viendo Servicio» caería en
+   Ingeniería sin avisar. Se corta aquí, con el motivo a la vista. */
+function incSoloLectura(aviso) {
+  if (INC.area === undefined || INC.area === miArea()) return false;
+  const texto = 'Estás viendo el área de <b>' + GD.esc(ETIQUETA_AREA[INC.area] || INC.area) +
+    '</b>, que administra su propio responsable. Desde aquí sólo se consulta.';
+  if (aviso === 'proy') incAvisoProy('error', texto);
+  else el('inc-aviso').innerHTML = `<div class="error-box">${texto}</div>`;
+  return true;
+}
+
 async function incGuardarProyecto() {
+  if (incSoloLectura('proy')) return;
   const empresa = el('inc-np-empresa').value.trim();
   const folio   = el('inc-np-folio').value.trim().toUpperCase();
   if (!empresa) return incAvisoProy('error', 'Falta el nombre de la empresa.');
@@ -5823,6 +5880,7 @@ function incErrorProyecto(e, folio) {
 }
 
 async function incActivarProyecto(id, activo) {
+  if (incSoloLectura('proy')) return;
   const p = INC.proyectos.find(x => +x.id === id);
   if (!p) return;
   try {
@@ -5834,6 +5892,7 @@ async function incActivarProyecto(id, activo) {
 }
 
 async function incBorrarProyecto(id) {
+  if (incSoloLectura('proy')) return;
   const p = INC.proyectos.find(x => +x.id === id);
   if (!p) return;
   if (!confirm(`¿Eliminar "${p.empresa}" (${p.folio})?\n\n` +
@@ -5954,15 +6013,53 @@ function admCifras() {
   }
 }
 
+/* ── Áreas ──────────────────────────────────────────────────────────────────
+   Dos áreas comparten el portal sin compartir datos. El administrador de
+   Servicio entra a este archivo únicamente por el panel de incidencias: el
+   cotizador, el catálogo, las utilidades y la bitácora no son suyos.
+   Esto es la fachada; quien de verdad separa los datos es api/db.js. */
+const rolSesion      = () => (GD.sesion.actual && GD.sesion.actual.rol) || '';
+const esAdminDeServicio = () => rolSesion() === 'admin_servicio';
+/** Manda en su área: entra al panel, aunque vea secciones distintas. */
+const esAdminDeArea  = () => GD.sesion.esAdmin || esAdminDeServicio();
+const miArea         = () => (GD.sesion.actual && GD.sesion.actual.area) || 'ingenieria';
+
+/** Deja la página con lo único que le toca al administrador de Servicio. */
+function activarModoServicio() {
+  const nombreArea = (GD.sesion.actual && GD.sesion.actual.areaNombre) || 'Servicio';
+  document.querySelector('.mod-title').textContent = 'Control de Incidencias';
+  document.querySelector('.mod-sub').textContent   = 'Área de ' + nombreArea;
+  document.querySelector('.mod-icon').textContent  = '🕐';
+  // Fuera la pestaña del cotizador, su página y el cargador de cotizaciones
+  document.querySelectorAll('.mod-tabs .mod-tab').forEach(b => {
+    if (/Administrador/.test(b.textContent)) b.textContent = '🕐 Incidencias';
+    else b.remove();
+  });
+  const cargar = document.querySelector('.mod-btn[onclick*="openEditModal"]');
+  if (cargar) cargar.remove();
+  const pag = el('page-cotizador'); if (pag) pag.remove();
+  el('page-admin').classList.add('active');
+  el('sec-title-admin') && (el('sec-title-admin').textContent = '🕐 Control de incidencias · ' + nombreArea);
+  // Del panel sólo quedan sus dos secciones
+  const suyas = ['incidencias', 'usuarios'];
+  document.querySelectorAll('.adm-tab').forEach(t => { if (!suyas.includes(t.dataset.sec)) t.remove(); });
+  document.querySelectorAll('.adm-sec').forEach(s => {
+    if (!suyas.includes(s.id.replace('adm-', ''))) s.remove();
+  });
+  // Y de las cifras de arriba, las que no son de su área
+  document.querySelectorAll('[data-cifra-portal]').forEach(c => c.remove());
+  admSeccion('incidencias');
+}
+
 function aplicarPermisos() {
-  const admin = GD.sesion.esAdmin;
-  state.adminOk = admin;
+  const admin = esAdminDeArea();
+  // `adminOk` gobierna el catálogo, que es del portal: no basta con mandar
+  // en un área.
+  state.adminOk = GD.sesion.esAdmin;
   if (admin) {
     hide('admin-gate');
     show('admin-panel');
-    renderAdminTable();
-    renderUtilForm();
-    admCifras();
+    if (GD.sesion.esAdmin) { renderAdminTable(); renderUtilForm(); admCifras(); }
   } else {
     show('admin-gate');
     hide('admin-panel');
@@ -5973,7 +6070,7 @@ function aplicarPermisos() {
   // Se usa display en lugar del atributo hidden porque las clases .btn
   // declaran display:inline-flex y ganarían la prioridad.
   document.querySelectorAll('[data-solo-admin]').forEach(b => {
-    b.style.display = admin ? '' : 'none';
+    b.style.display = GD.sesion.esAdmin ? '' : 'none';
   });
 }
 
@@ -6026,7 +6123,7 @@ async function renderUsuarios() {
   cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--gd-text-mute);">Cargando…</td></tr>';
   try {
     const filas = await apiUsuarios({ accion: 'listar' });
-    if (!filas.length) { cont.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--gd-text-mute);">Sin usuarios.</td></tr>'; return; }
+    if (!filas.length) { cont.innerHTML = '<tr><td colspan="7" style="padding:14px;color:var(--gd-text-mute);">Sin usuarios.</td></tr>'; return; }
     const activos = filas.filter(u => u.activo !== false).length;
     const c = el('adm-n-usuarios'); if (c) c.textContent = activos + ' / ' + filas.length;
     cont.innerHTML = filas.map(u => {
@@ -6036,12 +6133,13 @@ async function renderUsuarios() {
       return `<tr${u.activo ? '' : ' style="opacity:.5;"'}>
         <td><b>${GD.esc(u.usuario)}</b></td>
         <td>${GD.esc(u.nombre || '')}</td>
-        <td><span class="gd-user-rol${u.rol === 'admin' ? ' admin' : ''}">${
-          { admin:'Admin', tecnico:'Técnico' }[u.rol] || 'Usuario'}</span>
+        <td><span class="gd-user-rol${/^admin/.test(u.rol) ? ' admin' : ''}">${
+          ETIQUETA_ROL[u.rol] || 'Usuario'}</span>
           <br><span style="font-size:.7rem;color:${
             u.codigo_recurso ? 'var(--gd-text-mute)' : (u.rol === 'tecnico' ? '#dc2626' : 'var(--gd-text-mute)')
             };font-weight:${!u.codigo_recurso && u.rol === 'tecnico' ? '700' : '400'};">Cód. recurso: ${
             GD.esc(u.codigo_recurso || (u.rol === 'tecnico' ? 'SIN ASIGNAR' : '—'))}</span></td>
+        <td style="font-size:.82rem;">${GD.esc(ETIQUETA_AREA[u.area] || ETIQUETA_AREA.ingenieria)}</td>
         <td style="font-size:.82rem;color:var(--gd-text-mute);">${GD.esc(acceso)}</td>
         <td>${u.activo ? '🟢 Activo' : '⚪ Inactivo'}${u.debe_cambiar_password ? ' · 🔑' : ''}</td>
         <td style="white-space:nowrap;">
@@ -6055,13 +6153,39 @@ async function renderUsuarios() {
       </tr>`;
     }).join('');
   } catch (e) {
-    cont.innerHTML = `<tr><td colspan="6" style="padding:14px;color:var(--gd-error);">${GD.esc(e.message)}</td></tr>`;
+    cont.innerHTML = `<tr><td colspan="7" style="padding:14px;color:var(--gd-error);">${GD.esc(e.message)}</td></tr>`;
   }
 }
 
 /* El código de recurso lo necesita cualquiera que registre incidencias, no
    sólo el técnico. Obligatorio para el técnico, opcional para los demás: una
    cuenta de oficina que nunca sale a campo no tiene por qué tener uno. */
+const ETIQUETA_ROL  = { admin: 'Admin', admin_servicio: 'Admin de área',
+                        tecnico: 'Técnico', usuario: 'Usuario' };
+const ETIQUETA_AREA = { ingenieria: 'Ingeniería', servicio: 'Servicio' };
+
+/* Qué cuentas puede crear cada administrador. Es el mismo reparto que impone
+   api/_lib/areas.js; aquí sólo se oculta lo que de todos modos sería
+   rechazado, para no ofrecer algo que va a fallar. */
+const ROLES_QUE_PUEDE_CREAR = {
+  admin:          ['usuario', 'tecnico', 'admin_servicio', 'admin'],
+  admin_servicio: ['tecnico', 'admin_servicio'],
+};
+
+/** Deja el formulario de alta con lo que el rol de la sesión puede repartir. */
+function usuariosPrepararFormulario() {
+  const permitidos = ROLES_QUE_PUEDE_CREAR[rolSesion()] || [];
+  const sel = el('nu-rol');
+  [...sel.options].forEach(o => { o.hidden = !permitidos.includes(o.value); });
+  if (!permitidos.includes(sel.value)) sel.value = permitidos[0] || '';
+  // El área sólo la elige el administrador del portal
+  // (La columna «Área» de la tabla se deja siempre: quien administra un área
+  //  sólo recibe sus propias filas, así que no hay nada que esconder.)
+  const campoArea = el('nu-area-campo');
+  if (campoArea) campoArea.hidden = !GD.sesion.esAdmin;
+  usuarioRolCambio();
+}
+
 function usuarioRolCambio() {
   const esTec = el('nu-rol').value === 'tecnico';
   el('nu-cod-lbl').textContent = esTec ? 'Código de recurso *' : 'Código de recurso (opcional)';
@@ -6084,7 +6208,10 @@ async function usuarioCrear() {
     return;
   }
   try {
-    await apiUsuarios({ accion: 'crear', usuario, nombre, rol, password, codigo_recurso: codigo });
+    // El área sólo se manda si la sesión puede elegirla; si no, la pone el
+    // servidor con la de quien crea.
+    const area = GD.sesion.esAdmin ? el('nu-area').value : undefined;
+    await apiUsuarios({ accion: 'crear', usuario, nombre, rol, password, codigo_recurso: codigo, area });
     toast(`✅ Usuario "${usuario}" creado.`);
     el('nu-usuario').value = ''; el('nu-nombre').value = ''; el('nu-pwd').value = '';
     el('nu-codigo').value = '';
@@ -7361,6 +7488,12 @@ async function init() {
   // Quién es y qué puede hacer: lo decide el servidor, no el navegador
   await GD.sesion.cargar();
   aplicarPermisos();
+
+  /* El administrador de Servicio entra a este archivo sólo porque aquí vive
+     el panel de incidencias. Ni cotiza ni toca el catálogo, así que el resto
+     del arranque —utilidades, materiales, carrito— no se ejecuta: además de
+     sobrar, cargaría el catálogo entero para nada. */
+  if (esAdminDeServicio()) { activarModoServicio(); GD.refrescar(); return; }
 
   // Set today's date
   const today = new Date();

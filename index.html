@@ -269,7 +269,7 @@ iframe.activo { opacity: 1; pointer-events: auto; }
 
 <script src="gd-ui.js?v=20260906"></script>
 <script>
-const V = '20261028c';
+const V = '20261029';
 
 /* Los módulos, agrupados por lo que hace la persona con ellos.
    El orden no es alfabético: es el del flujo de trabajo real. */
@@ -293,6 +293,12 @@ const GRUPOS = [
        administrador del cotizador. */
     { id: 'incidencias',   ruta: 'incidencias.html',   ico: '🕐', nombre: 'Incidencias',      titulo: 'Control de Incidencias',
       roles: ['admin', 'usuario', 'tecnico'] },
+    /* El administrador de un área que no es Ingeniería entra al mismo archivo
+       del cotizador, porque ahí vive el panel de incidencias, pero el propio
+       cotizador.html se recorta solo para él: ni cotiza ni ve el catálogo.
+       La ruta va literal, como todas, no armada a partir del id. */
+    { id: 'incidencias-adm', ruta: 'cotizador.html',   ico: '🕐', nombre: 'Incidencias',      titulo: 'Control de Incidencias',
+      roles: ['admin_servicio'] },
   ]},
   { grupo: 'Ingeniería', modulos: [
     { id: 'isometrico',    ruta: 'isometrico.html',    ico: '📐', nombre: 'Isométrico',        titulo: 'Isométrico PIPRO' },
@@ -453,7 +459,12 @@ async function entrar() {
     nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '··';
   document.getElementById('cuenta-n').textContent = nombre;
   const rol = document.getElementById('cuenta-r');
-  rol.textContent = { admin:'Administrador', tecnico:'Técnico' }[s.rol] || 'Usuario';
+  /* El área sólo se nombra cuando no es Ingeniería: en un portal donde casi
+     todos son de Ingeniería, repetirlo en cada sesión es ruido. */
+  const etiquetaRol = { admin:'Administrador', tecnico:'Técnico',
+                        admin_servicio:'Admin de área' }[s.rol] || 'Usuario';
+  rol.textContent = s.area && s.area !== 'ingenieria'
+    ? `${etiquetaRol} · ${s.areaNombre || s.area}` : etiquetaRol;
   rol.classList.toggle('admin', s.rol === 'admin');
   document.getElementById('menu-admin').hidden = s.rol !== 'admin';
 

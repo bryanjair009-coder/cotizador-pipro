@@ -25,9 +25,14 @@ const b64 = (buf) => Buffer.from(buf).toString('base64url');
 
 // ── Sesiones ─────────────────────────────────────────────────────────────────
 
-/** Firma un payload de sesión. Devuelve "<body>.<hmac>". */
-export function signSession({ usuario, rol, nombre }) {
-  const payload = { u: usuario, r: rol, n: nombre || usuario, exp: Date.now() + TTL_MS };
+/* Firma un payload de sesión. Devuelve "<body>.<hmac>".
+   `a` es el área (Ingeniería o Servicio) y viaja firmada a propósito: es lo
+   que separa los datos de una de los de la otra, así que no puede venir del
+   navegador ni consultarse en cada petición. Una cookie emitida antes de que
+   existieran las áreas no la trae; `areaDe()` la toma como de Ingeniería. */
+export function signSession({ usuario, rol, nombre, area }) {
+  const payload = { u: usuario, r: rol, n: nombre || usuario, a: area || 'ingenieria',
+                    exp: Date.now() + TTL_MS };
   const body = b64(JSON.stringify(payload));
   const mac = crypto.createHmac('sha256', secret()).update(body).digest('base64url');
   return `${body}.${mac}`;

@@ -10,6 +10,7 @@
 
 import { sb, bitacora } from './_lib/sb.js';
 import { proteger, rateLimit, leerJSON } from './_lib/guard.js';
+import { areaDe, areaValida, esAdminDeArea, TABLAS_POR_AREA } from './_lib/areas.js';
 
 // ── Lista blanca: tabla → operación → rol mínimo ──────────────────────────────
 const PERMISOS = {
@@ -18,13 +19,16 @@ const PERMISOS = {
   requisiciones: { select: 'todos', upsert: 'todos', delete: 'todos' },
   meta:          { select: 'todos', upsert: 'mixto', delete: 'admin' },
   bitacora:      { select: 'admin' },
-  // Quién da de alta una empresa con proyecto activo: sólo el administrador.
-  // Leerlas sí puede cualquiera, porque el técnico necesita el desplegable.
-  proyectos:     { select: 'todos', upsert: 'admin', delete: 'admin' },
+  /* Quién da de alta una empresa con proyecto activo: el administrador de su
+     área (`admin` en Ingeniería, `admin_servicio` en Servicio). Leerlas sí
+     puede cualquiera, porque el técnico necesita el desplegable — pero sólo
+     las de su área, que eso lo impone el filtro de más abajo. */
+  proyectos:     { select: 'todos', upsert: 'admin_area', delete: 'admin_area' },
   /* Incidencias: cada quien las suyas. `propio` no es un rol, es una marca que
      se resuelve más abajo acotando la consulta y forzando el `usuario` de cada
-     renglón que se escribe. Un administrador las ve y las corrige todas. */
-  incidencias:   { select: 'propio', upsert: 'propio', delete: 'admin' },
+     renglón que se escribe. El administrador del área las ve y las corrige
+     todas, las de su área. */
+  incidencias:   { select: 'propio', upsert: 'propio', delete: 'admin_area' },
 };
 
 /* Tablas que llevan columna `usuario` y por tanto admiten que el servidor la
@@ -88,8 +92,13 @@ export function sanearQuery(qs) {
   return '?' + partes.join('&');
 }
 
+/* `admin` exige al administrador del portal (catálogo, utilidades, bitácora);
+   `admin_area`, al que manda en su área, que puede ser el de Servicio. */
 function permitido(rol, exigido) {
-  return exigido === 'todos' || (exigido === 'admin' && rol === 'admin');
+  if (exigido === 'todos') return true;
+  if (exigido === 'admin') return rol === 'admin';
+  if (exigido === 'admin_area') return esAdminDeArea(rol);
+  return false;
 }
 
 /* Columnas que un no-administrador NO debe recibir, por tabla.
@@ -116,9 +125,39 @@ function quitarReservadas(tabla, filas) {
    cliente ya mandó un `usuario=eq.otro`, PostgREST aplicaría los dos y no
    devolvería nada, que es justo lo que debe pasar. */
 function acotarAlUsuario(qs, usuario) {
+  return añadirFiltro(qs, 'usuario=eq.' + encodeURIComponent(usuario));
+}
+
+/* Acota una consulta al área de la sesión. Es la frontera entre Ingeniería y
+   Servicio: cada una ve su personal, sus empresas y sus horas, y ninguna sabe
+   que la otra existe. Se añade aquí, con el área que viene FIRMADA en la
+   cookie, nunca con lo que mande el navegador. */
+function acotarAlArea(qs, area) {
+  return añadirFiltro(qs, 'area=eq.' + encodeURIComponent(area));
+}
+
+/* Ids de los renglones que YA existen y no son del área de quien escribe.
+   Un upsert con `id` es un UPDATE encubierto: sin esta comprobación, mandar
+   el id de un proyecto de Ingeniería desde Servicio lo reescribiría entero.
+   Los renglones sin `id` son altas y no se consultan. */
+async function idsDeOtraArea(tabla, filas, area) {
+  const ids = [...new Set(filas.map(f => +f.id).filter(Number.isFinite))];
+  if (!ids.length) return [];
+  const existentes = await sb.select(tabla, `?select=id&id=in.(${ids.join(',')})&area=eq.${encodeURIComponent(area)}`);
+  const mios = new Set((existentes || []).map(r => String(r.id)));
+  // Lo que no aparece como propio es de otra área o no existe (y nacerá aquí).
+  const ajenos = [];
+  for (const id of ids) {
+    if (mios.has(String(id))) continue;
+    const todos = await sb.select(tabla, `?select=id&id=eq.${id}&limit=1`);
+    if (todos?.length) ajenos.push(id);
+  }
+  return ajenos;
+}
+
+function añadirFiltro(qs, extra) {
   const base = sanearQuery(qs).replace(/^\?/, '');
-  const mio  = 'usuario=eq.' + encodeURIComponent(usuario);
-  return '?' + (base ? base + '&' + mio : mio);
+  return '?' + (base ? base + '&' + extra : extra);
 }
 
 export default async function handler(req, res) {
@@ -152,13 +191,29 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'No tienes permisos para esta operación.', code: 'SIN_PERMISO' });
     }
 
-    // Un administrador ve y corrige todo; los demás, sólo lo suyo
-    const soloLoPropio = exigido === 'propio' && s.r !== 'admin';
+    // El administrador del área ve y corrige todo lo suyo; los demás, sólo
+    // los renglones que ellos mismos registraron.
+    const soloLoPropio = exigido === 'propio' && !esAdminDeArea(s.r);
+
+    /* El área manda sobre todo lo anterior: aunque el rol alcance, sólo se
+       toca lo de la propia área. `porArea` es verdadero para las tablas que
+       llevan esa columna. */
+    const porArea = TABLAS_POR_AREA.has(table);
+    const area = areaDe(s);
+
+    /* El administrador del portal puede ASOMARSE a otra área (`body.area`),
+       porque es quien responde por todo el sistema. Sólo para leer: lo que
+       escribe cae siempre en la suya, para que nadie acabe con renglones
+       mezclados ni un archivo de carga con horas de dos áreas. El de Servicio
+       no tiene esta llave: su `area` es la suya y punto. */
+    const areaVista = (s.r === 'admin' && areaValida(body.area)) ? body.area : area;
 
     switch (op) {
       case 'select': {
-        const out = await sb.select(table, soloLoPropio ? acotarAlUsuario(query, s.u) : sanearQuery(query));
-        return res.status(200).json(s.r === 'admin' ? out : quitarReservadas(table, out));
+        let q = soloLoPropio ? acotarAlUsuario(query, s.u) : sanearQuery(query);
+        if (porArea) q = acotarAlArea(q, areaVista);
+        const out = await sb.select(table, q);
+        return res.status(200).json(esAdminDeArea(s.r) ? out : quitarReservadas(table, out));
       }
 
       case 'upsert': {
@@ -180,20 +235,35 @@ export default async function handler(req, res) {
           else filas.forEach(f => { if (!f.usuario) f.usuario = s.u; });
         }
 
+        /* El área se estampa igual que el usuario: de la sesión, nunca de lo
+           que mande el navegador. Y si el renglón trae `id`, se comprueba
+           antes que ese id sea del área: un upsert con el id de otra área lo
+           sobrescribiría y de paso se lo llevaría consigo. */
+        if (porArea) {
+          filas.forEach(f => { f.area = area; });
+          const ajenos = await idsDeOtraArea(table, filas, area);
+          if (ajenos.length) {
+            return res.status(403).json({
+              error: 'Ese registro pertenece a otra área.', code: 'OTRA_AREA' });
+          }
+        }
+
         /* La empresa y el folio se copian del proyecto aquí, no se aceptan del
            navegador. Dos razones: el técnico nunca recibe el folio (es dato
            reservado al administrador), y aunque lo recibiera no debe poder
-           cargarle horas a un folio que no le corresponde. */
+           cargarle horas a un folio que no le corresponde. El proyecto se
+           busca dentro del área, así que no se pueden cargar horas a un
+           proyecto de la otra. */
         if (table === 'incidencias') {
           const ids = [...new Set(filas.map(f => +f.proyecto_id).filter(Boolean))];
           if (!ids.length) return res.status(400).json({ error: 'Falta el proyecto de la incidencia.' });
           const proys = await sb.select('proyectos',
-            `?select=id,empresa,folio,activo&id=in.(${ids.join(',')})`);
+            `?select=id,empresa,folio,activo&area=eq.${encodeURIComponent(area)}&id=in.(${ids.join(',')})`);
           const porId = new Map((proys || []).map(p => [String(p.id), p]));
           for (const f of filas) {
             const p = porId.get(String(f.proyecto_id));
             if (!p) return res.status(400).json({ error: 'El proyecto de la incidencia no existe.' });
-            if (p.activo === false && s.r !== 'admin') {
+            if (p.activo === false && !esAdminDeArea(s.r)) {
               return res.status(400).json({ error: `El proyecto de ${p.empresa} ya no está activo.` });
             }
             f.empresa = p.empresa;
@@ -208,8 +278,10 @@ export default async function handler(req, res) {
       }
 
       case 'delete': {
-        const f = sanearQuery(filter).replace(/^\?/, '');
+        let f = sanearQuery(filter).replace(/^\?/, '');
         if (!f) return res.status(400).json({ error: 'Un borrado siempre requiere filtro' });
+        // Borrar por id cruzaría la frontera; el área se añade al filtro.
+        if (porArea) f += '&area=eq.' + encodeURIComponent(area);
         const out = await sb.del(table, f);
         await bitacora(s, 'BORRADO', table, f, req);
         return res.status(200).json(out);

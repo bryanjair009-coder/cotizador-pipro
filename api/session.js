@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { getSession, clearSessionCookie } from './_lib/auth.js';
+import { areaDe, ETIQUETA_AREA } from './_lib/areas.js';
 import { baseHeaders } from './_lib/guard.js';
 import { bitacora } from './_lib/sb.js';
 
@@ -26,6 +27,8 @@ export default async function handler(req, res) {
     usuario: s.u,
     nombre: s.n,
     rol: s.r,
+    area: areaDe(s),
+    areaNombre: ETIQUETA_AREA[areaDe(s)],
     expira: s.exp,
   });
 }

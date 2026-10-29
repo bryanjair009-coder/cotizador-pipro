@@ -43,8 +43,11 @@ window.SB = (() => {
   return {
     configured: true,
 
-    /** Lee registros de una tabla. queryStr ej: '?order=nombre.asc' */
-    getAll: (table, query = '') => llamar({ op: 'select', table, query }),
+    /* Lee registros de una tabla. queryStr ej: '?order=nombre.asc'
+       `area` sólo lo atiende el servidor cuando la sesión es del
+       administrador del portal, y sólo para mirar: lo que se escribe cae
+       siempre en el área de quien escribe. */
+    getAll: (table, query = '', area = undefined) => llamar({ op: 'select', table, query, area }),
 
     /** Inserta o actualiza según onConflict (nombre de columna) */
     upsert: (table, data, onConflict = '') => llamar({ op: 'upsert', table, data, onConflict }),

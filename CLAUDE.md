@@ -327,6 +327,45 @@ genera siempre los 5 archivos cuando hay material.
   catálogo se asume PIPRO; un material rápido (`TEMP-…`) cae en `otros`. Antes
   un tornillo capturado a mano se iba por «Canal PIPRO» y no lo compraba nadie.
 
+## Áreas: Ingeniería y Servicio (2026-10-29)
+
+- **Migración: `SUPABASE_AREAS.sql`, correr ANTES de desplegar.** Añade la
+  columna `area` a `usuarios`, `proyectos` e `incidencias` (por omisión
+  `ingenieria`, así que nada de lo existente se mueve), suma el rol
+  `admin_servicio` al CHECK y vuelve los folios únicos **por área**.
+- **Dos áreas comparten el programa, no los datos.** Cada una tiene su
+  personal, sus empresas con proyecto y sus horas. `api/_lib/areas.js` es el
+  único lugar donde se define quién manda sobre qué; `db.js` y `usuarios.js`
+  lo importan para no poder contradecirse.
+- **El área viaja FIRMADA en la cookie** (`a` del payload). No se acepta del
+  navegador ni se consulta en cada petición. Una cookie emitida antes de esta
+  versión no la trae y `areaDe()` la toma como de Ingeniería.
+- **Rol `admin_servicio`**: administra incidencias y personal **de su área y
+  nada más**. No ve catálogo, utilidades ni bitácora, no puede crear un
+  `admin` ni un `usuario`, y en `usuarios.js` cada actualización y cada
+  borrado pasan por `aMiAlcance()`.
+- **`admin` sigue siendo el del portal**: gobierna las cuentas de todas las
+  áreas (es quien da de alta al de Servicio) y puede **asomarse** a los datos
+  de otra área con `body.area` en un `select`. Sólo mirar: lo que escribe cae
+  siempre en la suya, porque un archivo de carga con horas de dos áreas no lo
+  recibe iScala. El panel lo refleja con `incSoloLectura()`.
+- **Un upsert con `id` es un UPDATE encubierto.** Sin comprobarlo, mandar el
+  id de un proyecto de Ingeniería desde Servicio lo reescribiría entero y se
+  lo llevaría de área. Lo frena `idsDeOtraArea()` en db.js. El `delete`
+  tampoco confía en el filtro del cliente: se le añade el área.
+- **Los folios son únicos por (area, folio)**, no por folio a secas: si no,
+  Servicio no podría registrar un proyecto porque Ingeniería ya usó ese
+  folio, y ni siquiera podría ver por qué. NONPROJECT sigue siendo la
+  excepción dentro de cada área.
+- **cotizador.html se recorta solo** para `admin_servicio`
+  (`activarModoServicio()`): se quitan la página del cotizador, su pestaña y
+  las secciones del panel que no son suyas, e `init()` ni siquiera carga el
+  catálogo. El candado real está en `api/db.js`; esto evita enseñar algo que
+  de todos modos el servidor rechazaría.
+- `MODULOS_POR_ROL` en gd-ui.js sustituyó a `MODULOS_DEL_TECNICO`: cada rol
+  recortado declara sus archivos. El de Servicio llega a cotizador.html
+  porque ahí vive su panel.
+
 ## Control de incidencias (incidencias.html, 2026-10)
 
 - **Migración: `SUPABASE_INCIDENCIAS.sql`, correr ANTES de desplegar.** Crea
