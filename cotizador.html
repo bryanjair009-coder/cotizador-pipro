@@ -5799,7 +5799,27 @@ async function incGuardarProyecto() {
     el('inc-np-empresa').value = ''; el('inc-np-folio').value = ''; el('inc-np-nota').value = '';
     await incCargarProyectos();
     incAvisoProy('success', `✅ ${GD.esc(empresa)} · ${GD.esc(folio)} agregado.`);
-  } catch (e) { incAvisoProy('error', 'No se pudo guardar: ' + GD.esc(e.message)); }
+  } catch (e) { incAvisoProy('error', incErrorProyecto(e, folio)); }
+}
+
+/* El índice que permite repetir NONPROJECT vive en Supabase, no aquí. Si la
+   base todavía trae el viejo, el alta falla con un 23505 ilegible; se traduce
+   a instrucciones en vez de enseñar el texto crudo de PostgreSQL. */
+function incErrorProyecto(e, folio) {
+  const m = e && e.message || '';
+  if (/proyectos_folio_uniq/.test(m) && folio === INC_SIN_PROYECTO) {
+    return `A la base todavía le falta el cambio que permite repetir ${INC_SIN_PROYECTO}. ` +
+           'Córrelo una sola vez en el editor SQL de Supabase:<br>' +
+           '<code style="display:block;margin-top:6px;white-space:pre;font-size:12px;">' +
+           'DROP INDEX IF EXISTS proyectos_folio_uniq;\n' +
+           'CREATE UNIQUE INDEX proyectos_folio_uniq\n' +
+           "  ON proyectos (folio) WHERE folio &lt;&gt; 'NONPROJECT';\n" +
+           'CREATE UNIQUE INDEX IF NOT EXISTS proyectos_nonproject_uniq\n' +
+           "  ON proyectos (empresa) WHERE folio = 'NONPROJECT';</code>";
+  }
+  if (/proyectos_nonproject_uniq/.test(m)) return 'Esa empresa ya está registrada como ' + INC_SIN_PROYECTO + '.';
+  if (/proyectos_folio_uniq/.test(m))      return `El folio <b>${GD.esc(folio)}</b> ya está registrado.`;
+  return 'No se pudo guardar: ' + GD.esc(m);
 }
 
 async function incActivarProyecto(id, activo) {

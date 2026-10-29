@@ -357,6 +357,17 @@ genera siempre los 5 archivos cuando hay material.
   navegador no protege nada: el `select` lo arma el cliente y podría mandar
   `select=*`. El técnico elige **empresa**; el servidor copia empresa y folio
   del proyecto al guardar, y también fija el `usuario` con la sesión.
+- **«Mis registros» de incidencias.html pide el filtro `usuario` explícito.**
+  El servidor sólo acota a lo propio cuando quien consulta NO es administrador,
+  así que un admin veía ahí los registros de todo el mundo. Esa pantalla es el
+  control diario de cada quien; la supervisión vive en el panel mensual.
+- **`NONPROJECT` es el único folio que se repite**: no es un folio, es la falta
+  de uno (trabajo sin proyecto facturable), y varias empresas lo llevan a la
+  vez. Por eso `proyectos_folio_uniq` es un índice **parcial**
+  (`WHERE folio <> 'NONPROJECT'`) y lo acompaña `proyectos_nonproject_uniq`
+  sobre `empresa`, que impide la misma empresa dos veces sin proyecto.
+  `incErrorProyecto()` traduce el 23505 a instrucciones si la base todavía
+  trae el índice viejo, porque el cambio es DDL y no lo puede hacer el portal.
 - Empresa y folio se **copian** a la incidencia, no se referencian: si mañana
   el proyecto se corrige o se da de baja, lo ya reportado no cambia.
 - Índice único por (usuario, fecha, horarios, folio, actividad): un doble clic

@@ -448,9 +448,13 @@ async function cargarMisRegistros() {
   const hasta = `${a}-${String(m).padStart(2,'0')}-${String(new Date(a, m, 0).getDate()).padStart(2,'0')}`;
   let filas = [];
   try {
-    // El servidor ya acota a los registros propios; aquí sólo se pide el mes
+    /* El filtro por usuario se pide explícitamente: el servidor sólo acota a
+       lo propio cuando quien consulta NO es administrador, y un administrador
+       en esta pantalla está llevando su control diario, no supervisando. Los
+       registros de todos se ven en el panel de administrador. */
+    const mio = encodeURIComponent((S.sesion && S.sesion.usuario) || '');
     filas = await SB.getAll('incidencias',
-      `?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.desc`) || [];
+      `?usuario=eq.${mio}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.desc`) || [];
   } catch (e) {
     el('tbody-tec').innerHTML = `<tr><td colspan="7" class="vacio">No se pudieron cargar: ${esc(e.message)}</td></tr>`;
     return;
