@@ -1696,8 +1696,39 @@ Precio de venta soportería = costo × 1.40"></button>
 
     <!-- ── CATÁLOGO ────────────────────────────────────────────────────── -->
     <section class="adm-sec" id="adm-catalogo">
+
+    <!-- ── ALTA POR MACHOTE ───────────────────────────────────────────────
+         Añade y actualiza. Es la vía recomendada para dar de alta material:
+         el cargador de abajo REEMPLAZA el catálogo entero. -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">
+        🧾 Alta de materiales por machote
+        <button class="gd-i" type="button" data-info-title="Machote de materiales"
+                data-info="Descarga el formato, llénalo y vuélvelo a subir. Trae las cinco columnas del catálogo: <b>descripción, número de parte, categoría, precio de venta y costo de compra</b>.<br><br>Lo que subas se <b>agrega o actualiza</b>: el material que ya exista se reconoce por su número de parte y sólo cambian los campos que traiga el archivo. <b>Nada se borra.</b><br><br>Antes de guardar verás exactamente qué va a entrar, qué se va a actualizar y qué renglones se rechazan y por qué."
+                data-fuente="El precio de venta se redondea a pesos enteros, como en el resto del portal"></button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn btn-secondary" onclick="descargarMachoteMateriales()">⬇️ Descargar machote</button>
+        <span style="font-size:.8rem;color:var(--gd-text-mute);">
+          Llénalo y súbelo aquí. Se agrega lo nuevo y se actualiza lo existente; nada se borra.
+        </span>
+      </div>
+      <label class="upload-area" for="machote-file">
+        <input type="file" id="machote-file" accept=".xls,.xlsx" onchange="leerMachoteMateriales(this)">
+        <div>📂 Sube el machote lleno</div>
+        <div style="color:var(--gd-text-soft);font-size:.82rem;margin-top:4px;">Descripción · No. de parte · Categoría · Precio de venta · Costo de compra</div>
+      </label>
+      <div id="machote-status"></div>
+      <div id="machote-preview" style="margin-top:12px;"></div>
+    </div>
+
     <div class="card">
       <div class="sec-title" style="margin-top:0;">📁 Actualizar Base de Datos de Materiales</div>
+      <div class="error-box" style="margin-bottom:10px;">
+        ⚠️ <b>Esto reemplaza el catálogo completo</b>: lo que no venga en el archivo se pierde,
+        incluidos categorías y costos de compra. Para dar de alta material nuevo usa el
+        <b>machote</b> de arriba, que agrega sin borrar.
+      </div>
       <div class="info-box" style="margin-bottom:10px;">
         Sube el Excel con hoja <b>"Lista de Materiales"</b> (col D = Descripción, col E = No. Parte, col H = Precio Unitario MXN).
       </div>
@@ -6556,6 +6587,334 @@ async function addProduct() {
   el('new-desc').value=''; el('new-part').value=''; el('new-price').value='';
   el('new-moneda').value='MXN'; el('new-tc').value=''; toggleNewProdMoneda();
   if (state.adminOk) renderAdminTable();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MACHOTE DE MATERIALES
+
+   Formato de ida y vuelta para dar de alta material sin capturarlo a mano.
+   A diferencia del cargador de «Lista de Materiales» —que reemplaza el
+   catálogo entero y sólo entiende columnas fijas—, éste:
+     · reconoce las columnas por su ENCABEZADO, en cualquier orden,
+     · trae categoría y costo de compra, que el otro ni mira,
+     · AGREGA y ACTUALIZA; no borra nada,
+     · enseña lo que va a hacer antes de hacerlo.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const MACHOTE_HOJA = 'Materiales';
+const MACHOTE_COLS = [
+  { clave: 'descripcion',  titulo: 'Descripción',      ancho: 52, alias: ['descripcion', 'material', 'nombre'] },
+  { clave: 'numero_parte', titulo: 'No. de parte',     ancho: 20, alias: ['numeroparte', 'nodeparte', 'noparte', 'parte', 'sku', 'codigo'] },
+  { clave: 'categoria',    titulo: 'Categoría',        ancho: 18, alias: ['categoria', 'familia', 'tipo'] },
+  { clave: 'precio',       titulo: 'Precio de venta',  ancho: 16, alias: ['preciodeventa', 'precioventa', 'precio', 'pv', 'preciounitario'] },
+  { clave: 'costo_compra', titulo: 'Costo de compra',  ancho: 16, alias: ['costodecompra', 'costocompra', 'costo'] },
+];
+
+/** Normaliza un encabezado para compararlo: sin acentos, sin signos, en minúsculas. */
+const _norm = s => String(s || '').toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9]/g, '');
+
+/** Genera y descarga el machote vacío, con sus instrucciones y categorías. */
+function descargarMachoteMateriales() {
+  const wb = XLSX.utils.book_new();
+  const AZUL = '1F3864', GRIS = 'F2F2F2', AMAR = 'FFF2CC';
+
+  // ── Hoja 1: la de llenar. Sólo encabezados: sin renglones de ejemplo que
+  //    alguien pueda olvidar borrar y terminen dados de alta como material.
+  const ws = {};
+  MACHOTE_COLS.forEach((c, i) => {
+    ws[XLSX.utils.encode_cell({ r: 0, c: i })] = xlCell(c.titulo, true, AZUL, 'FFFFFF', null, 'center');
+  });
+  // Un renglón amarillo vacío, para que se vea dónde empieza la captura
+  MACHOTE_COLS.forEach((c, i) => {
+    ws[XLSX.utils.encode_cell({ r: 1, c: i })] =
+      xlCell('', false, AMAR, null, c.clave === 'precio' || c.clave === 'costo_compra' ? '#,##0.00' : null);
+  });
+  ws['!ref']  = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 200, c: MACHOTE_COLS.length - 1 } });
+  ws['!cols'] = MACHOTE_COLS.map(c => ({ wch: c.ancho }));
+  XLSX.utils.book_append_sheet(wb, ws, MACHOTE_HOJA);
+
+  // ── Hoja 2: qué poner en cada columna, con un ejemplo que vive AQUÍ y no
+  //    en la hoja de captura.
+  const inst = [
+    ['Cómo llenar este machote'],
+    [],
+    ['1. Captura a partir del segundo renglón de la hoja «' + MACHOTE_HOJA + '». No cambies los encabezados.'],
+    ['2. Un renglón por material. El número de parte identifica al material: si ya existe en el catálogo, se actualiza.'],
+    ['3. Lo que dejes en blanco no se toca. Para corregir sólo el costo, basta con el número de parte y el costo.'],
+    ['4. Súbelo en Administrador → Catálogo → «Alta de materiales por machote». Verás qué va a pasar antes de guardar.'],
+    [],
+    ['Columna', 'Qué va', '¿Obligatoria?', 'Ejemplo'],
+    ['Descripción',     'El nombre del material como debe salir en la cotización', 'Sí, para material nuevo', 'Tubo aluminio 20 mm x 5.8 m'],
+    ['No. de parte',    'El código del material. Es lo que lo identifica.',         'Sí, siempre',             '81T20 01'],
+    ['Categoría',       'Una de las de la hoja «Categorías». Vale el nombre o la clave.', 'Sí, para material nuevo', 'PIPRO aluminio'],
+    ['Precio de venta', 'En pesos. Se redondea hacia arriba a pesos enteros.',      'Sí, para material nuevo', '795'],
+    ['Costo de compra', 'En pesos. Lo que nos cuesta. No sale en documentos del cliente.', 'No',                '254.36'],
+  ];
+  const wsI = XLSX.utils.aoa_to_sheet(inst);
+  wsI['!cols'] = [{ wch: 18 }, { wch: 62 }, { wch: 24 }, { wch: 30 }];
+  wsI['A1'].s = { font: { name: 'Arial', sz: 12, bold: true } };
+  [0, 1, 2, 3].forEach(c => {
+    const ref = XLSX.utils.encode_cell({ r: 7, c });
+    if (wsI[ref]) wsI[ref].s = { font: { name: 'Arial', sz: 9, bold: true, color: { rgb: 'FFFFFF' } },
+                                 fill: { patternType: 'solid', fgColor: { rgb: AZUL } } };
+  });
+  XLSX.utils.book_append_sheet(wb, wsI, 'Instrucciones');
+
+  // ── Hoja 3: las categorías válidas, tal como las entiende el portal.
+  const cats = [['Clave', 'Nombre']].concat(CATEGORIAS.map(c => [c.valor, c.etiqueta]));
+  const wsC = XLSX.utils.aoa_to_sheet(cats);
+  wsC['!cols'] = [{ wch: 18 }, { wch: 24 }];
+  ['A1', 'B1'].forEach(ref => { wsC[ref].s = {
+    font: { name: 'Arial', sz: 9, bold: true, color: { rgb: 'FFFFFF' } },
+    fill: { patternType: 'solid', fgColor: { rgb: AZUL } } }; });
+  XLSX.utils.book_append_sheet(wb, wsC, 'Categorías');
+
+  XLSX.writeFile(wb, 'Machote_Materiales_PIPRO.xlsx');
+  toast('⬇️ Machote descargado. Llénalo y súbelo aquí mismo.');
+}
+
+/* Lo leído del machote, a la espera de que se confirme. Vive fuera de la
+   función para que el botón «Guardar» lo encuentre. */
+let _machote = null;
+
+/** Traduce lo que venga en la columna Categoría a una clave del catálogo. */
+function _categoriaDesdeTexto(v) {
+  const t = _norm(v);
+  if (!t) return '';
+  const porClave = CATEGORIAS.find(c => _norm(c.valor) === t);
+  if (porClave) return porClave.valor;
+  const porNombre = CATEGORIAS.find(c => _norm(c.etiqueta) === t);
+  return porNombre ? porNombre.valor : '';
+}
+
+/** Número con formato mexicano o estadounidense: «1,234.50» o «1234,50». */
+function _numeroDeCelda(v) {
+  if (typeof v === 'number') return v;
+  const t = String(v ?? '').trim().replace(/[$\s]/g, '');
+  if (!t) return null;
+  const limpio = /,\d{1,2}$/.test(t) && !/\./.test(t)
+    ? t.replace(/\./g, '').replace(',', '.')   // 1.234,50
+    : t.replace(/,/g, '');                     // 1,234.50
+  const n = parseFloat(limpio);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Lee el machote y arma la vista previa. No escribe nada todavía. */
+function leerMachoteMateriales(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  if (!_puedeEditarCatalogo('Cargar materiales')) { inp.value = ''; return; }
+  el('machote-status').innerHTML = '<div class="info-box">Leyendo el archivo…</div>';
+  el('machote-preview').innerHTML = '';
+  _machote = null;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const hoja = wb.SheetNames.includes(MACHOTE_HOJA) ? MACHOTE_HOJA : wb.SheetNames[0];
+      const filas = XLSX.utils.sheet_to_json(wb.Sheets[hoja], { header: 1, defval: '' });
+
+      /* El encabezado no se asume en el primer renglón: alguien puede dejar
+         un título arriba. Se busca el renglón que traiga el número de parte
+         y la descripción, dentro de los primeros diez. */
+      let fe = -1, mapa = null;
+      for (let i = 0; i < Math.min(filas.length, 10); i++) {
+        const m = {};
+        filas[i].forEach((celda, j) => {
+          const t = _norm(celda);
+          if (!t) return;
+          const col = MACHOTE_COLS.find(c => _norm(c.titulo) === t || c.alias.includes(t));
+          if (col && m[col.clave] === undefined) m[col.clave] = j;
+        });
+        if (m.numero_parte !== undefined && (m.descripcion !== undefined || m.precio !== undefined)) {
+          fe = i; mapa = m; break;
+        }
+      }
+      if (fe < 0) {
+        el('machote-status').innerHTML = '<div class="error-box">No encontré los encabezados del machote. ' +
+          'Descarga el formato de arriba y captura sobre él, sin cambiar los títulos de las columnas.</div>';
+        return;
+      }
+
+      const porParte = new Map(state.materiales.map(m => [String(m.numero_parte).trim().toUpperCase(), m]));
+      const nuevos = [], cambios = [], malos = [];
+      const vistos = new Set();
+
+      for (let i = fe + 1; i < filas.length; i++) {
+        const fila = filas[i];
+        const dato = k => mapa[k] === undefined ? '' : fila[mapa[k]];
+        const parte = String(dato('numero_parte') || '').trim();
+        const desc  = String(dato('descripcion')  || '').trim();
+        const cat   = String(dato('categoria')    || '').trim();
+        const pv    = _numeroDeCelda(dato('precio'));
+        const cc    = _numeroDeCelda(dato('costo_compra'));
+        if (!parte && !desc && pv === null && cc === null) continue;   // renglón vacío
+
+        const nRenglon = i + 1;
+        if (!parte) { malos.push({ nRenglon, desc, motivo: 'sin número de parte' }); continue; }
+        const llave = parte.toUpperCase();
+        if (vistos.has(llave)) { malos.push({ nRenglon, desc: parte, motivo: 'número de parte repetido en el archivo' }); continue; }
+        vistos.add(llave);
+
+        const existente = porParte.get(llave);
+        const catClave = cat ? _categoriaDesdeTexto(cat) : '';
+        if (cat && !catClave) {
+          malos.push({ nRenglon, desc: parte, motivo: `categoría "${cat}" no existe` });
+          continue;
+        }
+        if (pv !== null && pv < 0) { malos.push({ nRenglon, desc: parte, motivo: 'precio negativo' }); continue; }
+        if (cc !== null && cc < 0) { malos.push({ nRenglon, desc: parte, motivo: 'costo negativo' }); continue; }
+
+        if (!existente) {
+          // Un material nuevo necesita con qué nacer
+          const falta = [];
+          if (!desc)      falta.push('descripción');
+          if (!catClave)  falta.push('categoría');
+          if (!pv)        falta.push('precio de venta');
+          if (falta.length) { malos.push({ nRenglon, desc: parte, motivo: 'material nuevo sin ' + falta.join(', ') }); continue; }
+          nuevos.push({ numero_parte: parte, descripcion: desc, categoria: catClave,
+                        precio: redondearVenta(pv), costo_compra: cc,
+                        costo_origen: cc !== null ? 'lista' : null, nRenglon });
+        } else {
+          /* Lo que viene en blanco no se toca: así se puede corregir sólo el
+             costo de una pieza mandando dos columnas. */
+          const antes = {}, despues = {};
+          if (desc && desc !== existente.descripcion)        { antes.descripcion = existente.descripcion; despues.descripcion = desc; }
+          if (catClave && catClave !== categoriaDe(existente)) { antes.categoria = categoriaDe(existente); despues.categoria = catClave; }
+          if (pv !== null && redondearVenta(pv) !== +existente.precio) { antes.precio = +existente.precio; despues.precio = redondearVenta(pv); }
+          if (cc !== null && cc !== (+existente.costo_compra || null)) { antes.costo_compra = +existente.costo_compra || null; despues.costo_compra = cc; }
+          if (Object.keys(despues).length) cambios.push({ existente, antes, despues, nRenglon });
+        }
+      }
+
+      _machote = { nuevos, cambios, malos, archivo: file.name };
+      _pintarMachote();
+    } catch (err) {
+      el('machote-status').innerHTML = `<div class="error-box">No se pudo leer el archivo: ${GD.esc(err.message)}</div>`;
+    } finally {
+      inp.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/** Dibuja la vista previa de lo que haría la carga. */
+function _pintarMachote() {
+  const { nuevos, cambios, malos, archivo } = _machote;
+  const cat = v => (CATEGORIAS.find(c => c.valor === v) || {}).etiqueta || v;
+  const dinero = n => n === null || n === undefined ? '—' : fmtMXN(n);
+
+  if (!nuevos.length && !cambios.length) {
+    el('machote-status').innerHTML = `<div class="${malos.length ? 'error-box' : 'info-box'}">` +
+      (malos.length
+        ? `Ningún renglón de "${GD.esc(archivo)}" se puede cargar. Abajo está el motivo de cada uno.`
+        : `"${GD.esc(archivo)}" no trae nada que cambiar: lo que viene ya está igual en el catálogo.`) +
+      '</div>';
+  } else {
+    el('machote-status').innerHTML = `<div class="success-box">Leí "${GD.esc(archivo)}": ` +
+      `<b>${nuevos.length}</b> material(es) nuevo(s), <b>${cambios.length}</b> por actualizar` +
+      (malos.length ? `, <b>${malos.length}</b> rechazado(s)` : '') +
+      '. Revísalo y guarda.</div>';
+  }
+
+  const tabla = (titulo, cuerpo, cols) => !cuerpo ? '' : `
+    <div style="margin-top:12px;">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:6px;">${titulo}</div>
+      <div class="admin-wrap" style="max-height:280px;overflow:auto;">
+        <table class="admin-table"><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${cuerpo}</tbody></table>
+      </div>
+    </div>`;
+
+  const filasNuevas = nuevos.map(m => `<tr>
+      <td>${GD.esc(m.numero_parte)}</td><td>${GD.esc(m.descripcion)}</td>
+      <td>${GD.esc(cat(m.categoria))}</td>
+      <td style="text-align:right;">${dinero(m.precio)}</td>
+      <td style="text-align:right;">${dinero(m.costo_compra)}</td></tr>`).join('');
+
+  const etiqueta = { descripcion: 'Descripción', categoria: 'Categoría', precio: 'Precio', costo_compra: 'Costo' };
+  const filasCambio = cambios.map(c => `<tr>
+      <td>${GD.esc(c.existente.numero_parte)}</td>
+      <td>${GD.esc(c.existente.descripcion)}</td>
+      <td>${Object.keys(c.despues).map(k => {
+        const de = k === 'descripcion' || k === 'categoria'
+          ? GD.esc(k === 'categoria' ? cat(c.antes[k]) : c.antes[k] || '—')
+          : dinero(c.antes[k]);
+        const a = k === 'descripcion' || k === 'categoria'
+          ? GD.esc(k === 'categoria' ? cat(c.despues[k]) : c.despues[k])
+          : dinero(c.despues[k]);
+        return `<div style="font-size:.78rem;"><b>${etiqueta[k]}:</b> <span style="opacity:.6;text-decoration:line-through;">${de}</span> → ${a}</div>`;
+      }).join('')}</td></tr>`).join('');
+
+  const filasMalas = malos.map(m => `<tr>
+      <td style="width:70px;">Reng. ${m.nRenglon}</td>
+      <td>${GD.esc(m.desc || '(vacío)')}</td>
+      <td style="color:var(--gd-error);">${GD.esc(m.motivo)}</td></tr>`).join('');
+
+  el('machote-preview').innerHTML =
+    tabla(`🆕 Se dan de alta (${nuevos.length})`, filasNuevas,
+          ['No. de parte', 'Descripción', 'Categoría', 'Precio venta', 'Costo compra']) +
+    tabla(`✏️ Se actualizan (${cambios.length})`, filasCambio,
+          ['No. de parte', 'Descripción', 'Qué cambia']) +
+    tabla(`🚫 No se cargan (${malos.length})`, filasMalas, ['Renglón', 'Material', 'Motivo']) +
+    ((nuevos.length || cambios.length) ? `
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+        <button class="btn btn-primary" onclick="guardarMachoteMateriales()">💾 Guardar en el catálogo</button>
+        <button class="btn btn-secondary" onclick="_machote=null;el('machote-preview').innerHTML='';el('machote-status').innerHTML='';">Cancelar</button>
+      </div>` : '');
+}
+
+/** Aplica lo que la vista previa mostró: agrega y actualiza, nunca borra. */
+async function guardarMachoteMateriales() {
+  if (!_machote) return;
+  if (!_puedeEditarCatalogo('Cargar materiales')) return;
+  const { nuevos, cambios } = _machote;
+  el('machote-status').innerHTML = '<div class="info-box">⏳ Guardando…</div>';
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const tocados = [];
+
+  nuevos.forEach(m => {
+    const nuevo = {
+      numero_parte: m.numero_parte, descripcion: m.descripcion, categoria: m.categoria,
+      precio: m.precio,
+      costo_compra: m.costo_compra, costo_origen: m.costo_compra !== null ? 'lista' : null,
+      costo_fecha:  m.costo_compra !== null ? hoy : null, costo_fuentes: null,
+    };
+    state.materiales.push(nuevo);
+    tocados.push(nuevo);
+  });
+
+  cambios.forEach(c => {
+    Object.assign(c.existente, c.despues);
+    if (c.despues.costo_compra !== undefined) {
+      c.existente.costo_origen = 'lista';
+      c.existente.costo_fecha  = hoy;
+    }
+    tocados.push(c.existente);
+  });
+
+  try { localStorage.setItem('pipro_materiales', JSON.stringify(state.materiales)); } catch (e) {}
+  actualizarContadorMateriales();
+  populateDiamFilter();
+  renderAdminTable();
+
+  try {
+    /* filaMaterial() manda la fila COMPLETA: un upsert de PostgREST reescribe
+       con valores por defecto las columnas que no se envían. Ver «Trampa de
+       PostgREST» en CLAUDE.md. */
+    await window.SB.upsert('materiales', tocados.map(filaMaterial), 'numero_parte');
+    el('machote-status').innerHTML = `<div class="success-box">✅ Listo: ` +
+      `${nuevos.length} alta(s) y ${cambios.length} actualización(es) guardadas en el servidor ☁️.</div>`;
+  } catch (e) {
+    el('machote-status').innerHTML = `<div class="error-box">Se guardó en este navegador, ` +
+      `pero el servidor rechazó la escritura: ${GD.esc(e.message)}</div>`;
+  }
+  el('machote-preview').innerHTML = '';
+  _machote = null;
 }
 
 function uploadMateriales(inp) {

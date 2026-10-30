@@ -70,6 +70,36 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
     precios no finitos, URLs no http) antes de usarse.
   - `manual` → capturado a mano; siempre gana.
 
+### Machote de materiales (2026-10-30)
+
+- Panel admin → **Catálogo** → «Alta de materiales por machote»: descarga un
+  .xlsx con las cinco columnas del catálogo (**Descripción · No. de parte ·
+  Categoría · Precio de venta · Costo de compra**) y lo vuelve a leer.
+  Hojas: `Materiales` (la de llenar), `Instrucciones` y `Categorías`.
+- **La hoja de captura sale SIN renglones de ejemplo**, a propósito: un
+  ejemplo que alguien olvide borrar se daría de alta como material. El
+  ejemplo vive en la hoja de instrucciones.
+- **Agrega y actualiza; no borra.** Es lo contrario del cargador viejo de
+  «Lista de Materiales», que hace `replaceMateriales()` y se lleva por
+  delante categorías y costos de todo el catálogo. Ese cargador se quedó,
+  pero ahora avisa en rojo lo que hace.
+- Las columnas se reconocen **por encabezado** (sin acentos ni signos, con
+  alias), no por posición: el orden no importa y sobrevive a que alguien
+  deje un título arriba — el encabezado se busca en los primeros 10
+  renglones.
+- **Lo que viene en blanco no se toca**: con número de parte y costo basta
+  para corregir sólo el costo de una pieza. Un material **nuevo** sí exige
+  descripción, categoría y precio.
+- La categoría se acepta por clave (`acero_carbon`) o por nombre
+  («Acero al carbón»). Lo que no exista se rechaza con el renglón y el
+  motivo; nunca se inventa una categoría.
+- `_numeroDeCelda()` entiende `$1,254.50` y `1.234,50`. El precio pasa por
+  `redondearVenta()`, con su excepción de los centavos por debajo de $1.
+- **Nada se escribe hasta que se confirma**: la vista previa enseña altas,
+  cambios (valor viejo → nuevo) y rechazos con su motivo.
+- El upsert manda `filaMaterial()`, la fila completa. Ver «Trampa de
+  PostgREST».
+
 ### Lista de costeo PIPRO (2026-10)
 
 - La hoja **«Stock»** del libro «COSTEO TUBERIA ACTUAL» es la fuente: col. E =
