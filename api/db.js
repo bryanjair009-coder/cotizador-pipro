@@ -10,7 +10,7 @@
 
 import { sb, bitacora } from './_lib/sb.js';
 import { proteger, rateLimit, leerJSON } from './_lib/guard.js';
-import { areaDe, areaValida, esAdminDeArea, TABLAS_POR_AREA } from './_lib/areas.js';
+import { areaDe, areaValida, esAdminDeArea, folioVisiblePara, TABLAS_POR_AREA } from './_lib/areas.js';
 
 // ── Lista blanca: tabla → operación → rol mínimo ──────────────────────────────
 const PERMISOS = {
@@ -110,9 +110,15 @@ const COLUMNAS_RESERVADAS = {
   proyectos:   ['folio', 'nota'],
   incidencias: ['folio'],
 };
-function quitarReservadas(tabla, filas) {
-  const fuera = COLUMNAS_RESERVADAS[tabla];
+/* Qué se le quita a quien no administra el área. El folio deja de quitarse
+   en las áreas que lo tienen abierto (`folioVisiblePara`): Servicio trabaja
+   por folio y su gente lo necesita en campo. La nota del proyecto no se
+   abre en ninguna. */
+function quitarReservadas(tabla, filas, rol, area) {
+  let fuera = COLUMNAS_RESERVADAS[tabla];
   if (!fuera || !Array.isArray(filas)) return filas;
+  if (folioVisiblePara(rol, area)) fuera = fuera.filter(c => c !== 'folio');
+  if (!fuera.length) return filas;
   return filas.map(f => {
     const copia = { ...f };
     fuera.forEach(c => delete copia[c]);
@@ -213,7 +219,7 @@ export default async function handler(req, res) {
         let q = soloLoPropio ? acotarAlUsuario(query, s.u) : sanearQuery(query);
         if (porArea) q = acotarAlArea(q, areaVista);
         const out = await sb.select(table, q);
-        return res.status(200).json(esAdminDeArea(s.r) ? out : quitarReservadas(table, out));
+        return res.status(200).json(quitarReservadas(table, out, s.r, areaVista));
       }
 
       case 'upsert': {

@@ -40,6 +40,15 @@ export function areaDe(s) {
 
 export const areaValida = a => AREAS.includes(a);
 
+/* Áreas donde el folio de proyecto NO es dato reservado.
+   En Ingeniería el técnico elige la empresa y el folio lo pega el servidor:
+   es información administrativa que no necesita en campo. Servicio trabaja
+   de otro modo —su gente identifica el trabajo por folio, no por el nombre
+   de la planta—, así que ahí lo ve todo el personal del área.
+   La nota del proyecto sigue siendo reservada en las dos. */
+const FOLIO_ABIERTO = new Set(['servicio']);
+export const folioVisiblePara = (rol, area) => esAdminDeArea(rol) || FOLIO_ABIERTO.has(area);
+
 /* Tablas con columna `area`: se filtran al leer y se estampan al escribir.
    `usuarios` también la tiene, pero no pasa por db.js — la gobierna
    usuarios.js, que necesita reglas propias. */

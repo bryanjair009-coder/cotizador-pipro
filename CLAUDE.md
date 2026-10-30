@@ -362,6 +362,13 @@ genera siempre los 5 archivos cuando hay material.
   las secciones del panel que no son suyas, e `init()` ni siquiera carga el
   catálogo. El candado real está en `api/db.js`; esto evita enseñar algo que
   de todos modos el servidor rechazaría.
+- **El folio es reservado por ÁREA, no por rol** (`FOLIO_ABIERTO` en
+  areas.js, 2026-10-30). En Ingeniería el técnico elige la empresa y el
+  servidor pega el folio; en **Servicio lo ve todo el personal**, porque ahí
+  el trabajo se identifica por folio y no por el nombre de la planta. La
+  `nota` del proyecto sigue reservada en las dos. Lo aplica
+  `quitarReservadas()` al salir: incidencias.html pide el folio siempre y
+  dibuja su columna sólo si llegó — pedirlo nunca es lo que lo concede.
 - `MODULOS_POR_ROL` en gd-ui.js sustituyó a `MODULOS_DEL_TECNICO`: cada rol
   recortado declara sus archivos. El de Servicio llega a cotizador.html
   porque ahí vive su panel.

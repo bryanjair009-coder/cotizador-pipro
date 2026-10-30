@@ -201,7 +201,9 @@ tbody tr:hover{background:var(--gd-bg-soft);}
       <div class="tabla-wrap">
         <table>
           <thead><tr>
-            <th>Fecha</th><th>Empresa</th><th>Actividad</th>
+            <!-- La columna del folio sólo aparece donde el folio no es dato
+                 reservado; lo decide el servidor, no esta pantalla. -->
+            <th>Fecha</th><th>Empresa</th><th id="th-folio" hidden>Folio</th><th>Actividad</th>
             <th>Entrada</th><th>Salida</th><th class="num">Horas</th><th>Nota</th>
           </tr></thead>
           <tbody id="tbody-tec"><tr><td colspan="7" class="vacio">Cargando…</td></tr></tbody>
@@ -265,7 +267,9 @@ const ACT_POR_COD = Object.fromEntries(ACTIVIDADES.map(a => [a.cod, a]));
 
 /* Constantes del machote. El archivo las trae prellenadas en todos los
    renglones, así que van fijas y no se preguntan. */
-const S = { sesion:null, proyectos:[] };
+/* `verFolio`: lo fija cargarProyectos() según lo que el servidor haya
+   mandado. En las áreas donde el folio es dato reservado nunca llega. */
+const S = { sesion:null, proyectos:[], verFolio:false };
 
 // ── Utilidades de fecha y hora ─────────────────────────────────────────────
 const hoyISO = () => {
@@ -366,23 +370,35 @@ function calcularHoras() {
 
 async function cargarProyectos() {
   try {
-    /* Para registrar sólo hacen falta el id y el nombre de la empresa. Nadie
-       necesita el folio en esta pantalla —ni siquiera el administrador, que lo
-       ve en su panel—, así que no se pide. */
+    /* Se pide el folio, pero quien lo recibe lo decide el servidor: en las
+       áreas donde es dato reservado llega recortado y aquí simplemente no
+       aparece. Pedirlo nunca es lo que lo concede. */
     S.proyectos = await SB.getAll('proyectos',
-      '?select=id,empresa,activo&order=empresa.asc&activo=is.true') || [];
+      '?select=id,empresa,activo,folio&order=empresa.asc&activo=is.true') || [];
   } catch (e) {
     S.proyectos = [];
     avisoForm('err', 'No se pudieron leer las empresas: ' + esc(e.message));
   }
 
+  /* Si el servidor mandó folios, esta área trabaja por folio: se muestra
+     junto a la empresa y se añade su columna a «Mis registros». */
+  S.verFolio = S.proyectos.some(p => p.folio);
+
   const sel = el('empresa');
   const activos = S.proyectos.filter(p => p.activo !== false);
+  const etiqueta = p => p.folio ? `${p.empresa} · ${p.folio}` : p.empresa;
   sel.innerHTML = activos.length
     ? '<option value="">Elige la empresa…</option>' +
-      activos.map(p => `<option value="${p.id}">${esc(p.empresa)}</option>`).join('')
+      activos.map(p => `<option value="${p.id}">${esc(etiqueta(p))}</option>`).join('')
     : '<option value="">No hay proyectos activos — pídele a tu administrador que los dé de alta</option>';
+  if (S.verFolio) {
+    const th = el('th-folio');
+    if (th) th.hidden = false;
+  }
 }
+
+/** Columnas de «Mis registros»: una más donde se muestra el folio. */
+const nCols = () => S.verFolio ? 8 : 7;
 
 function avisoForm(tipo, html) {
   el('form-aviso').innerHTML = html ? `<div class="aviso aviso-${tipo}">${html}</div>` : '';
@@ -427,7 +443,7 @@ async function enviarIncidencia() {
       extemporanea: el('extemporanea').checked,
       nota: el('nota').value.trim() || null,
     }]);
-    avisoForm('ok', `✅ Registrado: ${esc(proy.empresa)} · ${esc(act.txt)} · ${horasTexto(r.horas)} h el ${aDDMMYYYY(fecha)}.`);
+    avisoForm('ok', `✅ Registrado: ${esc(proy.empresa)}${proy.folio ? " · " + esc(proy.folio) : ""} · ${esc(act.txt)} · ${horasTexto(r.horas)} h el ${aDDMMYYYY(fecha)}.`);
     el('h-entrada').value = ''; el('h-salida').value = ''; el('nota').value = '';
     el('actividad').value = ''; calcularHoras();
     await cargarMisRegistros();
@@ -456,7 +472,7 @@ async function cargarMisRegistros() {
     filas = await SB.getAll('incidencias',
       `?usuario=eq.${mio}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.desc`) || [];
   } catch (e) {
-    el('tbody-tec').innerHTML = `<tr><td colspan="7" class="vacio">No se pudieron cargar: ${esc(e.message)}</td></tr>`;
+    el('tbody-tec').innerHTML = `<tr><td colspan="${nCols()}" class="vacio">No se pudieron cargar: ${esc(e.message)}</td></tr>`;
     return;
   }
   const horas = filas.reduce((s, f) => s + (+f.horas || 0), 0);
@@ -466,12 +482,13 @@ async function cargarMisRegistros() {
   el('tbody-tec').innerHTML = filas.length ? filas.map(f => `<tr>
       <td>${aDDMMYYYY(f.fecha)} ${f.extemporanea ? '<span class="pill pill-ex">extemp.</span>' : ''}</td>
       <td>${esc(f.empresa)}</td>
+      ${S.verFolio ? `<td style="font-family:ui-monospace,monospace;font-size:.82rem;">${esc(f.folio || '—')}</td>` : ''}
       <td>${esc(f.actividad_txt)}</td>
       <td>${esc(f.hora_entrada)}</td>
       <td>${esc(f.hora_salida)}</td>
       <td class="num">${horasTexto(+f.horas)}</td>
       <td>${esc(f.nota || '')}</td>
-    </tr>`).join('') : '<tr><td colspan="7" class="vacio">Todavía no hay registros este mes.</td></tr>';
+    </tr>`).join('') : `<tr><td colspan="${nCols()}" class="vacio">Todavía no hay registros este mes.</td></tr>`;
 }
 
 </script>
