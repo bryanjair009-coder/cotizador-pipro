@@ -13,9 +13,9 @@
 <script src="logo_b64.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
-<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
-<script src="gd-theme-sync.js?v=20260905"></script>
+<link rel="stylesheet" href="gd-theme.css?v=20261103"/>
+<link rel="stylesheet" href="gd-ui.css?v=20261103"/>
+<script src="gd-theme-sync.js?v=20261103"></script>
 <script src="gd-ui.js?v=20260905"></script>
 <!-- Tesseract.js (~10 MB) se carga on-demand al usar OCR, no en el boot inicial -->
 <script>
@@ -880,7 +880,7 @@ function App(){
     </div>
     <div style={{maxWidth:960,margin:'0 auto',padding:'14px 24px 0'}}>
       {dbErr&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid '+C.red,borderRadius:8,padding:'10px 14px',marginBottom:18,fontSize:13,color:C.red}}>{dbErr}</div>}
-      <div style={{display:'flex',gap:4,marginBottom:24,background:C.panel,padding:5,borderRadius:11,border:'1px solid '+C.border,width:'fit-content'}}>
+      <div style={{display:'flex',gap:4,marginBottom:24,background:C.panel,padding:5,borderRadius:11,border:'1px solid '+C.border,width:'fit-content',maxWidth:'100%',overflowX:'auto'}}>
         {tabs.map(t=>{const a=tab===t.id;return(<button key={t.id} onClick={()=>setTab(t.id)} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 18px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13.5,fontWeight:700,fontFamily:'var(--gd-font-sans)',background:a?C.accent:'transparent',color:a?C.bg:C.textDim,transition:'all .15s'}}>
           <span>{t.icon}</span>{t.label}
           {t.badge>0&&<span style={{background:a?'rgba(0,0,0,.2)':C.panel2,color:a?C.bg:C.textDim,fontSize:11,fontWeight:700,padding:'1px 7px',borderRadius:20,minWidth:22,textAlign:'center'}}>{t.badge}</span>}

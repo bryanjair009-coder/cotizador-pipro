@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control de Incidencias · Gardner Denver México</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
-<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
-<script src="gd-theme-sync.js?v=20260905"></script>
+<link rel="stylesheet" href="gd-theme.css?v=20261103"/>
+<link rel="stylesheet" href="gd-ui.css?v=20261103"/>
+<script src="gd-theme-sync.js?v=20261103"></script>
 <script src="gd-ui.js?v=20260905"></script>
 <script src="supabase-client.js"></script>
 <style>
@@ -55,7 +55,7 @@ textarea{resize:vertical;line-height:1.55;}
 .hoy-dia{font-size:30px;font-weight:800;line-height:1;color:var(--gd-red-ink);}
 .hoy-txt{font-size:13px;font-weight:600;text-transform:capitalize;}
 .hoy-sub{font-size:11.5px;color:var(--gd-text-soft);margin-top:3px;}
-.hoy.extemp{background:linear-gradient(135deg,#fff3cd,transparent);}
+.hoy.extemp{background:linear-gradient(135deg,var(--gd-warning-light),transparent);}
 
 .sw{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--gd-text-mute);cursor:pointer;}
 .sw input{width:auto;}
@@ -67,9 +67,9 @@ textarea{resize:vertical;line-height:1.55;}
 
 .aviso{border-radius:8px;padding:10px 13px;font-size:12.5px;line-height:1.5;margin-bottom:10px;}
 .aviso-info{background:var(--gd-red-light);border:1px solid var(--gd-border);}
-.aviso-ok{background:#d4f5dd;border:1px solid #16a34a;color:#14532d;}
-.aviso-err{background:#fde2e2;border:1px solid #dc2626;color:#7f1d1d;}
-.aviso-warn{background:#fff3cd;border:1px solid #f59e0b;color:#713f12;}
+.aviso-ok{background:var(--gd-success-light);border:1px solid var(--gd-success);color:var(--gd-text);}
+.aviso-err{background:var(--gd-error-light);border:1px solid var(--gd-error);color:var(--gd-text);}
+.aviso-warn{background:var(--gd-warning-light);border:1px solid var(--gd-warning);color:var(--gd-text);}
 
 table{width:100%;border-collapse:collapse;font-size:12.5px;}
 th{background:var(--gd-bg-soft);text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;
@@ -82,7 +82,7 @@ tbody tr:hover{background:var(--gd-bg-soft);}
 .vacio{text-align:center;color:var(--gd-text-mute);padding:22px;font-size:12.5px;}
 
 .pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10.5px;font-weight:700;}
-.pill-ex{background:#fff3cd;color:#713f12;}
+.pill-ex{background:var(--gd-warning-light);color:var(--gd-warning);}
 .pill-cat{background:var(--gd-bg-soft);color:var(--gd-text-mute);}
 
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--gd-border);margin-bottom:16px;flex-wrap:wrap;}

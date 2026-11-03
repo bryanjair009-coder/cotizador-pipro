@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex,nofollow"/>
 <title>Portal PIPRO · Gardner Denver</title>
 <link rel="icon" href="assets/logo-gd.png"/>
-<link rel="stylesheet" href="gd-theme.css?v=20260906"/>
-<link rel="stylesheet" href="gd-ui.css?v=20260906"/>
+<link rel="stylesheet" href="gd-theme.css?v=20261103"/>
+<link rel="stylesheet" href="gd-ui.css?v=20261103"/>
 <script>
   // Tema antes del primer pintado, para evitar el destello claro
   (function(){
@@ -19,186 +19,313 @@
   })();
 </script>
 <style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Portal · rediseño 2026-11
+   Cabecera fija con Inicio, Administración y la cuenta juntos (siempre a la
+   vista), carril por categorías y una página de Inicio con saludo y accesos.
+   Todo color sale de gd-theme.css: aquí sólo hay estructura.
+   ═══════════════════════════════════════════════════════════════════════════ */
 html, body { height: 100%; overflow: hidden; }
+:root { --gd-rail: 236px; --alto-top: 60px; }
+
+.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
+     stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+.saltar { position: fixed; left: 12px; top: -60px; z-index: 11000; padding: 9px 14px;
+  background: var(--gd-red); color: #fff; border-radius: var(--gd-radius-md);
+  font-weight: 600; text-decoration: none; }
+.saltar:focus { top: 12px; }
 
 /* ── Estructura ─────────────────────────────────────────────────────────── */
-#portal { display: flex; height: 100vh; }
+/* Sin columna de carril: en Inicio no existe, y dentro de un módulo es un
+   panel lateral que se despliega con el botón «Módulos». */
+#portal {
+  display: grid; height: 100vh;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--alto-top) 1fr;
+  grid-template-areas: "top" "main";
+}
 #portal.oculto { display: none; }
 
-.rail { width: var(--gd-rail); flex: none; }
-.lienzo { flex: 1; position: relative; background: var(--gd-bg); min-width: 0; }
-
-iframe {
-  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
-  opacity: 0; pointer-events: none; transition: opacity .16s ease;
-  background: var(--gd-bg); color-scheme: normal;
-}
-iframe.activo { opacity: 1; pointer-events: auto; }
-
-/* ── Carril ─────────────────────────────────────────────────────────────── */
-.gd-rail { position: static; height: 100%; }
-.rail-badge {
-  margin-left: auto; padding: 1px 6px; border-radius: var(--gd-radius-full);
-  background: var(--gd-bg-sunken); color: var(--gd-text-soft);
-  font: 600 10px/1.5 var(--gd-font-mono);
-}
-.gd-rail-item.active .rail-badge { background: var(--gd-red); color: #fff; }
-
-.cuenta {
-  display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 8px 9px; border: none; border-radius: var(--gd-radius-md);
-  background: transparent; cursor: pointer; text-align: left;
-}
-.cuenta:hover { background: var(--gd-bg-alt); }
-.avatar {
-  width: 28px; height: 28px; flex: none; border-radius: var(--gd-radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  background: var(--gd-red); color: #fff;
-  font: 700 11px/1 var(--gd-font-sans);
-}
-.cuenta-txt { min-width: 0; flex: 1; }
-.cuenta-n {
-  font: 600 12.5px/1.3 var(--gd-font-sans); color: var(--gd-text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.cuenta-r {
-  font-family: var(--gd-font-cond);
-  font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
-  color: var(--gd-text-soft);
-}
-.cuenta-r.admin { color: var(--gd-red); }
-
-.tema {
-  display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 8px 9px; margin-bottom: 4px;
-  border: none; border-radius: var(--gd-radius-md);
-  background: transparent; color: var(--gd-text-mute);
-  font: 500 12.5px/1.2 var(--gd-font-sans); cursor: pointer; text-align: left;
-}
-.tema:hover { background: var(--gd-bg-alt); color: var(--gd-text); }
-.tema-ico { width: 20px; text-align: center; font-size: 14px; }
-
-/* ── Menú de cuenta ─────────────────────────────────────────────────────── */
-.menu {
-  position: fixed; bottom: 62px; left: 10px; z-index: 900;
-  width: calc(var(--gd-rail) - 20px); padding: 5px;
-  background: var(--gd-bg-elev); border: 1px solid var(--gd-border);
-  border-radius: var(--gd-radius-md); box-shadow: var(--gd-shadow-lg);
-}
-.menu[hidden] { display: none; }
-.menu button {
-  display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 8px 10px; border: none; border-radius: var(--gd-radius-sm);
-  background: transparent; color: var(--gd-text);
-  font: 500 13px var(--gd-font-sans); text-align: left; cursor: pointer;
-}
-.menu button:hover { background: var(--gd-bg-alt); }
-.menu button.salir:hover { background: var(--gd-error-light); color: var(--gd-error); }
-.menu hr { border: none; border-top: 1px solid var(--gd-border); margin: 4px 0; }
-
-/* ── Cargador ───────────────────────────────────────────────────────────── */
-.cargando {
-  position: absolute; inset: 0; display: none;
-  flex-direction: column; align-items: center; justify-content: center; gap: 13px;
-  background: var(--gd-bg); color: var(--gd-text-mute);
-  font-size: 13px; font-weight: 500;
-}
-.cargando.on { display: flex; }
-.giro {
-  width: 30px; height: 30px; border: 2.5px solid var(--gd-border);
-  border-top-color: var(--gd-red); border-radius: 50%;
-  animation: giro .75s linear infinite;
-}
-@keyframes giro { to { transform: rotate(360deg); } }
-
-/* ── Botón de menú (sólo en móvil) ──────────────────────────────────────── */
-.hamburguesa {
-  display: none; align-items: center; justify-content: center;
-  width: 38px; height: 38px; flex: none;
-  border: 1px solid var(--gd-border); border-radius: var(--gd-radius-md);
-  background: var(--gd-bg-elev); color: var(--gd-text);
-  font-size: 17px; cursor: pointer;
-}
-.barra-movil {
-  display: none; align-items: center; gap: 12px;
-  padding: 10px 14px;
+/* ── Cabecera ───────────────────────────────────────────────────────────── */
+.top {
+  grid-area: top; position: relative; z-index: 600;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px 0 0;
   background: var(--gd-bg-elev); border-bottom: 1px solid var(--gd-border);
 }
-.velo {
-  display: none; position: fixed; inset: 0; z-index: 400;
-  background: rgba(9,12,16,.5);
+/* La regla roja del logotipo, como filete de la cabecera */
+.top::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 2px; background: var(--gd-red); }
+.marca {
+  flex: none; height: 100%;
+  display: flex; align-items: center; gap: 10px; padding: 0 18px;
+  border-right: 1px solid var(--gd-border); text-decoration: none;
 }
+.marca .gd-logo { width: 104px; height: 32px; }
+
+.migas { display: flex; align-items: center; gap: 6px; min-width: 0; padding-left: 8px;
+  font-size: 13px; color: var(--gd-text-soft); }
+.migas button { border: none; background: none; padding: 4px 6px; margin: 0 -6px;
+  border-radius: var(--gd-radius-sm); color: var(--gd-text-mute); font: inherit; cursor: pointer; }
+.migas button:hover { color: var(--gd-text); background: var(--gd-bg-alt); }
+.migas .sep { color: var(--gd-300); }
+.migas .actual { color: var(--gd-text); font-weight: 600; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.migas .grupo { white-space: nowrap; }
+.espacio { flex: 1; }
+
+.tb { /* botón de cabecera */
+  display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px;
+  border: 1px solid transparent; border-radius: var(--gd-radius-md);
+  background: transparent; color: var(--gd-text-mute);
+  font: 500 13px/1 var(--gd-font-sans); cursor: pointer; white-space: nowrap;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.tb:hover { background: var(--gd-bg-alt); color: var(--gd-text); }
+.tb[aria-expanded="true"] { background: var(--gd-bg-alt); color: var(--gd-text); }
+.tb.solo { width: 38px; padding: 0; justify-content: center; }
+.tb .chev { width: 14px; height: 14px; opacity: .7; }
+
+.buscar { min-width: 220px; justify-content: flex-start;
+  border-color: var(--gd-border-strong); background: var(--gd-bg-alt); color: var(--gd-text-soft); }
+.buscar span { flex: 1; text-align: left; }
+
+.tb-admin { color: var(--gd-red-ink); border-color: var(--gd-red-light); background: var(--gd-red-tint); font-weight: 600; }
+.tb-admin:hover, .tb-admin[aria-expanded="true"] { background: var(--gd-red-light); color: var(--gd-red-ink); }
+
+.separador { width: 1px; height: 26px; background: var(--gd-border); margin: 0 2px; }
+
+/* Inicio, pegado a la cuenta: el regreso a casa vive junto a "quién soy" */
+.tb-home.activo { color: var(--gd-red-ink); background: var(--gd-red-tint); }
+
+.cuenta { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 4px;
+  border: 1px solid var(--gd-border); border-radius: var(--gd-radius-full);
+  background: var(--gd-bg-elev); cursor: pointer; text-align: left; }
+.cuenta:hover, .cuenta[aria-expanded="true"] { background: var(--gd-bg-alt); }
+.avatar { width: 34px; height: 34px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gd-carbon); color: #fff; font: 700 12px/1 var(--gd-font-sans); }
+[data-theme="dark"] .avatar { background: var(--gd-red); }
+.cuenta-txt { min-width: 0; display: flex; flex-direction: column; max-width: 190px; }
+.cuenta-n { font: 600 13px/1.25 var(--gd-font-sans); color: var(--gd-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cuenta-r { font: 600 10px/1.3 var(--gd-font-cond); letter-spacing: .09em; text-transform: uppercase;
+  color: var(--gd-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cuenta-r.admin { color: var(--gd-red-ink); }
+
+/* ── Menús desplegables ─────────────────────────────────────────────────── */
+.ancla { position: relative; }
+.menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 900;
+  min-width: 250px; padding: 6px;
+  background: var(--gd-bg-elev); border: 1px solid var(--gd-border);
+  border-radius: var(--gd-radius-lg); box-shadow: var(--gd-shadow-lg); transform-origin: top right; }
+.menu[hidden] { display: none; }
+.menu-cab { padding: 8px 10px 6px; font: 700 10.5px/1.3 var(--gd-font-cond);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--gd-text-soft); }
+.menu button { display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 9px 10px; border: none; border-radius: var(--gd-radius-md);
+  background: transparent; color: var(--gd-text); text-align: left; cursor: pointer;
+  font: 500 13px/1.3 var(--gd-font-sans); }
+.menu button:hover, .menu button:focus-visible { background: var(--gd-bg-alt); outline: none; }
+.menu button .i { color: var(--gd-text-soft); }
+.menu button small { display: block; color: var(--gd-text-soft); font-size: 11.5px; font-weight: 400; }
+.menu button.salir:hover { background: var(--gd-error-light); color: var(--gd-error); }
+.menu button.salir:hover .i { color: var(--gd-error); }
+.menu hr { border: none; border-top: 1px solid var(--gd-border); margin: 5px 0; }
+
+/* ── Carril ─────────────────────────────────────────────────────────────── */
+.rail { position: fixed; top: var(--alto-top); bottom: 0; left: 0; z-index: 500;
+  width: min(290px, 86vw); display: flex; flex-direction: column; min-height: 0;
+  background: var(--gd-bg-elev); border-right: 1px solid var(--gd-border); box-shadow: var(--gd-shadow-lg);
+  transform: translateX(-102%); visibility: hidden;
+  transition: transform .22s cubic-bezier(.2,.8,.3,1), visibility 0s linear .22s; }
+.rail.abierto { transform: none; visibility: visible; transition: transform .22s cubic-bezier(.2,.8,.3,1); }
+.rail-nav { flex: 1; overflow-y: auto; padding: 12px 10px; }
+.rail-grupo { padding: 16px 10px 6px; font: 700 10.5px/1.3 var(--gd-font-cond);
+  letter-spacing: .12em; text-transform: uppercase; color: var(--gd-text-soft); white-space: nowrap; }
+.rail-item { position: relative; display: flex; align-items: center; gap: 11px; width: 100%;
+  min-height: 40px; padding: 0 11px; margin-bottom: 2px;
+  border: none; border-radius: var(--gd-radius-md); background: transparent;
+  color: var(--gd-text-mute); font: 500 13.5px/1.2 var(--gd-font-sans);
+  text-align: left; cursor: pointer; white-space: nowrap;
+  transition: background .12s ease, color .12s ease; }
+.rail-item:hover { background: var(--gd-bg-alt); color: var(--gd-text); }
+.rail-item[aria-current="page"] { background: var(--gd-red-light); color: var(--gd-red-ink); font-weight: 600; }
+.rail-item[aria-current="page"]::before { content: ''; position: absolute; left: -10px; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--gd-red); }
+.rail-item .nom { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+/* Punto: el módulo ya está abierto y conserva lo que tenías capturado */
+.punto { width: 7px; height: 7px; border-radius: 50%; background: var(--gd-success); flex: none;
+  box-shadow: 0 0 0 2px var(--gd-bg-elev); }
+.punto[hidden] { display: none; }
+
+/* ── Lienzo ─────────────────────────────────────────────────────────────── */
+.lienzo { grid-area: main; position: relative; background: var(--gd-bg); min-width: 0; min-height: 0; }
+iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+  opacity: 0; visibility: hidden; transition: opacity .18s ease, visibility 0s linear .18s;
+  background: var(--gd-bg); color-scheme: normal; }
+iframe.activo { opacity: 1; visibility: visible; transition: opacity .18s ease; }
+
+.cargando { position: absolute; inset: 0; display: none; z-index: 5;
+  flex-direction: column; align-items: center; justify-content: center; gap: 13px;
+  background: var(--gd-bg); color: var(--gd-text-mute); font-size: 13px; font-weight: 500; }
+.cargando.on { display: flex; }
+.giro { width: 30px; height: 30px; border: 2.5px solid var(--gd-border);
+  border-top-color: var(--gd-red); border-radius: 50%; animation: giro .75s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+
+/* ── Inicio ─────────────────────────────────────────────────────────────── */
+.inicio { position: absolute; inset: 0; overflow-y: auto; z-index: 2; background: var(--gd-bg); }
+.inicio[hidden] { display: none; }
+.inicio-in { max-width: 1180px; margin: 0 auto; padding: 40px 36px 56px; }
+
+.saludo { margin-bottom: 30px; }
+.fecha { display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  font: 600 11.5px/1.3 var(--gd-font-cond); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--gd-text-soft); }
+.fecha::before { content: ''; width: 26px; height: 3px; background: var(--gd-red); }
+.saludo h1 { margin: 0; font: 600 clamp(26px, 3.4vw, 36px)/1.15 var(--gd-font-sans);
+  letter-spacing: -.022em; color: var(--gd-text); }
+.saludo h1 .nombre { color: var(--gd-red-ink); }
+.saludo p { margin: 8px 0 0; font-size: 14.5px; color: var(--gd-text-mute); }
+
+.recientes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+.recientes[hidden] { display: none; }
+.recientes-t { font-size: 12.5px; color: var(--gd-text-soft); margin-right: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 10px;
+  border: 1px solid var(--gd-border-strong); border-radius: var(--gd-radius-full);
+  background: var(--gd-bg-elev); color: var(--gd-text); cursor: pointer;
+  font: 500 12.5px/1 var(--gd-font-sans); }
+.chip:hover { border-color: var(--gd-red); color: var(--gd-red-ink); }
+.chip .i { width: 15px; height: 15px; color: var(--gd-red-ink); }
+
+.cat { margin-top: 30px; }
+.cat-cab { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.cat-cab h2 { margin: 0; font: 700 13px/1.2 var(--gd-font-cond); letter-spacing: .11em;
+  text-transform: uppercase; color: var(--gd-text); }
+.cat-cab .n { font: 500 11px/1 var(--gd-font-mono); color: var(--gd-text-soft); }
+.cat-cab::after { content: ''; flex: 1; height: 1px; background: var(--gd-border); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 12px; }
+.tile { position: relative; display: flex; align-items: flex-start; gap: 14px; min-height: 92px;
+  padding: 16px 16px 16px 16px; text-align: left; cursor: pointer;
+  background: var(--gd-bg-elev); border: 1px solid var(--gd-border); border-radius: var(--gd-radius-lg);
+  color: var(--gd-text); font: inherit;
+  transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease; }
+.tile:hover { border-color: var(--gd-red); box-shadow: var(--gd-shadow-md); transform: translateY(-2px); }
+.tile:active { transform: translateY(0); }
+.tile:focus-visible { outline: 2px solid var(--gd-red); outline-offset: 2px; }
+.tile-ico { width: 42px; height: 42px; flex: none; border-radius: var(--gd-radius-md);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--gd-red-tint); color: var(--gd-red-ink); transition: background .14s ease, color .14s ease; }
+.tile-ico .i { width: 22px; height: 22px; }
+.tile:hover .tile-ico { background: var(--gd-red); color: #fff; }
+.tile-txt { min-width: 0; flex: 1; padding-top: 1px; }
+.tile-n { display: block; font: 600 14.5px/1.3 var(--gd-font-sans); letter-spacing: -.008em; }
+.tile-d { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--gd-text-soft); }
+.tile-meta { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 7px; }
+.tile-abierto { font: 600 10px/1 var(--gd-font-cond); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--gd-success); display: inline-flex; align-items: center; gap: 5px; }
+.tile-abierto::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.tile-abierto[hidden] { display: none; }
+
+/* Administración: misma rejilla, en carbón para separarla de las herramientas */
+.cat-admin .tile-ico { background: var(--gd-carbon); color: #fff; }
+[data-theme="dark"] .cat-admin .tile-ico { background: var(--gd-bg-alt); color: var(--gd-red-ink); }
+.cat-admin .tile:hover .tile-ico { background: var(--gd-red); color: #fff; }
+.cat-admin .cat-cab h2 { color: var(--gd-red-ink); }
+
+
+/* ── Paleta de comandos ─────────────────────────────────────────────────── */
+.paleta { position: fixed; inset: 0; z-index: 9000; display: flex; justify-content: center;
+  align-items: flex-start; padding: 12vh 16px 16px; background: var(--gd-velo); }
+.paleta[hidden] { display: none; }
+.paleta-caja { width: 100%; max-width: 580px; overflow: hidden;
+  background: var(--gd-bg-elev); border: 1px solid var(--gd-border);
+  border-radius: var(--gd-radius-lg); box-shadow: var(--gd-shadow-lg); }
+.paleta-barra { display: flex; align-items: center; gap: 10px; padding: 0 16px;
+  border-bottom: 1px solid var(--gd-border); color: var(--gd-text-soft); }
+.paleta-barra input { flex: 1; height: 54px; border: none; background: transparent; padding: 0;
+  font: 400 15.5px var(--gd-font-sans); color: var(--gd-text); box-shadow: none; }
+.paleta-barra input:focus { box-shadow: none; }
+.paleta-lista { max-height: min(56vh, 440px); overflow-y: auto; padding: 6px; margin: 0; list-style: none; }
+.paleta-sec { padding: 10px 10px 4px; font: 700 10.5px/1.3 var(--gd-font-cond);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--gd-text-soft); }
+.paleta-op { display: flex; align-items: center; gap: 12px; padding: 9px 10px;
+  border-radius: var(--gd-radius-md); cursor: pointer; color: var(--gd-text); font-size: 13.5px; }
+.paleta-op .i { color: var(--gd-text-soft); }
+.paleta-op small { margin-left: auto; color: var(--gd-text-soft); font-size: 11.5px; }
+.paleta-op[aria-selected="true"] { background: var(--gd-red-light); color: var(--gd-red-ink); }
+.paleta-op[aria-selected="true"] .i { color: var(--gd-red-ink); }
+.paleta-vacia { padding: 28px; text-align: center; color: var(--gd-text-soft); font-size: 13px; }
+.paleta-pie { display: flex; gap: 16px; padding: 9px 14px; border-top: 1px solid var(--gd-border);
+  background: var(--gd-bg-alt); font-size: 11.5px; color: var(--gd-text-soft); }
+
+/* ── Acceso ─────────────────────────────────────────────────────────────── */
+.gd-auth-card { position: relative; overflow: hidden; }
+.gd-auth-card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--gd-red); }
+.gd-auth-card h1 { font-size: 19px; letter-spacing: -.01em; }
+
+/* ── Velo (móvil) ───────────────────────────────────────────────────────── */
+.velo { display: none; position: fixed; inset: var(--alto-top) 0 0 0; z-index: 450; background: var(--gd-velo); }
 .velo.on { display: block; }
+.hamburguesa { display: none; margin-left: 10px; }
+/* El botón del panel sólo existe dentro de un módulo; en Inicio no hay carril */
+#portal.en-modulo .hamburguesa { display: inline-flex; }
+#portal.en-modulo .marca { border-right: none; padding-left: 8px; }
 
-/* ── Media pantalla: el carril se reduce a iconos ────────────────────────
-   Antes se volvía una barra horizontal que se apelmazaba y salía con
-   desplazamiento lateral. Un carril de iconos aguanta cualquier ancho. */
-@media (max-width: 1040px) and (min-width: 641px) {
-  :root { --gd-rail: 58px; }
-  .gd-rail-head { justify-content: center; padding: 13px 8px; }
-  /* No cabe el logotipo: se usa una placa de marca con la regla roja */
-  .gd-rail-head .gd-logo {
-    width: 32px; height: 32px;
-    background-image: none;
-    background: var(--gd-graphite);
-    border-radius: var(--gd-radius-sm);
-    position: relative;
-  }
-  .gd-rail-head .gd-logo::after {
-    content: ''; position: absolute; left: 6px; right: 6px; top: 50%;
-    height: 3px; margin-top: -1.5px; background: var(--gd-red);
-  }
-  [data-theme="dark"] .gd-rail-head .gd-logo { background: var(--gd-bg-alt); }
-  .gd-rail-nav { padding: 10px 7px; }
-  /* Los grupos pasan de rótulo a filete: no hay ancho para la palabra */
-  .gd-rail-group {
-    padding: 0; margin: 11px 6px 8px; height: 1px;
-    background: var(--gd-border); text-indent: -9999px; overflow: hidden;
-  }
-  .gd-rail-group:first-child { margin-top: 2px; }
-  .gd-rail-item { justify-content: center; padding: 10px 0; }
-  .gd-rail-item > span:not(.gd-rail-ico) { display: none; }
-  .gd-rail-foot { padding: 8px 7px; }
-  .tema { justify-content: center; padding: 9px 0; }
-  .tema span:last-child { display: none; }
-  .cuenta { justify-content: center; padding: 8px 0; }
+/* ── Media pantalla: carril de iconos y cabecera compacta ───────────────── */
+@media (max-width: 1100px) {
+  .buscar { min-width: 0; }
+  .buscar span { display: none; }
+  .buscar { width: 38px; padding: 0; justify-content: center; border-color: transparent; background: transparent; }
+  .cuenta-txt { max-width: 130px; }
+}
+@media (max-width: 1040px) {
+  .migas .grupo, .migas .sep-g { display: none; }
+}
+@media (max-width: 860px) {
+  .tb-admin .txt, .tb-home .txt { display: none; }
+  .tb-admin, .tb-home { width: 38px; padding: 0; justify-content: center; }
+  .tb-admin .chev { display: none; }
   .cuenta-txt { display: none; }
-  .menu { left: 66px; width: 216px; }
+  .cuenta { padding: 0 4px; }
 }
 
-/* ── Móvil: barra superior y carril como panel deslizante ───────────────── */
-@media (max-width: 640px) {
-  #portal { flex-direction: column; }
-  .barra-movil { display: flex; }
-  .hamburguesa { display: inline-flex; }
-  .rail {
-    position: fixed; top: 0; bottom: 0; left: 0; z-index: 500;
-    width: min(268px, 82vw);
-    transform: translateX(-102%);
-    box-shadow: var(--gd-shadow-lg);
-  }
-  .rail.abierto { transform: none; }
-  .lienzo { flex: 1; }
-  .menu { bottom: 62px; left: 10px; width: min(248px, 76vw); }
+/* ── Móvil: el carril es un panel deslizante ────────────────────────────── */
+@media (max-width: 720px) {
+  :root { --alto-top: 56px; }
+  #btn-tema { display: none; }   /* en móvil el tema vive en el menú de la cuenta */
+  .cuenta .chev { display: none; }
+  .top { padding: 0 10px; gap: 6px; }
+  .marca { width: auto; border-right: none; padding: 0 4px; }
+  .marca .gd-logo { width: 88px; height: 28px; display: block; }
+  .migas { display: none; }
+  .hamburguesa { margin-left: 0; width: 38px; padding: 0; justify-content: center; }
+  .hamburguesa .txt { display: none; }
+  .separador { display: none; }
+  .rail-item { min-height: 44px; }
+  .inicio-in { padding: 26px 16px 40px; }
+  .tiles { grid-template-columns: 1fr; }
+  .menu { position: fixed; left: 10px; right: 10px; top: calc(var(--alto-top) + 6px); min-width: 0; }
 }
-/* El panel aparece de inmediato: animar el transform lo dejaba a medio camino
-   al cruzar el punto de ruptura, y un menú a medias es peor que uno sin
-   animación. El velo sí se atenúa, que es donde la animación no estorba. */
-.velo { animation: velo-entra .15s ease; }
-@keyframes velo-entra { from { opacity: 0 } to { opacity: 1 } }
-@media (prefers-reduced-motion: reduce) { .velo { animation: none } }
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover { transform: none; }
+}
 </style>
 </head>
 <body>
+<a class="saltar" href="#lienzo">Saltar al contenido</a>
 
 <!-- ═══ ACCESO ══════════════════════════════════════════════════════════ -->
 <div class="gd-auth" id="auth">
-  <div class="gd-auth-card">
+  <div class="gd-auth-card" id="auth-card">
     <span class="gd-logo gd-logo-lg gd-auth-logo">Gardner Denver</span>
     <h1>Portal PIPRO</h1>
     <p class="gd-auth-sub">Acceso restringido a personal autorizado.</p>
 
-    <div class="gd-auth-msg" id="auth-msg" hidden></div>
+    <div class="gd-auth-msg" id="auth-msg" hidden role="alert"></div>
 
     <form id="auth-form" autocomplete="on">
       <label for="auth-user">Usuario</label>
@@ -220,130 +347,258 @@ iframe.activo { opacity: 1; pointer-events: auto; }
 <!-- ═══ PORTAL ══════════════════════════════════════════════════════════ -->
 <div id="portal" class="oculto">
 
-  <!-- Sólo en móvil: da acceso al carril, que ahí se oculta -->
-  <div class="barra-movil">
-    <button class="hamburguesa" onclick="alternarRail(event)" aria-label="Abrir menú" aria-expanded="false" id="btn-rail">☰</button>
-    <span class="gd-logo gd-logo-sm">Gardner Denver</span>
-    <span style="flex:1"></span>
-    <span id="movil-modulo" style="font-size:12.5px;font-weight:600;color:var(--gd-text-mute);"></span>
-  </div>
+  <header class="top">
+    <button class="tb hamburguesa" id="btn-rail" onclick="alternarRail(event)" aria-label="Abrir menú de módulos" aria-expanded="false" aria-controls="rail">
+      <svg class="i" viewBox="0 0 24 24"><use href="#i-menu"/></svg><span class="txt">Módulos</span>
+    </button>
+    <a class="marca" href="#/inicio" onclick="ir('inicio');return false;" title="Inicio · Portal PIPRO">
+      <span class="gd-logo">Gardner Denver</span>
+    </a>
+
+    <nav class="migas" id="migas" aria-label="Ubicación"></nav>
+    <span class="espacio"></span>
+
+    <button class="tb buscar" onclick="abrirPaleta()" title="Buscar módulo o función" aria-label="Buscar módulo o función">
+      <svg class="i" viewBox="0 0 24 24"><use href="#i-buscar"/></svg><span>Ir a…</span>
+    </button>
+
+    <div class="ancla" id="ancla-admin" hidden>
+      <button class="tb tb-admin" id="btn-admin" onclick="alternarMenu('menu-admin', this, event)"
+              aria-haspopup="true" aria-expanded="false" aria-controls="menu-admin" title="Opciones administrativas">
+        <svg class="i" viewBox="0 0 24 24"><use href="#i-admin"/></svg><span class="txt">Administración</span>
+        <svg class="i chev" viewBox="0 0 24 24"><use href="#i-chev"/></svg>
+      </button>
+      <div class="menu" id="menu-admin" hidden role="menu"></div>
+    </div>
+
+    <button class="tb solo" onclick="alternarTema()" id="btn-tema" aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
+      <svg class="i" viewBox="0 0 24 24"><use href="#i-luna" id="tema-uso"/></svg>
+    </button>
+
+    <span class="separador" aria-hidden="true"></span>
+
+    <!-- Inicio junto a la descripción del usuario: siempre a la vista -->
+    <button class="tb tb-home" id="btn-home" onclick="ir('inicio')" title="Volver a Inicio">
+      <svg class="i" viewBox="0 0 24 24"><use href="#i-casa"/></svg><span class="txt">Inicio</span>
+    </button>
+
+    <div class="ancla">
+      <button class="cuenta" id="btn-cuenta" onclick="alternarMenu('menu', this, event)" aria-haspopup="true" aria-expanded="false" aria-controls="menu">
+        <span class="avatar" id="avatar" aria-hidden="true">··</span>
+        <span class="cuenta-txt">
+          <span class="cuenta-n" id="cuenta-n">…</span>
+          <span class="cuenta-r" id="cuenta-r"></span>
+        </span>
+        <svg class="i chev" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--gd-text-soft)"><use href="#i-chev"/></svg>
+      </button>
+      <div class="menu" id="menu" hidden role="menu">
+        <div class="menu-cab" id="menu-quien"></div>
+        <button role="menuitem" onclick="cerrarMenus();ir('inicio')"><svg class="i" viewBox="0 0 24 24"><use href="#i-casa"/></svg>Ir a Inicio</button>
+        <button role="menuitem" onclick="cerrarMenus();alternarTema()"><svg class="i" viewBox="0 0 24 24"><use href="#i-luna" id="tema-uso-menu"/></svg><span id="tema-txt-menu">Modo oscuro</span></button>
+        <button role="menuitem" onclick="cerrarMenus();cambiarPwd()"><svg class="i" viewBox="0 0 24 24"><use href="#i-llave"/></svg>Cambiar mi contraseña</button>
+        <hr>
+        <button role="menuitem" class="salir" onclick="GD.sesion.salir()"><svg class="i" viewBox="0 0 24 24"><use href="#i-salir"/></svg>Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
 
   <div class="velo" id="velo" onclick="cerrarRail()"></div>
 
-  <div class="rail" id="rail">
-    <nav class="gd-rail">
-      <div class="gd-rail-head">
-        <a href="#" onclick="ir('cotizador');return false;" title="Portal PIPRO">
-          <span class="gd-logo gd-logo-sm">Gardner Denver</span>
-        </a>
-      </div>
+  <aside class="rail" id="rail" aria-label="Módulos">
+    <nav class="rail-nav" id="nav"></nav>
+  </aside>
 
-      <div class="gd-rail-nav" id="nav"></div>
-
-      <div class="gd-rail-foot">
-        <button class="tema" onclick="alternarTema()" id="btn-tema">
-          <span class="tema-ico" id="tema-ico">🌙</span><span id="tema-txt">Modo oscuro</span>
-        </button>
-        <button class="cuenta" id="btn-cuenta" onclick="alternarMenu(event)" aria-haspopup="true" aria-expanded="false">
-          <span class="avatar" id="avatar">··</span>
-          <span class="cuenta-txt">
-            <span class="cuenta-n" id="cuenta-n">…</span>
-            <span class="cuenta-r" id="cuenta-r"></span>
-          </span>
-        </button>
-      </div>
-    </nav>
-  </div>
-
-  <div class="menu" id="menu" hidden>
-    <button onclick="cambiarPwd()">🔑 Cambiar mi contraseña</button>
-    <button id="menu-admin" onclick="irAdmin()" hidden>👥 Usuarios y bitácora</button>
-    <hr>
-    <button class="salir" onclick="GD.sesion.salir()">🚪 Cerrar sesión</button>
-  </div>
-
-  <main class="lienzo" id="lienzo">
+  <main class="lienzo" id="lienzo" tabindex="-1">
+    <section class="inicio" id="inicio" aria-labelledby="saludo-t" hidden>
+      <div class="inicio-in" id="inicio-in"></div>
+    </section>
     <div class="cargando" id="cargando"><div class="giro"></div><span id="cargando-txt">Cargando…</span></div>
   </main>
 </div>
 
-<script src="gd-ui.js?v=20260906"></script>
+<!-- ═══ PALETA DE COMANDOS ══════════════════════════════════════════════ -->
+<div class="paleta" id="paleta" hidden onclick="if(event.target===this)cerrarPaleta()">
+  <div class="paleta-caja" role="dialog" aria-modal="true" aria-label="Ir a un módulo o función">
+    <div class="paleta-barra">
+      <svg class="i" viewBox="0 0 24 24"><use href="#i-buscar"/></svg>
+      <input id="paleta-q" type="text" placeholder="Escribe un módulo o una función…" autocomplete="off" spellcheck="false"
+             role="combobox" aria-expanded="true" aria-controls="paleta-lista" aria-autocomplete="list">
+    </div>
+    <ul class="paleta-lista" id="paleta-lista" role="listbox"></ul>
+  </div>
+</div>
+
+<!-- ═══ ICONOS ══════════════════════════════════════════════════════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="i-casa"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11.5h13V9"/><path d="M10 20.5v-6h4v6"/></g>
+    <g id="i-cotizador"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4"/><path d="M9 10h6M9 14h6M9 18h3"/></g>
+    <g id="i-requisiciones"><path d="M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4z"/><path d="M3.5 7.5 12 11.5l8.5-4M12 11.5v9"/></g>
+    <g id="i-incidencias"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></g>
+    <g id="i-isometrico"><path d="M4 20V4l16 16z"/><path d="M8 16v-3.5l3.5 3.5z"/></g>
+    <g id="i-presiones"><path d="M4.6 17.5a8.5 8.5 0 1 1 14.8 0"/><path d="m12 13.6 3.6-4.1"/><circle cx="12" cy="14" r="1.4"/></g>
+    <g id="i-electrico"><path d="M13 2.8 5 13.5h6l-1 7.7 8-10.7h-6z"/></g>
+    <g id="i-reportes"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5"/><path d="m9 14.5 2 2 4-4"/></g>
+    <g id="i-fugas"><circle cx="6.5" cy="12" r="2"/><path d="M10.5 8.5a5 5 0 0 1 0 7"/><path d="M14 6a8.5 8.5 0 0 1 0 12"/><path d="M17.5 3.5a12 12 0 0 1 0 17"/></g>
+    <g id="i-admin"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6z"/><path d="m9 12 2 2 4-4"/></g>
+    <g id="i-catalogo"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H20v14H5.5A1.5 1.5 0 0 0 4 19.5z"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H20v-3"/><path d="M8 8h8M8 11.5h5"/></g>
+    <g id="i-costos"><path d="M3.5 12.5 12 4h7.5v7.5L11 20z"/><circle cx="15.5" cy="8" r="1.4"/></g>
+    <g id="i-utilidades"><path d="M18.5 5.5 5.5 18.5"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></g>
+    <g id="i-usuarios"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18.5 14a6.5 6.5 0 0 1 3 6"/></g>
+    <g id="i-bitacora"><path d="M5 3.5h10.5l3.5 3.5v13.5H5z"/><path d="M9 9h6M9 13h6M9 17h4"/></g>
+    <g id="i-sol"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g>
+    <g id="i-luna"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></g>
+    <g id="i-buscar"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g>
+    <g id="i-chev"><path d="m6 9 6 6 6-6"/></g>
+    <g id="i-menu"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></g>
+    <g id="i-llave"><circle cx="8" cy="15.5" r="4"/><path d="m11 12.5 8.5-8.5M16 7.5l2.5 2.5"/></g>
+    <g id="i-salir"><path d="M14.5 4h4.5v16h-4.5"/><path d="M10 8l-4 4 4 4M6 12h10"/></g>
+    <g id="i-colapsar"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M9 4v16"/><path d="m15.5 10-2 2 2 2"/></g>
+  </defs>
+</svg>
+
+<script src="gd-ui.js?v=20261103"></script>
+<!-- GSAP servido desde el propio dominio: no depende de un CDN ni de un hash SRI -->
+<script src="vendor/gsap.min.js?v=3.12.5"></script>
 <script>
-const V = '20261030b';
+const V = '20261103';
 
 /* Los módulos, agrupados por lo que hace la persona con ellos.
-   El orden no es alfabético: es el del flujo de trabajo real. */
+   El orden no es alfabético: es el del flujo de trabajo real, y es el mismo
+   en el carril, en la página de Inicio y en los atajos Alt+1…9. */
 /* La ruta de cada módulo va escrita completa y literal, no armada con
    plantillas a partir del identificador. Así ninguna cadena que venga de
-   fuera (localStorage, un mensaje, la URL) puede terminar convertida en la
+   fuera (localStorage, la URL, un mensaje) puede terminar convertida en la
    ruta de un archivo: el único origen posible es esta lista. Es la corrección
    al hallazgo «Client Dangerous File Inclusion» del análisis de seguridad. */
-/* `roles` acota quién ve el módulo. Sin `roles`, lo ve todo el mundo.
-   Un técnico sólo tiene el control de incidencias: ni el carril ni el iframe
-   de los demás módulos se crean para él. */
+/* `roles` acota quién ve el módulo. Sin `roles`, lo ven admin y usuario. */
 const GRUPOS = [
   { grupo: 'Comercial', modulos: [
-    { id: 'cotizador',     ruta: 'cotizador.html',     ico: '📋', nombre: 'Cotizador',        titulo: 'Cotizador PIPRO' },
-    { id: 'requisiciones', ruta: 'requisiciones.html', ico: '📦', nombre: 'Requisiciones',    titulo: 'Requisiciones' },
+    { id: 'cotizador',     ruta: 'cotizador.html',     ico: 'cotizador',     nombre: 'Cotizador',        titulo: 'Cotizador PIPRO',
+      desc: 'Cotizaciones de tubería PIPRO con y sin mano de obra.' },
+    { id: 'requisiciones', ruta: 'requisiciones.html', ico: 'requisiciones', nombre: 'Requisiciones',    titulo: 'Requisiciones',
+      desc: 'Solicitudes de material y su seguimiento.' },
   ]},
   { grupo: 'Operación', modulos: [
-    /* El registro de incidencias lo usa todo el mundo: el técnico de campo,
-       quien cotiza y el administrador que salió a un proyecto. La consulta
-       mensual y el archivo de carga están aparte, en el panel de
-       administrador del cotizador. */
-    { id: 'incidencias',   ruta: 'incidencias.html',   ico: '🕐', nombre: 'Incidencias',      titulo: 'Control de Incidencias',
-      roles: ['admin', 'usuario', 'tecnico'] },
-    /* El administrador de un área que no es Ingeniería entra al mismo archivo
-       del cotizador, porque ahí vive el panel de incidencias, pero el propio
-       cotizador.html se recorta solo para él: ni cotiza ni ve el catálogo.
-       La ruta va literal, como todas, no armada a partir del id. */
-    { id: 'incidencias-adm', ruta: 'cotizador.html',   ico: '🕐', nombre: 'Incidencias',      titulo: 'Control de Incidencias',
-      roles: ['admin_servicio'] },
+    /* El registro de incidencias lo usa todo el mundo. La consulta mensual y
+       el archivo de carga están en el panel de administración. */
+    { id: 'incidencias',   ruta: 'incidencias.html',   ico: 'incidencias',   nombre: 'Incidencias',      titulo: 'Control de Incidencias',
+      desc: 'Registro de horas por proyecto y actividad.', roles: ['admin', 'usuario', 'tecnico'] },
+    /* El administrador de Servicio entra al cotizador, que se recorta solo
+       para él: ahí vive su panel de incidencias. Ruta literal, como todas. */
+    { id: 'incidencias-adm', ruta: 'cotizador.html',   ico: 'incidencias',   nombre: 'Incidencias del área', titulo: 'Control de Incidencias',
+      desc: 'Control mensual, archivo de carga y personal de tu área.', roles: ['admin_servicio'] },
   ]},
   { grupo: 'Ingeniería', modulos: [
-    { id: 'isometrico',    ruta: 'isometrico.html',    ico: '📐', nombre: 'Isométrico',        titulo: 'Isométrico PIPRO' },
-    { id: 'presiones',     ruta: 'presiones.html',     ico: '🔵', nombre: 'Caídas de presión', titulo: 'Caídas de Presión' },
-    { id: 'electrico',     ruta: 'electrico.html',     ico: '⚡', nombre: 'Selección eléctrica', titulo: 'Selección Eléctrica' },
+    { id: 'isometrico',    ruta: 'isometrico.html',    ico: 'isometrico',    nombre: 'Isométrico',        titulo: 'Isométrico PIPRO',
+      desc: 'Trazo isométrico de la red y lista de material.' },
+    { id: 'presiones',     ruta: 'presiones.html',     ico: 'presiones',     nombre: 'Caídas de presión', titulo: 'Caídas de Presión',
+      desc: 'ΔP en cabezal y bajadas, con PDF ejecutivo.' },
+    { id: 'electrico',     ruta: 'electrico.html',     ico: 'electrico',     nombre: 'Selección eléctrica', titulo: 'Selección Eléctrica',
+      desc: 'Conductores y protecciones, NOM-001-SEDE-2012.' },
   ]},
   { grupo: 'Entregables', modulos: [
-    { id: 'reportes',      ruta: 'reportes.html',      ico: '📄', nombre: 'Reportes de entrega', titulo: 'Reportes de Entrega' },
-    { id: 'fugas',         ruta: 'fugas.html',         ico: '🔍', nombre: 'Reporte de fugas',    titulo: 'Reporte de Fugas' },
+    { id: 'reportes',      ruta: 'reportes.html',      ico: 'reportes',      nombre: 'Reportes de entrega', titulo: 'Reportes de Entrega',
+      desc: 'Cartas de entrega de proyecto.' },
+    { id: 'fugas',         ruta: 'fugas.html',         ico: 'fugas',         nombre: 'Reporte de fugas',    titulo: 'Reporte de Fugas',
+      desc: 'Estudio ultrasónico de fugas de aire comprimido.' },
   ]},
 ].map(g => Object.freeze({ ...g, modulos: g.modulos.map(Object.freeze) }));
 
-/* Sólo los módulos del rol de esta sesión. Se llenan en construir(), que corre
-   ya con la sesión en mano: antes de entrar no hay carril ni marcos. */
-let MODULOS = [];
-const buscarModulo = id => MODULOS.find(m => m.id === id);
+/* Opciones administrativas por rol. `modulo` es el marco donde vive el panel;
+   `sec` es la sección que se le pide, y el propio módulo la vuelve a
+   contrastar con su lista (gdAbrirAdmin en cotizador.html). Un rol que no esté
+   aquí no ve el botón: el candado real sigue siendo api/db.js. */
+const ADMIN = {
+  admin: { area: 'Ingeniería · Portal', modulo: 'cotizador', opciones: [
+    { sec: 'catalogo',    ico: 'catalogo',    nombre: 'Catálogo de materiales', desc: 'Altas, machote y edición en línea.' },
+    { sec: 'costos',      ico: 'costos',      nombre: 'Costos de compra',       desc: 'Carga masiva, márgenes y exportación.' },
+    { sec: 'utilidades',  ico: 'utilidades',  nombre: 'Utilidades',             desc: 'Porcentajes que mueven el precio.' },
+    { sec: 'incidencias', ico: 'incidencias', nombre: 'Control de incidencias', desc: 'Consulta mensual y archivo iScala.' },
+    { sec: 'usuarios',    ico: 'usuarios',    nombre: 'Usuarios',               desc: 'Cuentas de todas las áreas.' },
+    { sec: 'bitacora',    ico: 'bitacora',    nombre: 'Bitácora',               desc: 'Accesos y cambios registrados.' },
+  ]},
+  admin_servicio: { area: 'Servicio', modulo: 'incidencias-adm', opciones: [
+    { sec: 'incidencias', ico: 'incidencias', nombre: 'Control de incidencias', desc: 'Consulta mensual y archivo iScala del área.' },
+    { sec: 'usuarios',    ico: 'usuarios',    nombre: 'Personal del área',      desc: 'Altas y códigos de recurso.' },
+  ]},
+};
 
-/* Un módulo sin `roles` es de las herramientas de oficina: lo ven el
-   administrador y el usuario, NO el técnico. El técnico entra sólo a lo que lo
-   nombre expresamente; si no, con dejar `roles` sin poner se le abriría el
-   cotizador entero. */
+let MODULOS = [];          // sólo los del rol de esta sesión (construir)
+let GRUPOS_ROL = [];
+let SESION = null;
+let vista = 'inicio';
+const cargados = new Set();
+const buscarModulo = id => MODULOS.find(m => m.id === id);
+const grupoDe = m => (GRUPOS_ROL.find(g => g.modulos.includes(m)) || {}).grupo || '';
 const ROLES_POR_DEFECTO = ['admin', 'usuario'];
 const puedeVer = (m, rol) => (m.roles || ROLES_POR_DEFECTO).includes(rol);
+const adminDe = () => SESION && ADMIN[SESION.rol];
+const esc = s => (window.GD && GD.esc) ? GD.esc(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ico = n => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const $ = id => document.getElementById(id);
 
-/* ── Construcción del carril y los marcos ─────────────────────────────── */
+/* ── Animación (GSAP) ─────────────────────────────────────────────────────
+   Todo es decorativo: si GSAP no carga o la persona pidió menos movimiento,
+   las funciones no hacen nada y la interfaz queda igual de usable. */
+const mov = {
+  ok: () => !!window.gsap && !matchMedia('(prefers-reduced-motion: reduce)').matches,
+  tlInicio: null,
+  inicio() {
+    if (!this.ok()) return;
+    if (this.tlInicio) this.tlInicio.progress(1).kill();
+    this.tlInicio = gsap.timeline({ defaults: { ease: 'power2.out' } })
+      .from('#inicio .saludo > *', { y: 12, autoAlpha: 0, duration: .45, stagger: .07, clearProps: 'all' })
+      .from('#inicio .cat-cab',    { autoAlpha: 0, duration: .3, stagger: .06, clearProps: 'all' }, '-=.25')
+      .from('#inicio .tile',       { y: 16, autoAlpha: 0, duration: .38, stagger: .03, clearProps: 'all' }, '<');
+  },
+  menu(el) {
+    if (!this.ok()) return;
+    gsap.fromTo(el, { autoAlpha: 0, y: -6, scale: .98 },
+      { autoAlpha: 1, y: 0, scale: 1, duration: .16, ease: 'power2.out', clearProps: 'all' });
+  },
+  migas() {
+    if (!this.ok()) return;
+    gsap.from('#migas .actual', { x: -6, autoAlpha: 0, duration: .25, ease: 'power2.out', clearProps: 'all' });
+  },
+  paleta() {
+    if (!this.ok()) return;
+    gsap.fromTo('.paleta-caja', { y: -10, autoAlpha: 0, scale: .985 },
+      { y: 0, autoAlpha: 1, scale: 1, duration: .2, ease: 'power3.out', clearProps: 'all' });
+  },
+  acceso() {
+    if (!this.ok()) return;
+    gsap.from('#auth-card', { y: 18, autoAlpha: 0, duration: .55, ease: 'power3.out', clearProps: 'all' });
+  },
+  salirAcceso(hecho) {
+    if (!this.ok() || $('auth').style.display === 'none') return hecho();
+    gsap.to('#auth-card', { y: -10, autoAlpha: 0, duration: .22, ease: 'power2.in',
+      onComplete: () => { gsap.set('#auth-card', { clearProps: 'all' }); hecho(); } });
+  },
+};
+
+/* ── Construcción del carril, el Inicio y los marcos ──────────────────── */
 function construir(rol) {
-  const nav = document.getElementById('nav');
-  const lienzo = document.getElementById('lienzo');
-
-  const grupos = GRUPOS
+  GRUPOS_ROL = GRUPOS
     .map(g => ({ ...g, modulos: g.modulos.filter(m => puedeVer(m, rol)) }))
     .filter(g => g.modulos.length);
-  MODULOS = grupos.flatMap(g => g.modulos);
+  MODULOS = GRUPOS_ROL.flatMap(g => g.modulos);
 
-  nav.innerHTML = grupos.map(g => `
-    <div class="gd-rail-group">${g.grupo}</div>
+  $('nav').innerHTML = `
+    <button class="rail-item" data-id="inicio" onclick="ir('inicio')" title="Inicio">
+      ${ico('casa')}<span class="nom">Inicio</span>
+    </button>` +
+    GRUPOS_ROL.map(g => `
+    <div class="rail-grupo">${esc(g.grupo)}</div>
     ${g.modulos.map(m => `
-      <button class="gd-rail-item" data-id="${m.id}" onclick="ir('${m.id}')"
-              title="${m.nombre}" aria-label="${m.nombre}">
-        <span class="gd-rail-ico">${m.ico}</span><span>${m.nombre}</span>
-      </button>`).join('')}
-  `).join('');
+      <button class="rail-item" data-id="${m.id}" onclick="ir('${m.id}')"
+              title="${esc(m.nombre)}">
+        ${ico(m.ico)}<span class="nom">${esc(m.nombre)}</span><span class="punto" data-punto="${m.id}" hidden title="Abierto"></span>
+      </button>`).join('')}`).join('');
 
-  const cargador = document.getElementById('cargando');
+  const lienzo = $('lienzo'), cargador = $('cargando');
   lienzo.querySelectorAll('iframe').forEach(f => f.remove());
+  cargados.clear();
   MODULOS.forEach(m => {
     const f = document.createElement('iframe');
     f.id = 'f-' + m.id;
@@ -352,146 +607,377 @@ function construir(rol) {
     lienzo.insertBefore(f, cargador);
     f.addEventListener('load', () => enviarTema(f));
   });
+
+  // Menú de Administración
+  const adm = adminDe();
+  $('ancla-admin').hidden = !adm;
+  if (adm) {
+    $('menu-admin').innerHTML = `<div class="menu-cab">Administración · ${esc(adm.area)}</div>` +
+      adm.opciones.map(o => `
+        <button role="menuitem" onclick="cerrarMenus();abrirAdmin('${o.sec}')">
+          ${ico(o.ico)}<span>${esc(o.nombre)}<small>${esc(o.desc)}</small></span>
+        </button>`).join('');
+  }
 }
 
-function ir(id) {
+/* ── Página de Inicio ─────────────────────────────────────────────────── */
+function saludoPorHora(h) {
+  if (h >= 5 && h < 12) return 'Buenos días';
+  if (h >= 12 && h < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+function primerNombre(n) {
+  return String(n || '').replace(/^\s*(ing|lic|arq|dr|dra|mtro|mtra)\.?\s+/i, '').trim().split(/\s+/)[0] || '';
+}
+function recientes() {
+  try { return (JSON.parse(localStorage.getItem('gd-recientes') || '[]') || []).map(buscarModulo).filter(Boolean).slice(0, 4); }
+  catch (e) { return []; }
+}
+function recordar(id) {
+  try {
+    const l = (JSON.parse(localStorage.getItem('gd-recientes') || '[]') || []).filter(x => x !== id && buscarModulo(x));
+    localStorage.setItem('gd-recientes', JSON.stringify([id, ...l].slice(0, 6)));
+  } catch (e) {}
+}
+
+function pintarInicio() {
+  const s = SESION; if (!s) return;
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const nombre = primerNombre(s.nombre || s.usuario);
+  const rec = recientes();
+  let n = 0;
+  const tile = m => { n++; return `
+    <button class="tile" onclick="ir('${m.id}')" aria-describedby="d-${m.id}">
+      <span class="tile-ico">${ico(m.ico)}</span>
+      <span class="tile-txt"><span class="tile-n">${esc(m.nombre)}</span><span class="tile-d" id="d-${m.id}">${esc(m.desc)}</span></span>
+      <span class="tile-meta"><span class="tile-abierto" data-abierto="${m.id}" ${cargados.has(m.id) ? '' : 'hidden'}>Abierto</span></span>
+    </button>`; };
+
+  const adm = adminDe();
+  $('inicio-in').innerHTML = `
+    <div class="saludo">
+      <div class="fecha">${esc(fecha)}</div>
+      <h1 id="saludo-t">${saludoPorHora(ahora.getHours())}${nombre ? `, <span class="nombre">${esc(nombre)}</span>` : ''}</h1>
+      <p>${esc(etiquetaCompleta(s))} · Elige con qué vas a trabajar.</p>
+      <div class="recientes" ${rec.length ? '' : 'hidden'}>
+        <span class="recientes-t">Continuar con</span>
+        ${rec.map(m => `<button class="chip" onclick="ir('${m.id}')">${ico(m.ico)}${esc(m.nombre)}</button>`).join('')}
+      </div>
+    </div>
+    ${GRUPOS_ROL.map(g => `
+      <section class="cat" aria-labelledby="cat-${esc(g.grupo)}">
+        <div class="cat-cab"><h2 id="cat-${esc(g.grupo)}">${esc(g.grupo)}</h2><span class="n">${g.modulos.length}</span></div>
+        <div class="tiles">${g.modulos.map(tile).join('')}</div>
+      </section>`).join('')}
+    ${adm ? `
+      <section class="cat cat-admin" aria-labelledby="cat-adm">
+        <div class="cat-cab"><h2 id="cat-adm">Administración · ${esc(adm.area)}</h2><span class="n">${adm.opciones.length}</span></div>
+        <div class="tiles">${adm.opciones.map(o => `
+          <button class="tile" onclick="abrirAdmin('${o.sec}')">
+            <span class="tile-ico">${ico(o.ico)}</span>
+            <span class="tile-txt"><span class="tile-n">${esc(o.nombre)}</span><span class="tile-d">${esc(o.desc)}</span></span>
+          </button>`).join('')}</div>
+      </section>` : ''}`;
+}
+
+/* ── Navegación ───────────────────────────────────────────────────────── */
+/* La URL lleva el módulo (#/cotizador) para que Atrás y Adelante del
+   navegador recorran las pestañas. El valor de la URL sólo sirve para BUSCAR
+   en la lista; lo que se usa después es siempre `m.id`. */
+function ir(id, opc = {}) {
+  const empujar = opc.empujar !== false;
+  if (id === 'inicio') return mostrarInicio(empujar);
   const m = buscarModulo(id);
   if (!m) return;
-  /* A partir de aquí se usa SIEMPRE `m.id`, nunca el `id` que entró: el valor
-     válido es el de la lista, no el que llegó de fuera. */
-  document.querySelectorAll('.gd-rail-item').forEach(b => b.classList.toggle('active', b.dataset.id === m.id));
 
-  const f = document.getElementById('f-' + m.id);
+  const f = $('f-' + m.id);
   if (f.dataset.src) {
     mostrarCargador('Cargando ' + m.nombre.toLowerCase() + '…');
     let hecho = false;
-    const ocultar = () => { if (!hecho) { hecho = true; document.getElementById('cargando').classList.remove('on'); } };
+    const ocultar = () => { if (!hecho) { hecho = true; $('cargando').classList.remove('on'); } };
     const red = setTimeout(ocultar, 2500);
     f.addEventListener('load', () => { clearTimeout(red); ocultar(); }, { once: true });
     f.src = f.dataset.src;
     delete f.dataset.src;
+    cargados.add(m.id);
+    marcarAbiertos();
   }
-
-  document.querySelectorAll('iframe').forEach(x => x.classList.toggle('activo', x.id === 'f-' + m.id));
+  $('inicio').hidden = true;
+  document.querySelectorAll('iframe').forEach(x => x.classList.toggle('activo', x === f));
+  vista = m.id;
+  $('portal').classList.add('en-modulo');
+  marcarActivo();
+  pintarMigas(m);
   document.title = m.titulo + ' · Gardner Denver';
-  document.getElementById('movil-modulo').textContent = m.nombre;
-  cerrarRail();
-  try { localStorage.setItem('gd-tab', m.id); } catch(e) {}
+  cerrarRail(); cerrarMenus();
+  recordar(m.id);
+  if (empujar && location.hash !== '#/' + m.id) history.pushState({ v: m.id }, '', '#/' + m.id);
 }
 
-/* ── Carril deslizante (sólo móvil) ───────────────────────────────────── */
+function mostrarInicio(empujar) {
+  document.querySelectorAll('iframe').forEach(x => x.classList.remove('activo'));
+  $('cargando').classList.remove('on');
+  pintarInicio();
+  $('inicio').hidden = false;
+  $('inicio').scrollTop = 0;
+  vista = 'inicio';
+  $('portal').classList.remove('en-modulo');
+  marcarActivo();
+  pintarMigas(null);
+  document.title = 'Inicio · Portal PIPRO · Gardner Denver';
+  cerrarRail(); cerrarMenus();
+  if (empujar && location.hash !== '#/inicio') history.pushState({ v: 'inicio' }, '', '#/inicio');
+  mov.inicio();
+}
+
+function marcarActivo() {
+  document.querySelectorAll('.rail-item[data-id]').forEach(b => {
+    if (b.dataset.id === vista) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  $('btn-home').classList.toggle('activo', vista === 'inicio');
+  if (vista === 'inicio') $('btn-home').setAttribute('aria-current', 'page'); else $('btn-home').removeAttribute('aria-current');
+}
+function marcarAbiertos() {
+  document.querySelectorAll('[data-punto]').forEach(p => { p.hidden = !cargados.has(p.dataset.punto); });
+  document.querySelectorAll('[data-abierto]').forEach(p => { p.hidden = !cargados.has(p.dataset.abierto); });
+}
+function pintarMigas(m) {
+  const n = $('migas');
+  n.innerHTML = m
+    ? `<button onclick="ir('inicio')">Inicio</button><span class="sep sep-g">/</span>
+       <span class="grupo">${esc(grupoDe(m))}</span><span class="sep">/</span>
+       <span class="actual" aria-current="page">${esc(m.nombre)}</span>`
+    : `<span class="actual" aria-current="page">Inicio</span>`;
+  mov.migas();
+}
+
+window.addEventListener('popstate', () => {
+  if (!SESION) return;
+  const id = (location.hash || '').replace(/^#\//, '');
+  ir(buscarModulo(id) ? id : 'inicio', { empujar: false });
+});
+
+/* ── Administración ───────────────────────────────────────────────────── */
+function abrirAdmin(sec) {
+  const adm = adminDe(); if (!adm) return;
+  const op = adm.opciones.find(o => o.sec === sec) || adm.opciones[0];
+  const f = $('f-' + adm.modulo); if (!f) return;
+  const nuevo = !!f.dataset.src;
+  ir(adm.modulo);
+  const avisar = () => { try { f.contentWindow.postMessage({ type: 'gd-abrir-admin', sec: op.sec }, location.origin); } catch (e) {} };
+  nuevo ? f.addEventListener('load', () => setTimeout(avisar, 600), { once: true }) : avisar();
+}
+
+/* ── Carril ───────────────────────────────────────────────────────────── */
 function alternarRail(e) {
   if (e) e.stopPropagation();
-  const r = document.getElementById('rail');
-  const abierto = r.classList.toggle('abierto');
-  document.getElementById('velo').classList.toggle('on', abierto);
-  document.getElementById('btn-rail').setAttribute('aria-expanded', String(abierto));
+  if (vista === 'inicio') return;
+  const abierto = $('rail').classList.toggle('abierto');
+  $('velo').classList.toggle('on', abierto);
+  $('btn-rail').setAttribute('aria-expanded', String(abierto));
 }
 function cerrarRail() {
-  document.getElementById('rail').classList.remove('abierto');
-  document.getElementById('velo').classList.remove('on');
-  const b = document.getElementById('btn-rail');
-  if (b) b.setAttribute('aria-expanded', 'false');
+  $('rail').classList.remove('abierto');
+  $('velo').classList.remove('on');
+  $('btn-rail').setAttribute('aria-expanded', 'false');
 }
 
 function mostrarCargador(txt) {
-  document.getElementById('cargando-txt').textContent = txt;
-  document.getElementById('cargando').classList.add('on');
+  $('cargando-txt').textContent = txt;
+  $('cargando').classList.add('on');
 }
+
+/* ── Menús ────────────────────────────────────────────────────────────── */
+function alternarMenu(id, btn, e) {
+  e.stopPropagation();
+  const m = $(id), abrir = m.hidden;
+  cerrarMenus();
+  if (!abrir) return;
+  m.hidden = false; btn.setAttribute('aria-expanded', 'true');
+  mov.menu(m);
+  const primero = m.querySelector('button'); if (primero) primero.focus({ preventScroll: true });
+}
+function cerrarMenus() {
+  ['menu', 'menu-admin'].forEach(id => { const m = $(id); if (m) m.hidden = true; });
+  ['btn-cuenta', 'btn-admin'].forEach(id => { const b = $(id); if (b) b.setAttribute('aria-expanded', 'false'); });
+}
+document.addEventListener('click', e => { if (!e.target.closest('.menu')) cerrarMenus(); });
+// Flechas dentro de un menú abierto
+document.addEventListener('keydown', e => {
+  const m = e.target.closest && e.target.closest('.menu');
+  if (!m || !['ArrowDown', 'ArrowUp'].includes(e.key)) return;
+  e.preventDefault();
+  const bs = [...m.querySelectorAll('button')], i = bs.indexOf(e.target);
+  bs[(i + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length].focus();
+});
+
+/* ── Paleta de comandos ───────────────────────────────────────────────── */
+let PAL = [], palSel = 0;
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function opcionesPaleta() {
+  const l = [{ sec: 'Ir a', ico: 'casa', nombre: 'Inicio', run: () => ir('inicio') }];
+  MODULOS.forEach((m, i) => l.push({ sec: 'Módulos', ico: m.ico, nombre: m.nombre, extra: m.desc + ' ' + grupoDe(m),
+    nota: grupoDe(m), run: () => ir(m.id) }));
+  const adm = adminDe();
+  if (adm) adm.opciones.forEach(o => l.push({ sec: 'Administración', ico: o.ico, nombre: o.nombre, extra: o.desc + ' admin',
+    nota: 'Admin', run: () => abrirAdmin(o.sec) }));
+  l.push({ sec: 'Acciones', ico: temaActual() === 'dark' ? 'sol' : 'luna', nombre: temaActual() === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro', extra: 'tema', run: alternarTema });
+  l.push({ sec: 'Acciones', ico: 'llave', nombre: 'Cambiar mi contraseña', run: cambiarPwd });
+  l.push({ sec: 'Acciones', ico: 'salir', nombre: 'Cerrar sesión', run: () => GD.sesion.salir() });
+  return l;
+}
+function abrirPaleta() {
+  if (!SESION) return;
+  cerrarMenus(); cerrarRail();
+  $('paleta').hidden = false;
+  $('paleta-q').value = '';
+  filtrarPaleta();
+  mov.paleta();
+  setTimeout(() => $('paleta-q').focus(), 10);
+}
+function cerrarPaleta() { $('paleta').hidden = true; }
+function filtrarPaleta() {
+  const q = norm($('paleta-q').value.trim());
+  PAL = opcionesPaleta().filter(o => !q || norm(o.nombre + ' ' + (o.extra || '') + ' ' + o.sec).includes(q));
+  palSel = 0;
+  pintarPaleta();
+}
+function pintarPaleta() {
+  const ul = $('paleta-lista');
+  if (!PAL.length) { ul.innerHTML = '<li class="paleta-vacia">Nada coincide con lo que escribiste.</li>'; return; }
+  let sec = '';
+  ul.innerHTML = PAL.map((o, i) => {
+    const cab = o.sec !== sec ? `<li class="paleta-sec" role="presentation">${esc(sec = o.sec)}</li>` : '';
+    return cab + `<li class="paleta-op" role="option" id="pal-${i}" data-i="${i}" aria-selected="${i === palSel}">
+      ${ico(o.ico)}<span>${esc(o.nombre)}</span>${o.nota ? `<small>${esc(o.nota)}</small>` : ''}</li>`;
+  }).join('');
+  $('paleta-q').setAttribute('aria-activedescendant', 'pal-' + palSel);
+  const a = $('pal-' + palSel); if (a) a.scrollIntoView({ block: 'nearest' });
+}
+$('paleta-q').addEventListener('input', filtrarPaleta);
+$('paleta-q').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!PAL.length) return;
+    palSel = (palSel + (e.key === 'ArrowDown' ? 1 : -1) + PAL.length) % PAL.length;
+    pintarPaleta();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const o = PAL[palSel]; if (o) { cerrarPaleta(); o.run(); }
+  }
+});
+$('paleta-lista').addEventListener('click', e => {
+  const li = e.target.closest('.paleta-op'); if (!li) return;
+  const o = PAL[+li.dataset.i]; if (o) { cerrarPaleta(); o.run(); }
+});
+$('paleta-lista').addEventListener('mousemove', e => {
+  const li = e.target.closest('.paleta-op'); if (!li || +li.dataset.i === palSel) return;
+  palSel = +li.dataset.i; pintarPaleta();
+});
+
+/* ── Atajos de teclado ────────────────────────────────────────────────────
+   Alt+0 Inicio · Alt+1…9 módulos · Ctrl+K / Alt+K buscar. Sólo la fila de
+   números (e.code «Digit»), nunca el teclado numérico: Alt+164 escribe la ñ. */
+function atajo(tecla) {
+  if (!SESION) return false;
+  if (tecla === 'k') { abrirPaleta(); return true; }
+  if (/^[0-9]$/.test(tecla)) {
+    if (tecla === '0') { ir('inicio'); return true; }
+    const m = MODULOS[+tecla - 1];
+    if (m) { ir(m.id); return true; }
+  }
+  return false;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { cerrarMenus(); cerrarRail(); cerrarPaleta(); return; }
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+    if (atajo('k')) e.preventDefault(); return;
+  }
+  if (e.altKey && !e.ctrlKey && !e.metaKey) {
+    const t = e.code && e.code.startsWith('Digit') ? e.code.slice(5) : (e.code === 'KeyK' ? 'k' : null);
+    if (t && atajo(t)) e.preventDefault();
+  }
+});
 
 /* ── Tema ─────────────────────────────────────────────────────────────── */
 const temaActual = () => document.documentElement.getAttribute('data-theme') || 'light';
-
 function enviarTema(f) {
   try { f.contentWindow.postMessage({ type: 'gd-theme', theme: temaActual() }, location.origin); } catch(e) {}
 }
-
 function aplicarTema(t) {
   if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
   else document.documentElement.removeAttribute('data-theme');
   const oscuro = t === 'dark';
-  document.getElementById('tema-ico').textContent = oscuro ? '☀️' : '🌙';
-  document.getElementById('tema-txt').textContent = oscuro ? 'Modo claro' : 'Modo oscuro';
-  document.getElementById('btn-tema').title = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  $('tema-uso').setAttribute('href', oscuro ? '#i-sol' : '#i-luna');
+  const txt = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  $('btn-tema').title = txt; $('btn-tema').setAttribute('aria-label', txt);
+  $('tema-uso-menu').setAttribute('href', oscuro ? '#i-sol' : '#i-luna');
+  $('tema-txt-menu').textContent = oscuro ? 'Modo claro' : 'Modo oscuro';
   try { localStorage.setItem('gd-theme', t); } catch(e) {}
   document.querySelectorAll('iframe').forEach(enviarTema);
 }
 function alternarTema() { aplicarTema(temaActual() === 'dark' ? 'light' : 'dark'); }
 
 /* ── Acceso ───────────────────────────────────────────────────────────── */
-const msg = document.getElementById('auth-msg');
+const msg = $('auth-msg');
 const error = t => { msg.textContent = t; msg.hidden = false; };
 
-document.getElementById('auth-form').addEventListener('submit', async e => {
+$('auth-form').addEventListener('submit', async e => {
   e.preventDefault();
-  const b = document.getElementById('auth-btn');
+  const b = $('auth-btn');
   msg.hidden = true; b.disabled = true; b.textContent = 'Verificando…';
   try {
     const r = await fetch('/api/login', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        usuario: document.getElementById('auth-user').value,
-        password: document.getElementById('auth-pwd').value,
-      }),
+      body: JSON.stringify({ usuario: $('auth-user').value, password: $('auth-pwd').value }),
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { error(d.error || 'No se pudo iniciar sesión.'); return; }
-    document.getElementById('auth-pwd').value = '';
-    await entrar();
+    $('auth-pwd').value = '';
+    // Al iniciar sesión siempre se llega a Inicio, con el saludo
+    await entrar({ inicio: true });
     if (d.debe_cambiar_password) {
-      setTimeout(() => alert('Por seguridad, cambia tu contraseña desde tu usuario, abajo a la izquierda.'), 400);
+      setTimeout(() => alert('Por seguridad, cambia tu contraseña: menú de tu usuario, arriba a la derecha.'), 600);
     }
   } catch (err) {
     error('No hay conexión con el servidor. Verifica tu red e intenta de nuevo.');
   } finally { b.disabled = false; b.textContent = 'Entrar'; }
 });
 
-async function entrar() {
+const ETIQUETA_ROL = { admin: 'Administrador', tecnico: 'Técnico', admin_servicio: 'Administrador de área', usuario: 'Usuario' };
+function etiquetaCompleta(s) {
+  const r = ETIQUETA_ROL[s.rol] || 'Usuario';
+  return s.area && s.area !== 'ingenieria' ? `${r} · ${s.areaNombre || s.area}` : r;
+}
+
+async function entrar(opc = {}) {
   const s = await GD.sesion.cargar();
   if (!s || !s.autenticado) return false;
-
-  document.getElementById('auth').style.display = 'none';
-  document.getElementById('portal').classList.remove('oculto');
+  SESION = s;
 
   const nombre = s.nombre || s.usuario;
-  document.getElementById('avatar').textContent =
+  $('avatar').textContent = (GD.iniciales ? GD.iniciales(nombre).slice(0, 2) : '') ||
     nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '··';
-  document.getElementById('cuenta-n').textContent = nombre;
-  const rol = document.getElementById('cuenta-r');
-  /* El área sólo se nombra cuando no es Ingeniería: en un portal donde casi
-     todos son de Ingeniería, repetirlo en cada sesión es ruido. */
-  const etiquetaRol = { admin:'Administrador', tecnico:'Técnico',
-                        admin_servicio:'Admin de área' }[s.rol] || 'Usuario';
-  rol.textContent = s.area && s.area !== 'ingenieria'
-    ? `${etiquetaRol} · ${s.areaNombre || s.area}` : etiquetaRol;
-  rol.classList.toggle('admin', s.rol === 'admin');
-  document.getElementById('menu-admin').hidden = s.rol !== 'admin';
+  $('cuenta-n').textContent = nombre;
+  $('cuenta-r').textContent = etiquetaCompleta(s);
+  $('cuenta-r').classList.toggle('admin', !!ADMIN[s.rol]);
+  $('menu-quien').textContent = s.usuario;
 
-  // El carril se arma con el rol: un técnico sólo ve su control de incidencias
   construir(s.rol);
-  if (!MODULOS.length) return true;
 
-  let inicial = MODULOS[0].id;
-  try { const g = localStorage.getItem('gd-tab'); if (g && buscarModulo(g)) inicial = g; } catch(e) {}
-  ir(inicial);
+  mov.salirAcceso(() => {
+    $('auth').style.display = 'none';
+    $('portal').classList.remove('oculto');
+    /* Inicio es la pestaña principal. Sólo una recarga con un módulo en la
+       URL (#/presiones) vuelve directo a él; iniciar sesión, nunca. */
+    const id = (location.hash || '').replace(/^#\//, '');
+    if (!opc.inicio && buscarModulo(id)) ir(id, { empujar: false });
+    else { history.replaceState({ v: 'inicio' }, '', '#/inicio'); mostrarInicio(false); }
+  });
   return true;
 }
-
-/* ── Menú de cuenta ───────────────────────────────────────────────────── */
-function alternarMenu(e) {
-  e.stopPropagation();
-  const m = document.getElementById('menu');
-  m.hidden = !m.hidden;
-  document.getElementById('btn-cuenta').setAttribute('aria-expanded', String(!m.hidden));
-}
-document.addEventListener('click', () => {
-  const m = document.getElementById('menu');
-  if (m && !m.hidden) { m.hidden = true; document.getElementById('btn-cuenta').setAttribute('aria-expanded','false'); }
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { document.getElementById('menu').hidden = true; cerrarRail(); }
-});
 
 async function cambiarPwd() {
   const actual = prompt('Contraseña actual:');
@@ -508,45 +994,48 @@ async function cambiarPwd() {
   alert(r.ok ? '✅ Contraseña actualizada.' : '❌ ' + (d.error || 'No se pudo cambiar.'));
 }
 
-function irAdmin() {
-  ir('cotizador');
-  const f = document.getElementById('f-cotizador');
-  const avisar = () => { try { f.contentWindow.postMessage({ type: 'gd-abrir-admin' }, location.origin); } catch(e) {} };
-  f.dataset.src ? f.addEventListener('load', () => setTimeout(avisar, 300), { once: true }) : avisar();
-}
-
-/* ── Sesión expirada, avisada por un módulo ───────────────────────────── */
+/* ── Mensajes de los módulos ──────────────────────────────────────────── */
 window.addEventListener('message', e => {
-  if (e.origin !== location.origin) return;
+  if (e.origin !== location.origin || !e.data || typeof e.data !== 'object') return;
+
+  /* Atajos pulsados dentro de un módulo (gd-theme-sync.js los reenvía). */
+  if (e.data.type === 'gd-atajo' && typeof e.data.tecla === 'string') { atajo(e.data.tecla.slice(0, 1)); return; }
+
   /* El isométrico manda su lista de material al cotizador. El portal sólo
-     hace de puente entre los dos marcos; la validación de cada partida la
-     hace el cotizador, que es quien conoce el catálogo. */
-  if (e.data && e.data.type === 'gd-isometrico-material' && Array.isArray(e.data.items)) {
-    const f = document.getElementById('f-cotizador');
+     hace de puente; la validación de cada partida la hace el cotizador. */
+  if (e.data.type === 'gd-isometrico-material' && Array.isArray(e.data.items)) {
+    const f = $('f-cotizador');
     if (!f) return;            // un rol sin cotizador no tiene a dónde mandarlo
     const enviar = () => {
       try { f.contentWindow.postMessage({ type: 'gd-material-externo', items: e.data.items }, location.origin); } catch (err) {}
     };
-    if (f.dataset.src) {
-      f.src = f.dataset.src; delete f.dataset.src;
-      f.addEventListener('load', () => setTimeout(enviar, 400), { once: true });
-    } else { enviar(); }
+    const nuevo = !!f.dataset.src;
     ir('cotizador');
+    nuevo ? f.addEventListener('load', () => setTimeout(enviar, 400), { once: true }) : enviar();
     return;
   }
 
-  if (e.data && e.data.type === 'gd-sesion-expirada') {
-    document.getElementById('portal').classList.add('oculto');
-    document.getElementById('auth').style.display = 'flex';
+  if (e.data.type === 'gd-sesion-expirada') {
+    SESION = null;
+    $('portal').classList.add('oculto');
+    $('auth').style.display = 'flex';
     error('Tu sesión expiró por inactividad. Vuelve a entrar.');
+    mov.acceso();
   }
 });
 
+// El saludo cambia solo si la sesión cruza el mediodía o la tarde
+setInterval(() => {
+  if (vista !== 'inicio' || !SESION) return;
+  const h = $('saludo-t'); if (!h) return;
+  const actual = saludoPorHora(new Date().getHours());
+  if (!h.textContent.startsWith(actual)) pintarInicio();
+}, 60000);
+
 /* ── Arranque ─────────────────────────────────────────────────────────── */
-// El carril se construye en entrar(), cuando ya se sabe el rol de la sesión
 aplicarTema(temaActual());
 (async () => {
-  if (!await entrar()) setTimeout(() => document.getElementById('auth-user').focus(), 60);
+  if (!await entrar()) { mov.acceso(); setTimeout(() => $('auth-user').focus(), 60); }
 })();
 </script>
 </body>

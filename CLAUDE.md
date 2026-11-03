@@ -12,7 +12,7 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 
 | Archivo | Propósito |
 |---|---|
-| `index.html` | Portal (6 iframes) + pantalla de acceso + menú de cuenta |
+| `index.html` | Portal: acceso, Inicio (saludo + accesos por categoría), cabecera, carril e iframes |
 | `cotizador.html` | Cotizaciones (IP = con MO, IT = sin MO) + panel admin |
 | `incidencias.html` | Registro de incidencias (horas) — lo usan todos los roles |
 | `isometrico.html` | Trazo isométrico de la red + lista de material |
@@ -242,6 +242,40 @@ Sin framework — HTML/CSS/JS puro + CDNs. Deploy en Vercel.
 - **Siembra:** Solo una vez (flag `meta.materiales_seed_done = true`)
 - **Upsert key:** `numero_parte` para materiales
 - `meta.utilidades` sólo la escribe un administrador (mueve dinero)
+
+## Portal: Inicio, cabecera y navegación (rediseño 2026-11)
+
+- **Paleta de marca** sacada del propio logotipo: rojo `#CF112B` (regla) y
+  carbón `#3C3C41` (nombre), con neutros carbón. Sólo cambiaron los VALORES de
+  `gd-theme.css`; los nombres de variables son el mismo contrato. Nuevo token
+  `--gd-carbon`. Contrastes anotados junto a cada token (claro y oscuro).
+- **Al iniciar sesión siempre se llega a Inicio**: saludo por hora local
+  (días 5–11 h, tardes 12–18 h, noches), fecha, «Continuar con» (últimos
+  módulos, `localStorage gd-recientes`) y un botón por módulo agrupado por
+  categoría en el orden de `GRUPOS`. Una recarga con `#/modulo` en la URL
+  vuelve a ese módulo; Atrás/Adelante del navegador recorren las pestañas.
+  El hash sólo se usa para BUSCAR en la lista; después manda `m.id`.
+- **Cabecera** (sin migas de ruta, a petición): buscador, Administración, tema, **Inicio junto a la cuenta**
+  y menú de la cuenta.
+- **El carril lateral NO existe en Inicio** (petición del dueño, 2026-11):
+  ahí sólo están los botones que abren cada módulo. Dentro de un módulo el
+  carril es un **panel desplegable** que abre el botón «Módulos» de la
+  cabecera (`#portal.en-modulo`), en todos los anchos; se cierra solo al
+  elegir. No hay columna fija ni modo compacto.
+- Atajos sin instrucciones en pantalla (a petición: no se muestran):
+  Alt+0 Inicio, Alt+1…9 módulos, Ctrl+K / Alt+K buscar; `gd-theme-sync.js`
+  los reenvía desde los marcos. Sólo la fila de números (`e.code` Digit):
+  Alt + teclado numérico escribe la ñ.
+- **Administración** (`ADMIN` en index.html): `admin` → seis secciones del
+  panel del cotizador; `admin_servicio` → incidencias y personal de su área.
+  El portal manda `{type:'gd-abrir-admin', sec}` y `gdAbrirAdmin(sec)` la
+  contrasta con `ADM_SECCIONES` y con las pestañas que existen para ese rol.
+  Es fachada: los permisos siguen en `api/db.js`.
+- **GSAP 3.12.5 va servido desde `vendor/gsap.min.js`** (mismo dominio, sin
+  CDN ni SRI que mantener). Todo el movimiento es decorativo: sin GSAP o con
+  `prefers-reduced-motion` la interfaz funciona igual.
+- Ojo con nombres de clase genéricos en index.html: `.abierto` ya es el estado
+  del carril móvil (`.rail.abierto`); la insignia del Inicio es `.tile-abierto`.
 
 ## Componentes de interfaz (gd-ui)
 

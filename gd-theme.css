@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    gd-theme.css — Sistema de diseño del Portal PIPRO · Gardner Denver
-   Rediseño 2026-09.
+   Rediseño 2026-09 · paleta de marca 2026-11 (rojo y carbón del logotipo).
 
    Criterio: esto es un banco de trabajo, no un sitio de marketing. Superficies
    planas separadas por filetes; la sombra se reserva para lo que de verdad
@@ -16,48 +16,50 @@
 
 /* ── TOKENS · MODO CLARO ─────────────────────────────────────────────────── */
 :root {
-  /* Marca */
-  --gd-red:        #C8102E;   /* Pantone 199 — superficies y botones */
-  --gd-red-ink:    #C8102E;   /* el mismo rojo cuando es TEXTO */
-  --gd-red-dark:   #A50D26;
-  --gd-red-light:  #FBE3E8;
-  --gd-red-tint:   #FDF2F4;
-  --gd-blue:       #1F3864;
+  /* Marca — rediseño 2026-11. Los dos colores salen del propio logotipo
+     (assets/logo-gd.png): el rojo de la regla y el carbón del nombre. */
+  --gd-red:        #CF112B;   /* rojo Gardner Denver — superficies y botones (5.6:1 con blanco) */
+  --gd-red-ink:    #B30F25;   /* rojo como TEXTO: 7.0:1 sobre blanco, 5.8:1 sobre red-light */
+  --gd-red-dark:   #A80E23;   /* hover / presionado */
+  --gd-red-light:  #FBE4E7;
+  --gd-red-tint:   #FDF3F4;
+  --gd-blue:       #1F3864;   /* se conserva para gráficas y mapas existentes */
+  --gd-carbon:     #3C3C41;   /* carbón del logotipo: segundo color de marca */
 
-  /* Neutros con sesgo acero — un gris puro se lee como no elegido */
-  --gd-black:      #0F1216;
-  --gd-graphite:   #1B2028;
-  --gd-charcoal:   #333B47;
-  --gd-900:        #14171C;
-  --gd-800:        #232A33;
-  --gd-700:        #3A424E;
-  --gd-600:        #576070;
-  --gd-500:        #6E7683;
-  --gd-400:        #98A0AD;
-  --gd-300:        #C3C9D2;
-  --gd-200:        #DCE0E6;
-  --gd-100:        #EDEFF2;
-  --gd-50:         #F5F6F8;
+  /* Neutros carbón — los del logotipo, apenas fríos */
+  --gd-black:      #111113;
+  --gd-graphite:   #2B2B2F;
+  --gd-charcoal:   #3C3C41;
+  --gd-900:        #18181B;
+  --gd-800:        #27272B;
+  --gd-700:        #3C3C41;
+  --gd-600:        #56565D;
+  --gd-500:        #6E6E76;
+  --gd-400:        #9C9CA4;
+  --gd-300:        #C6C6CC;
+  --gd-200:        #DEDEE2;
+  --gd-100:        #EEEEF0;
+  --gd-50:         #F6F6F7;
   --gd-white:      #FFFFFF;
 
   /* Superficies */
-  --gd-bg:         #E9ECF0;
+  --gd-bg:         #EDEDEF;
   --gd-bg-elev:    #FFFFFF;
-  --gd-bg-alt:     #F4F6F8;
-  --gd-bg-sunken:  #E1E5EA;
+  --gd-bg-alt:     #F6F6F7;
+  --gd-bg-sunken:  #E3E3E6;
 
   /* Texto */
-  --gd-text:       #14171C;
-  --gd-text-mute:  #576070;
-  --gd-text-soft:  #616B7A;   /* 5.0:1 sobre blanco, 4.6:1 sobre bg-alt */
+  --gd-text:       #18181B;
+  --gd-text-mute:  #56565D;   /* 7.3:1 sobre blanco */
+  --gd-text-soft:  #64646C;   /* 5.9:1 sobre blanco, 5.0:1 sobre bg */
 
   /* Filetes */
-  --gd-border:        #DDE1E7;
-  --gd-border-strong: #C0C7D1;
+  --gd-border:        #DEDEE2;
+  --gd-border-strong: #C3C3C9;
 
   /* Cromo invertido: cabeceras de tabla y barras oscuras con texto claro.
      En modo oscuro no se invierte del todo, sólo se eleva sobre el fondo. */
-  --gd-invert-bg:  #232A33;
+  --gd-invert-bg:  #2B2B2F;
   --gd-invert-fg:  #FFFFFF;
 
   /* Semánticos — deliberadamente distintos del rojo de marca */
@@ -102,7 +104,7 @@
   --gd-shadow-sm: 0 1px 2px rgba(15,18,22,.06);
   --gd-shadow-md: 0 4px 12px -4px rgba(15,18,22,.14);
   --gd-shadow-lg: 0 18px 44px -16px rgba(15,18,22,.28), 0 4px 10px -4px rgba(15,18,22,.10);
-  --gd-shadow-focus: 0 0 0 3px rgba(200,16,46,.22);
+  --gd-shadow-focus: 0 0 0 3px rgba(207,17,43,.24);
   --shadow: var(--gd-shadow-sm);
 
   --gd-space-1: 4px;  --gd-space-2: 8px;  --gd-space-3: 12px;
@@ -120,42 +122,43 @@
 [data-theme="dark"] {
   /* El rojo de marca se aclara —#C8102E no contrasta sobre fondo oscuro— pero
      no tanto como para que el texto blanco encima deje de leerse (4.2:1). */
-  --gd-red:        #DC3350;   /* fondo de botón: 4.5:1 con texto blanco */
-  --gd-red-ink:    #FF8095;   /* rojo como texto sobre fondo oscuro */
-  --gd-red-dark:   #C8213C;
-  --gd-red-light:  #3A151C;
-  --gd-red-tint:   #241015;
+  --gd-red:        #D7213B;   /* fondo de botón: 5.0:1 con texto blanco */
+  --gd-red-ink:    #FF7A8C;   /* rojo como texto: 7.0:1 sobre bg-elev */
+  --gd-red-dark:   #B81A31;
+  --gd-red-light:  #3B1218;
+  --gd-red-tint:   #24100F;
   --gd-blue:       #7FA9E0;
+  --gd-carbon:     #C6C6CC;
 
-  --gd-black:      #E6E9EE;
-  --gd-graphite:   #D2D7DF;
-  --gd-charcoal:   #AAB2BE;
-  --gd-900:        #E6E9EE;
-  --gd-800:        #CBD1DA;
-  --gd-700:        #AAB2BE;
-  --gd-600:        #8A93A1;
-  --gd-500:        #6E7683;
-  --gd-400:        #545C69;
-  --gd-300:        #38414E;
-  --gd-200:        #262D37;
-  --gd-100:        #1C222A;
-  --gd-50:         #151A20;
-  --gd-white:      #151A20;
+  --gd-black:      #ECECEE;
+  --gd-graphite:   #D6D6DA;
+  --gd-charcoal:   #B0B0B7;
+  --gd-900:        #ECECEE;
+  --gd-800:        #D0D0D5;
+  --gd-700:        #B0B0B7;
+  --gd-600:        #8E8E97;
+  --gd-500:        #6E6E76;
+  --gd-400:        #55555C;
+  --gd-300:        #3D3D44;
+  --gd-200:        #2A2A2F;
+  --gd-100:        #222226;
+  --gd-50:         #1A1A1D;
+  --gd-white:      #1A1A1D;
 
-  --gd-bg:         #0D1014;
-  --gd-bg-elev:    #151A20;
-  --gd-bg-alt:     #1C222A;
-  --gd-bg-sunken:  #0A0D11;
+  --gd-bg:         #111113;
+  --gd-bg-elev:    #1A1A1D;
+  --gd-bg-alt:     #222226;
+  --gd-bg-sunken:  #0B0B0D;
 
-  --gd-text:       #E6E9EE;
-  --gd-text-mute:  #A2AAB6;
-  --gd-text-soft:  #8A92A0;   /* 5.6:1 sobre el fondo oscuro */
+  --gd-text:       #ECECEE;
+  --gd-text-mute:  #A8A8B0;   /* 6.7:1 sobre bg-alt */
+  --gd-text-soft:  #8E8E97;   /* 5.4:1 sobre bg-elev */
 
-  --gd-border:        #262D37;
-  --gd-border-strong: #39424F;
+  --gd-border:        #2A2A2F;
+  --gd-border-strong: #3D3D44;
 
-  --gd-invert-bg:  #262D37;
-  --gd-invert-fg:  #E6E9EE;
+  --gd-invert-bg:  #2A2A2F;
+  --gd-invert-fg:  #ECECEE;
 
   --dp-verde:   #34D399;
   --dp-lima:    #A3E635;
@@ -175,7 +178,7 @@
   --gd-shadow-sm: 0 1px 2px rgba(0,0,0,.5);
   --gd-shadow-md: 0 4px 12px -4px rgba(0,0,0,.6);
   --gd-shadow-lg: 0 18px 44px -16px rgba(0,0,0,.8), 0 4px 10px -4px rgba(0,0,0,.5);
-  --gd-shadow-focus: 0 0 0 3px rgba(255,77,104,.28);
+  --gd-shadow-focus: 0 0 0 3px rgba(255,122,140,.30);
 
   --gd-velo: rgba(0,0,0,.66);
   --gd-logo: url('assets/logo-gd-dark.png');

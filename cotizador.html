@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Cotizador PIPRO · Gardner Denver México</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="stylesheet" href="gd-theme.css?v=20260905"/>
-<link rel="stylesheet" href="gd-ui.css?v=20260905"/>
-<script src="gd-theme-sync.js?v=20260905"></script>
+<link rel="stylesheet" href="gd-theme.css?v=20261103"/>
+<link rel="stylesheet" href="gd-ui.css?v=20261103"/>
+<script src="gd-theme-sync.js?v=20261103"></script>
 <script src="gd-ui.js?v=20260905"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" referrerpolicy="no-referrer">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -42,7 +42,7 @@ body{
   display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;border-radius:8px;
   background:var(--gd-red-tint);color:var(--gd-red-ink);font-size:18px;
-  border:1px solid #FCE7EB;
+  border:1px solid var(--gd-red-light);
 }
 .mod-title{font-size:14px;font-weight:700;color:var(--gd-text);letter-spacing:-.01em;line-height:1.2;}
 .mod-sub{font-size:11px;color:var(--gd-text-soft);margin-top:2px;letter-spacing:.01em;font-weight:500;}
@@ -294,7 +294,7 @@ summary::-webkit-details-marker{display:none;}
 /* ── CART TABLE ──────────────────────────────────────────────────────────────── */
 .cart-table{width:100%;border-collapse:collapse;font-size:.88rem;}
 .cart-table th{
-  background:var(--gd-blue);color:#fff;padding:8px 10px;text-align:left;
+  background:var(--gd-invert-bg);color:var(--gd-invert-fg);padding:8px 10px;text-align:left;
   font-size:.82rem;white-space:nowrap;
 }
 .cart-table td{padding:7px 10px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
@@ -408,7 +408,7 @@ summary::-webkit-details-marker{display:none;}
 
 .req-table{width:100%;border-collapse:collapse;font-size:.85rem;}
 .req-table th{
-  background:var(--gd-blue);color:#fff;padding:7px 9px;text-align:left;
+  background:var(--gd-invert-bg);color:var(--gd-invert-fg);padding:7px 9px;text-align:left;
   font-size:.78rem;white-space:nowrap;
 }
 .req-table td{padding:6px 9px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
@@ -437,7 +437,7 @@ summary::-webkit-details-marker{display:none;}
 
 /* ── ADMIN TABLE ─────────────────────────────────────────────────────────────── */
 .admin-table{width:100%;border-collapse:collapse;font-size:.85rem;}
-.admin-table th{background:var(--gd-blue);color:#fff;padding:7px 10px;text-align:left;}
+.admin-table th{background:var(--gd-invert-bg);color:var(--gd-invert-fg);padding:7px 10px;text-align:left;}
 .admin-table td{padding:4px 8px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
 .admin-table tr:nth-child(even) td{background:var(--gd-bg-alt);}
 .admin-wrap{max-height:480px;overflow-y:auto;border:1px solid var(--gd-border);border-radius:var(--radius);}
@@ -1073,8 +1073,8 @@ Total = costo diario × días de trabajo"
               <td id="sop-subtotal" style="padding:7px 10px;text-align:right;border-top:1px solid var(--gd-border);color:var(--gd-text-mute);"></td>
             </tr>
             <tr>
-              <td colspan="6" style="padding:7px 10px;text-align:right;color:#2a7a2a;font-weight:600;">Utilidad (40%)</td>
-              <td id="sop-utilidad" style="padding:7px 10px;text-align:right;color:#2a7a2a;font-weight:600;"></td>
+              <td colspan="6" style="padding:7px 10px;text-align:right;color:var(--gd-success);font-weight:600;">Utilidad (40%)</td>
+              <td id="sop-utilidad" style="padding:7px 10px;text-align:right;color:var(--gd-success);font-weight:600;"></td>
             </tr>
             <tr style="background:var(--gd-bg-alt);font-weight:700;">
               <td colspan="6" style="padding:9px 10px;text-align:right;border-top:2px solid var(--gd-border);">TOTAL CON UTILIDAD</td>
@@ -3880,7 +3880,7 @@ function updateTotales() {
     html += `<div class="cart-total-row"><span class="label">M.O. y Maniobras</span><span class="amount">${fmt(costo_mo)}</span></div>`;
   }
   if (descuento>0) {
-    html += `<div class="cart-total-row"><span class="label">Descuento (${(descuento*100).toFixed(0)}%)</span><span class="amount" style="color:#d32f2f;">-${fmt(desc_monto)}</span></div>`;
+    html += `<div class="cart-total-row"><span class="label">Descuento (${(descuento*100).toFixed(0)}%)</span><span class="amount" style="color:var(--gd-error);">-${fmt(desc_monto)}</span></div>`;
   }
   html += `<div class="cart-total-row"><span class="label">Subtotal sin IVA</span><span class="amount">${fmt(total_neto)}</span></div>`;
   html += `<div class="cart-total-row"><span class="label">IVA (16%)</span><span class="amount">${fmt(iva)}</span></div>`;
@@ -4794,7 +4794,7 @@ function buildWordHTML(d) {
       : 'Subtotal de materiales';
     let rows = costRow(matLabel, subtotal, '#EDF4FB','#1F1F1F','600','9pt');
     if (is_ip && costo_mo > 0) rows += costRow('Servicio de instalación y maniobras de tubería de aluminio', costo_mo, '#EDF4FB','#1F1F1F','600','9pt');
-    if (descuento > 0) rows += costRow(`Descuento (${(descuento*100).toFixed(0)}%)`, -desc_monto, '#FFF9E6','#C8102E','600','9pt');
+    if (descuento > 0) rows += costRow(`Descuento (${(descuento*100).toFixed(0)}%)`, -desc_monto, '#FFF9E6','#CF112B','600','9pt');
     rows += costRow('Subtotal', total_neto, '#D6E4F0','#1F1F1F','700','9.5pt');
     rows += costRow('IVA (16%)', iva, '#F5F5F5','#555555','400','8.5pt');
     rows += costRow('TOTAL DEL PROYECTO', total_con_iva, '#1F3864','#FFFFFF','700','10.5pt');
@@ -4885,7 +4885,7 @@ table { border-collapse:collapse; }
       </td>
     </tr>
     <tr>
-      <td colspan="2" bgcolor="#C8102E" style="background:var(--gd-red);height:2pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+      <td colspan="2" bgcolor="#CF112B" style="background:var(--gd-red);height:2pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
     </tr>
   </table>
 </div>
@@ -4894,7 +4894,7 @@ table { border-collapse:collapse; }
 <div style="mso-element:footer" id="wdFtr">
   <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
     <tr>
-      <td colspan="2" bgcolor="#C8102E" style="background:var(--gd-red);height:1pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+      <td colspan="2" bgcolor="#CF112B" style="background:var(--gd-red);height:1pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
     </tr>
     <tr>
       <td style="border:none;padding:3pt 0 0 0;font-size:6pt;color:var(--gd-text-mute);">
@@ -4979,7 +4979,7 @@ ${is_ip ? P_IP_extra : P_IT_extra}
   <tr>
     <td width="55%" valign="top" style="border:none;padding:0;">
       <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-        <tr><td bgcolor="#C8102E" style="background:var(--gd-red);height:2.5pt;width:60pt;font-size:1pt;line-height:1pt;">&nbsp;</td></tr>
+        <tr><td bgcolor="#CF112B" style="background:var(--gd-red);height:2.5pt;width:60pt;font-size:1pt;line-height:1pt;">&nbsp;</td></tr>
         <tr><td style="border:none;padding:5pt 0 0 0;">
           <span style="font-size:9pt;font-weight:bold;color:var(--gd-text);">Ing. Marco Antonio Millan Ramirez</span><br>
           <span style="font-size:8pt;color:var(--gd-text-mute);">Gerente de Ingenieria</span><br>
@@ -5783,7 +5783,7 @@ function incPintar() {
   }).join('') : '<tr><td colspan="10" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Sin renglones para ese mes y filtro.</td></tr>';
 
   el('inc-tbody-det').innerHTML = filas.length ? filas.map(f => `<tr>
-      <td>${incDDMMYYYY(f.fecha)}${f.extemporanea ? ' <span style="font-size:.68rem;background:#fff3cd;color:#713f12;padding:1px 6px;border-radius:99px;font-weight:700;">extemp.</span>' : ''}</td>
+      <td>${incDDMMYYYY(f.fecha)}${f.extemporanea ? ' <span style="font-size:.68rem;background:var(--gd-warning-light);color:var(--gd-warning);padding:1px 6px;border-radius:99px;font-weight:700;">extemp.</span>' : ''}</td>
       <td>${GD.esc(incNombreDe(f.usuario))}</td>
       <td>${GD.esc(f.empresa)}</td>
       <td style="font-family:ui-monospace,monospace;font-size:.76rem;">${GD.esc(f.folio)}</td>
@@ -5998,8 +5998,8 @@ function renderCostosTable() {
     const mg    = _margen(m);
     // Verde si deja margen sano, ámbar si va flaco, rojo si se vende con pérdida
     const color = mg === null ? 'var(--gd-text-mute)'
-                : mg < 0      ? '#dc2626'
-                : mg < 0.20   ? '#f97316' : '#16a34a';
+                : mg < 0      ? 'var(--gd-error)'
+                : mg < 0.20   ? 'var(--gd-warning)' : 'var(--gd-success)';
     return `<tr>
       <td style="color:var(--gd-text-mute);text-align:center;">${i + 1}</td>
       <td style="font-size:.82rem;">${GD.esc(m.descripcion)}</td>
@@ -6128,11 +6128,21 @@ window.gdMaterialExterno = function (items) {
         (sueltos ? ` · ${sueltos} sin precio, revísalas` : ''));
 };
 
-window.gdAbrirAdmin = function () {
+/* El portal puede pedir una sección concreta del panel (botón
+   «Administración» del portal, 2026-11). La sección llega de fuera, así que
+   sólo se usa la entrada de esta lista que coincida, nunca el texto recibido,
+   y sólo si esa pestaña existe para el rol (el modo Servicio quita las demás). */
+const ADM_SECCIONES = ['catalogo', 'costos', 'utilidades', 'incidencias', 'usuarios', 'bitacora'];
+window.gdAbrirAdmin = function (sec) {
   const t = document.querySelector('.mod-tab[data-tab="admin"], [onclick*="\'admin\'"]');
   if (typeof setTab === 'function') setTab('admin');
   else if (t) t.click();
-  setTimeout(() => { if (GD.sesion.esAdmin) admSeccion('usuarios'); }, 250);
+  const pedida = ADM_SECCIONES.find(x => x === sec);
+  setTimeout(() => {
+    if (!esAdminDeArea()) return;
+    const destino = pedida || (GD.sesion.esAdmin ? 'usuarios' : 'incidencias');
+    if (document.querySelector('.adm-tab[data-sec="' + destino + '"]')) admSeccion(destino);
+  }, 250);
 };
 
 // ── USUARIOS Y BITÁCORA ───────────────────────────────────────────────────────
@@ -6167,7 +6177,7 @@ async function renderUsuarios() {
         <td><span class="gd-user-rol${/^admin/.test(u.rol) ? ' admin' : ''}">${
           ETIQUETA_ROL[u.rol] || 'Usuario'}</span>
           <br><span style="font-size:.7rem;color:${
-            u.codigo_recurso ? 'var(--gd-text-mute)' : (u.rol === 'tecnico' ? '#dc2626' : 'var(--gd-text-mute)')
+            u.codigo_recurso ? 'var(--gd-text-mute)' : (u.rol === 'tecnico' ? 'var(--gd-error)' : 'var(--gd-text-mute)')
             };font-weight:${!u.codigo_recurso && u.rol === 'tecnico' ? '700' : '400'};">Cód. recurso: ${
             GD.esc(u.codigo_recurso || (u.rol === 'tecnico' ? 'SIN ASIGNAR' : '—'))}</span></td>
         <td style="font-size:.82rem;">${GD.esc(ETIQUETA_AREA[u.area] || ETIQUETA_AREA.ingenieria)}</td>
@@ -7111,7 +7121,7 @@ async function calcularRuta() {
     _osm.markers = [];
 
     _osm.routeLayer = L.geoJSON(route.geometry, {
-      style: { color: '#C8102E', weight: 5, opacity: 0.85 }
+      style: { color: '#CF112B', weight: 5, opacity: 0.85 }
     }).addTo(_osm.map);
     _osm.map.fitBounds(_osm.routeLayer.getBounds(), { padding: [36, 36] });
 
@@ -8204,10 +8214,10 @@ function updateSopRow(idx) {
   if (lineEl) {
     lineEl.textContent      = qty > 0 ? fmt(line) : '—';
     lineEl.style.fontWeight = qty > 0 ? '700' : '400';
-    lineEl.style.color      = qty > 0 ? '#222' : '#bbb';
+    lineEl.style.color      = qty > 0 ? 'var(--gd-text)' : 'var(--gd-text-mute)';
   }
-  inp.style.border     = qty > 0 ? '1.5px solid #C8102E' : '1.5px solid #ccc';
-  inp.style.background = qty > 0 ? '#fff8f9' : '#fff';
+  inp.style.border     = qty > 0 ? '1.5px solid var(--gd-red)' : '1.5px solid var(--gd-border-strong)';
+  inp.style.background = qty > 0 ? 'var(--gd-red-tint)' : 'var(--gd-bg-elev)';
   updateSopTotal();
   renderRequisicion();
 }
