@@ -699,7 +699,7 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
         <div class="gd-fields">
           <div class="gd-field">
             <label>Técnico
-              <button class="gd-i" data-info-title="Técnico"
+              <button class="gd-i" id="info-sueldo-tecnico" data-info-title="Técnico"
                       data-info="Sueldo mensual integrado considerado en el cálculo."
                       data-formula="$25,723.07 / mes"
                       data-fuente="El número de personas se propaga automáticamente a comidas y hospedaje."></button>
@@ -708,7 +708,7 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
           </div>
           <div class="gd-field">
             <label>Ayudante
-              <button class="gd-i" data-info-title="Ayudante"
+              <button class="gd-i" id="info-sueldo-ayudante" data-info-title="Ayudante"
                       data-info="Sueldo mensual integrado considerado en el cálculo."
                       data-formula="$15,005.12 / mes"></button>
             </label>
@@ -716,7 +716,7 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
           </div>
           <div class="gd-field">
             <label>Ingeniero
-              <button class="gd-i" data-info-title="Ingeniero"
+              <button class="gd-i" id="info-sueldo-ingeniero" data-info-title="Ingeniero"
                       data-info="Sueldo mensual integrado considerado en el cálculo."
                       data-formula="$32,153.83 / mes"></button>
             </label>
@@ -724,7 +724,7 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
           </div>
           <div class="gd-field">
             <label>Segurista
-              <button class="gd-i" data-info-title="Segurista"
+              <button class="gd-i" id="info-sueldo-segurista" data-info-title="Segurista"
                       data-info="Sueldo mensual integrado considerado en el cálculo. Requerido en plantas con permiso de trabajo en altura."
                       data-formula="$18,150.00 / mes"></button>
             </label>
@@ -1692,6 +1692,41 @@ Precio de venta soportería = costo × 1.40"></button>
         <span id="util-status" style="font-size:.85rem;font-weight:600;"></span>
       </div>
     </div>
+
+    <!-- ── SUELDOS DEL PERSONAL ─────────────────────────────────────────
+         Antes vivían como constantes en el código y había que tocar el
+         archivo cada vez que subían. Se capturan por hora, por día o por
+         mes; internamente siempre se guarda el mensual, porque la fórmula
+         de M.O. es «total mensual / 30 × días». -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;">👷 Sueldos del personal</div>
+      <div class="info-box" style="margin-bottom:12px;">
+        Sueldo integrado por puesto. Elige en qué unidad quieres capturarlo —el
+        sistema convierte solo— y los cambios afectan de inmediato a
+        <b>todas</b> las cotizaciones nuevas. Base de conversión:
+        <b>1 mes = 30 días</b>, <b>1 día = 8 horas</b>.
+      </div>
+
+      <div class="util-input-row" style="margin:0 0 12px;flex-wrap:wrap;">
+        <span style="flex:0 0 auto;font-size:.85rem;font-weight:600;color:var(--gd-text);">Capturar sueldos por:</span>
+        <select id="sueldo-unidad" onchange="sueldosCambiarUnidad()"
+                style="flex:0 1 auto;min-width:0;padding:8px 10px;border:1.5px solid var(--gd-border);border-radius:6px;font-weight:700;">
+          <option value="mes">Mes</option>
+          <option value="dia">Día</option>
+          <option value="hora">Hora</option>
+        </select>
+      </div>
+
+      <div class="util-grid" id="sueldo-grid"><!-- lo pinta renderSueldosForm() --></div>
+
+      <div class="util-preview" id="sueldo-total-preview" style="margin-top:12px;"></div>
+
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="guardarSueldos()">💾 Guardar sueldos</button>
+        <button class="btn btn-secondary" onclick="restablecerSueldos()">↺ Restablecer por defecto</button>
+        <span id="sueldo-status" style="font-size:.85rem;font-weight:600;"></span>
+      </div>
+    </div>
     </section>
 
     <!-- ── CATÁLOGO ────────────────────────────────────────────────────── -->
@@ -2110,10 +2145,43 @@ function precioDesdeCosto(costo) {
   return redondearVenta((+costo || 0) * (1 + UTIL_MERCADO_PCT));
 }
 
-const SUELDO_TECNICO    = 25723.065720;
-const SUELDO_AYUDANTE   = 15005.121670;
-const SUELDO_INGENIERO  = 32153.832150;
-const SUELDO_SEGURISTA  = 18150.0;
+/* Sueldos mensuales integrados. Son configurables desde el panel de
+   administrador (💰 Utilidades) y se guardan en Supabase bajo la clave
+   `sueldos`, igual que las utilidades.
+
+   El cálculo SIEMPRE trabaja en mensual porque la fórmula de M.O. es
+   «total mensual / 30 × días». El panel permite capturarlos por hora, por día
+   o por mes; la conversión usa la misma jornada que el resto del cotizador. */
+const DIAS_POR_MES  = 30;   // el mismo divisor que usa calcularMO()
+const HORAS_POR_DIA = 8;    // jornada diurna ordinaria, LFT art. 61
+
+const SUELDOS_DEFAULTS = {
+  tecnico:   25723.065720,
+  ayudante:  15005.121670,
+  ingeniero: 32153.832150,
+  segurista: 18150.0
+};
+
+/* Sueldo mensual vigente por puesto. Objeto y no cuatro variables sueltas
+   porque el panel los recorre y los reescribe en bloque. */
+const SUELDOS = { ...SUELDOS_DEFAULTS };
+
+/* Los cuatro puestos, en el orden en que aparecen en el formulario. */
+const PUESTOS = [
+  { id: 'tecnico',   etiqueta: 'Técnico',   icono: '🔧' },
+  { id: 'ayudante',  etiqueta: 'Ayudante',  icono: '🧰' },
+  { id: 'ingeniero', etiqueta: 'Ingeniero', icono: '📐' },
+  { id: 'segurista', etiqueta: 'Segurista', icono: '🦺' }
+];
+
+/* Divisor para pasar de mensual a la unidad capturada, y al revés. */
+const UNIDAD_SUELDO = {
+  mes:  { divisor: 1,                           etiqueta: 'mensual', sufijo: '/ mes'  },
+  dia:  { divisor: DIAS_POR_MES,                etiqueta: 'diario',  sufijo: '/ día'  },
+  hora: { divisor: DIAS_POR_MES * HORAS_POR_DIA, etiqueta: 'por hora', sufijo: '/ hora' }
+};
+const sueldoDesdeMensual = (mensual, unidad) => mensual / UNIDAD_SUELDO[unidad].divisor;
+const sueldoAMensual     = (valor,   unidad) => valor   * UNIDAD_SUELDO[unidad].divisor;
 
 // Trabajo en día inhábil (domingo / festivo): el sueldo se incrementa 25%
 // y ese resultado se duplica → sueldo diario × 1.25 × 2 = × 2.5
@@ -2613,8 +2681,8 @@ function setCatMat(cat) {
 function calcularMO(inp) {
   const n_tec = +inp.n_tec||0, n_aya = +inp.n_aya||0, n_ing = +inp.n_ing||0, n_seg = +inp.n_seg||0;
   const total_personas = n_tec+n_aya+n_ing+n_seg;
-  const tec_total = n_tec*SUELDO_TECNICO, aya_total = n_aya*SUELDO_AYUDANTE;
-  const ing_total = n_ing*SUELDO_INGENIERO, seg_total = n_seg*SUELDO_SEGURISTA;
+  const tec_total = n_tec*SUELDOS.tecnico, aya_total = n_aya*SUELDOS.ayudante;
+  const ing_total = n_ing*SUELDOS.ingeniero, seg_total = n_seg*SUELDOS.segurista;
   const total_mensual = tec_total+aya_total+ing_total+seg_total;
   const dias = +inp.dias||0;
   // Día inhábil (domingo/festivo): el sueldo sube 25% y se duplica (× 2.5).
@@ -4579,10 +4647,10 @@ function buildMOSheet(wb, mo) {
 
   // Personal block
   hdr(r,0,1,'Descripción'); hdr(r,2,2,`Sueldo mensual (${curLabel()})`); hdr(r,3,3,'Cantidad'); hdr(r,4,4,`Total mensual (${curLabel()})`); r++;
-  [['Técnico',SUELDO_TECNICO,mo.n_tec,mo.tec_total],
-   ['Ayudante',SUELDO_AYUDANTE,mo.n_aya,mo.aya_total],
-   ['Ingeniero',SUELDO_INGENIERO,mo.n_ing,mo.ing_total],
-   ['Segurista',SUELDO_SEGURISTA,mo.n_seg,mo.seg_total]].forEach(([d,s,c,t]) => {
+  [['Técnico',SUELDOS.tecnico,mo.n_tec,mo.tec_total],
+   ['Ayudante',SUELDOS.ayudante,mo.n_aya,mo.aya_total],
+   ['Ingeniero',SUELDOS.ingeniero,mo.n_ing,mo.ing_total],
+   ['Segurista',SUELDOS.segurista,mo.n_seg,mo.seg_total]].forEach(([d,s,c,t]) => {
     setCell(r,0, xlCell(d,false,'FFFFFF','000000',null,'left')); merge(r,0,r,1);
     val(r,2,s,MXN); val(r,3,c,'#,##0.0'); val(r,4,t,MXN); r++;
   });
@@ -6090,7 +6158,7 @@ function aplicarPermisos() {
   if (admin) {
     hide('admin-gate');
     show('admin-panel');
-    if (GD.sesion.esAdmin) { renderAdminTable(); renderUtilForm(); admCifras(); }
+    if (GD.sesion.esAdmin) { renderAdminTable(); renderUtilForm(); renderSueldosForm(); admCifras(); }
   } else {
     show('admin-gate');
     hide('admin-panel');
@@ -6432,6 +6500,185 @@ async function guardarUtilidades() {
 
   if (typeof updateMO === 'function') updateMO();
   toast('✅ Utilidades actualizadas');
+}
+
+// ── SUELDOS CONFIGURABLES ─────────────────────────────────────────────────────
+/* Unidad elegida en el panel. Es sólo de captura: lo que se guarda y lo que
+   usa calcularMO() siempre es el sueldo mensual. */
+let SUELDO_UNIDAD = 'mes';
+
+/* Lo que el administrador lleva capturado, SIEMPRE en mensual y sin redondear.
+   Es la fuente de los campos, no al revés: si al cambiar de unidad se releyera
+   el input, el redondeo a dos decimales de la pantalla se multiplicaría por 240
+   al volver a mensual y el sueldo se movería solo con pasear el selector. */
+let SUELDO_BORRADOR = { ...SUELDOS };
+
+async function loadSueldos() {
+  let saved = null;
+  try {
+    if (window.SB && window.SB.configured) {
+      saved = await window.SB.getMeta('sueldos', null);
+    }
+  } catch(e) {}
+  if (!saved) {
+    try {
+      const local = localStorage.getItem('pipro_sueldos');
+      if (local) saved = JSON.parse(local);
+    } catch(e) {}
+  }
+  if (saved && typeof saved === 'object') {
+    PUESTOS.forEach(p => {
+      const v = saved[p.id];
+      if (typeof v === 'number' && isFinite(v) && v >= 0) SUELDOS[p.id] = v;
+    });
+    if (UNIDAD_SUELDO[saved.unidad]) SUELDO_UNIDAD = saved.unidad;
+  }
+  refrescarSueldosEnFormulario();
+  // El panel puede haberse pintado antes de que respondiera la red.
+  if (el('sueldo-grid')) renderSueldosForm();
+}
+
+/* El sueldo vive en dos lugares más del cotizador: las fichas «i» del
+   formulario de personal y el recuadro de total mensual. Si no se refrescan,
+   el panel dice una cosa y la cotización otra. */
+function refrescarSueldosEnFormulario() {
+  PUESTOS.forEach(p => {
+    const b = el('info-sueldo-' + p.id);
+    if (b) b.dataset.formula = `${fmt(SUELDOS[p.id])} / mes`;
+  });
+  if (typeof updateMO === 'function' && el('n_tec')) updateMO();
+}
+
+function renderSueldosForm() {
+  const grid = el('sueldo-grid');
+  if (!grid) return;
+  const u = el('sueldo-unidad');
+  if (u) u.value = SUELDO_UNIDAD;
+  grid.innerHTML = PUESTOS.map(p => `
+    <div class="util-card">
+      <div class="util-card-head">${p.icono} ${p.etiqueta}</div>
+      <div class="util-card-help">Sueldo integrado <span class="sueldo-unidad-txt">${UNIDAD_SUELDO[SUELDO_UNIDAD].etiqueta}</span>.</div>
+      <div class="util-input-row">
+        <span class="util-symbol">$</span>
+        <input type="number" id="sueldo-${p.id}" step="0.01" min="0" oninput="sueldoCapturado('${p.id}')">
+      </div>
+      <div class="util-preview" id="sueldo-${p.id}-preview"></div>
+    </div>`).join('');
+  SUELDO_BORRADOR = { ...SUELDOS };
+  pintarSueldosEnUnidad();
+}
+
+/* Vuelca el borrador a los inputs, convertido a la unidad elegida. */
+function pintarSueldosEnUnidad() {
+  PUESTOS.forEach(p => {
+    const inp = el('sueldo-' + p.id);
+    if (inp) inp.value = +sueldoDesdeMensual(SUELDO_BORRADOR[p.id], SUELDO_UNIDAD).toFixed(2);
+  });
+  updateSueldosPreview();
+}
+
+/* Único punto donde el borrador se alimenta de la pantalla: cuando el
+   administrador teclea. */
+function sueldoCapturado(id) {
+  SUELDO_BORRADOR[id] = sueldoAMensual(+el('sueldo-' + id).value || 0, SUELDO_UNIDAD);
+  updateSueldosPreview();
+}
+
+/* Al cambiar de unidad se reescriben los campos con el MISMO sueldo, sólo que
+   expresado de otra forma: cambiar el selector nunca debe alterar el costo. */
+function sueldosCambiarUnidad() {
+  const previo = SUELDO_UNIDAD;
+  SUELDO_UNIDAD = el('sueldo-unidad').value;
+  if (!UNIDAD_SUELDO[SUELDO_UNIDAD]) { SUELDO_UNIDAD = previo; return; }
+  // Los campos se repintan desde el borrador, que conserva las ediciones sin
+  // guardar y el mensual exacto.
+  document.querySelectorAll('.sueldo-unidad-txt').forEach(s => {
+    s.textContent = UNIDAD_SUELDO[SUELDO_UNIDAD].etiqueta;
+  });
+  pintarSueldosEnUnidad();
+}
+
+function updateSueldosPreview() {
+  if (!el('sueldo-grid')) return;
+  let totalMensual = 0;
+  PUESTOS.forEach(p => {
+    const mensual = SUELDO_BORRADOR[p.id] || 0;
+    totalMensual += mensual;
+    el(`sueldo-${p.id}-preview`).textContent =
+      `${fmt(mensual / (DIAS_POR_MES * HORAS_POR_DIA))} / hora · ` +
+      `${fmt(mensual / DIAS_POR_MES)} / día · ${fmt(mensual)} / mes`;
+  });
+  el('sueldo-total-preview').textContent =
+    `Con una persona de cada puesto: ${fmt(totalMensual)} mensuales — ` +
+    `${fmt(totalMensual / DIAS_POR_MES)} por día de obra, que con la utilidad ` +
+    `×${UTIL_MO_FACTOR.toFixed(2)} se cobran como ${fmt((totalMensual / DIAS_POR_MES) * UTIL_MO_FACTOR)}.`;
+}
+
+async function guardarSueldos() {
+  const nuevos = {};
+  for (const p of PUESTOS) {
+    const v = +el('sueldo-' + p.id).value;
+    if (!isFinite(v) || v < 0) { toast(`❌ El sueldo de ${p.etiqueta} no es válido`); return; }
+    // Del borrador, no del campo: así un puesto que no se tocó conserva sus
+    // centavos exactos en vez de quedarse con lo que cupo en la pantalla.
+    nuevos[p.id] = SUELDO_BORRADOR[p.id] || 0;
+  }
+  if (!Object.values(nuevos).some(v => v > 0)) {
+    toast('❌ Al menos un puesto debe tener sueldo'); return;
+  }
+
+  const filas = PUESTOS.map(p => {
+    const antes = SUELDOS[p.id], ahora = nuevos[p.id];
+    const cambia = Math.abs(antes - ahora) > 0.005;
+    return `<tr><td>${p.icono} ${p.etiqueta}</td>
+      <td style="text-align:right;font-weight:700;color:${cambia ? 'var(--gd-red-ink)' : 'var(--gd-text-mute)'};">
+        ${cambia ? `${fmt(antes)} → ${fmt(ahora)}` : fmt(ahora)}</td></tr>`;
+  }).join('');
+
+  const ok = await confirmModal('Confirmar cambio de sueldos', `
+    <p>Sueldos <b>mensuales</b> que quedarán vigentes para <b>todas las cotizaciones futuras</b>:</p>
+    <table>${filas}</table>
+    <p style="margin-top:10px;font-size:.82rem;color:var(--gd-text-mute);">
+      Capturados por ${UNIDAD_SUELDO[SUELDO_UNIDAD].etiqueta}. Se guardarán en Supabase (todos los dispositivos) y en local.
+      Las cotizaciones ya emitidas en PDF o Word no cambian.</p>
+  `);
+  if (!ok) return;
+
+  PUESTOS.forEach(p => { SUELDOS[p.id] = nuevos[p.id]; });
+
+  const data = { ...nuevos, unidad: SUELDO_UNIDAD };
+  try { localStorage.setItem('pipro_sueldos', JSON.stringify(data)); } catch(e) {}
+
+  el('sueldo-status').innerHTML = '<span style="color:var(--gd-warning);">⏳ Guardando…</span>';
+  try {
+    if (window.SB && window.SB.configured) {
+      await window.SB.setMeta('sueldos', data);
+      el('sueldo-status').innerHTML = '<span style="color:var(--gd-success);">✅ Guardado</span>';
+    } else {
+      el('sueldo-status').innerHTML = '<span style="color:var(--gd-warning);">⚠️ Guardado solo en local (sin conexión)</span>';
+    }
+  } catch(e) {
+    el('sueldo-status').innerHTML = '<span style="color:var(--gd-error);">⚠️ Error de red — guardado solo en local</span>';
+  }
+  setTimeout(() => { el('sueldo-status').innerHTML = ''; }, 5000);
+
+  refrescarSueldosEnFormulario();
+  updateSueldosPreview();
+  toast('✅ Sueldos actualizados');
+}
+
+async function restablecerSueldos() {
+  const ok = await confirmModal('Restablecer sueldos', `
+    <p>¿Volver a los sueldos mensuales originales?</p>
+    <table>${PUESTOS.map(p =>
+      `<tr><td>${p.icono} ${p.etiqueta}</td>
+        <td style="text-align:right;font-weight:700;color:var(--gd-red-ink);">${fmt(SUELDOS_DEFAULTS[p.id])}</td></tr>`
+    ).join('')}</table>
+    <p style="margin-top:10px;font-size:.82rem;color:var(--gd-text-mute);">Después debes presionar "Guardar sueldos" para aplicarlos.</p>
+  `);
+  if (!ok) return;
+  SUELDO_BORRADOR = { ...SUELDOS_DEFAULTS };
+  pintarSueldosEnUnidad();
 }
 
 async function restablecerUtilidades() {
@@ -7873,8 +8120,8 @@ async function init() {
   setTipo('ip');
   updateFolio();
 
-  // Cargar utilidades configurables desde Supabase ANTES del primer cálculo
-  await loadUtilidades();
+  // Cargar utilidades y sueldos configurables desde Supabase ANTES del primer cálculo
+  await Promise.all([loadUtilidades(), loadSueldos()]);
   updateMO();
 
   // Cargar materiales — Supabase es la fuente de verdad

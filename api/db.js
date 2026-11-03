@@ -36,7 +36,7 @@ const PERMISOS = {
 const TIENEN_USUARIO = new Set(['incidencias']);
 
 // Claves de `meta` que mueven dinero: sólo administrador
-const META_ADMIN = new Set(['utilidades']);
+const META_ADMIN = new Set(['utilidades', 'sueldos']);
 
 // Operadores PostgREST admitidos en los filtros
 const OPS = new Set(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike',
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
       const filas = Array.isArray(data) ? data : [data];
       const tocaAdmin = filas.some(f => META_ADMIN.has(f?.key));
       if (tocaAdmin && s.r !== 'admin') {
-        return res.status(403).json({ error: 'Sólo un administrador puede modificar los porcentajes de utilidad.', code: 'SIN_PERMISO' });
+        return res.status(403).json({ error: 'Sólo un administrador puede modificar las utilidades y los sueldos.', code: 'SIN_PERMISO' });
       }
     } else if (exigido === 'propio') {
       // Lo resuelve cada operación más abajo; aquí basta con tener sesión.
