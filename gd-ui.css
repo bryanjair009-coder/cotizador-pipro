@@ -422,3 +422,15 @@
 @media (prefers-reduced-motion: reduce) {
   .gd-pop, .gdm-backdrop, .gdm-panel { transition: none !important; animation: none !important; }
 }
+
+/* ── Campos numéricos sin flechas ────────────────────────────────────────────
+   Las flechas de incremento del navegador estorban en todo el portal: ocupan
+   el borde derecho justo donde terminan las cifras, y un clic de más cambia
+   un precio o una cantidad sin que nadie lo note. Se quitan en los nueve
+   módulos; el campo sigue siendo type="number", así que la validación, el
+   teclado numérico del teléfono y las flechas del teclado no se pierden. */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none; appearance: none; margin: 0;
+}
