@@ -5655,13 +5655,13 @@ const PMU_FILA_1      = 11;                           // primer renglón de part
 const PMU_FILAS_BASE  = 15;                           // renglones que trae el machote (11..25)
 
 /* «Tipo de Producto» y «Familia» salen de la lista de la hoja BD del machote.
-   Regla del área administrativa (2026-11): TODO el material va igual —
-   «Inventariable Compra local» con familia 11202 (Small Rotary Parts),
-   incluida la línea PIPRO, porque la compramos nosotros, no la surte GD.
-   Lo único distinto es lo que se cobra por mano de obra y viáticos, que es
-   servicio: familia 11302 (Service). */
-const PMU_MATERIAL = { tipo: 'Inventariable Compra local', familia: 11202 };
-const PMU_SERVICIO = { tipo: 'Servicio con familia',       familia: 11302 };
+   Regla del área administrativa, con el PMU de Omicron Labs como trazo:
+   TODO va con familia 11202 (Small Rotary Parts) —también la línea PIPRO,
+   porque la compramos nosotros, no la surte GD—. Lo único que cambia es el
+   tipo de la mano de obra, que es «Servicio con familia» y no inventariable. */
+const PMU_FAMILIA  = 11202;
+const PMU_MATERIAL = { tipo: 'Inventariable Compra local', familia: PMU_FAMILIA };
+const PMU_SERVICIO = { tipo: 'Servicio con familia',       familia: PMU_FAMILIA };
 
 // ── CRC-32, que es lo único que el formato zip exige calcular ────────────────
 const _CRC_TABLA = (() => {
@@ -5827,43 +5827,30 @@ const _pmuNum    = (ref, s, v) => `<c r="${ref}" s="${s}"><v>${Number(v) || 0}</
 const _pmuForm   = (ref, s, f, v) => `<c r="${ref}" s="${s}"><f>${_xmlEsc(f)}</f><v>${Number(v) || 0}</v></c>`;
 const _pmuVacia  = (ref, s) => `<c r="${ref}" s="${s}"/>`;
 
-/* Un número metido DENTRO de una fórmula. Excel no entiende la notación
-   exponencial de JavaScript (`1e-7`) ni los separadores de miles, así que se
-   escribe en decimal plano y sin ceros de relleno. */
-const _pmuLiteral = v => {
-  const n = Number(v);
-  if (!isFinite(n) || n === 0) return '0';
-  return n.toFixed(6).replace(/\.?0+$/, '');
-};
+/* Un renglón de partida, con TODAS las fórmulas del machote intactas. Así lo
+   dejó la revisión del área administrativa, trazada sobre el PMU de Omicron
+   Labs que mandaron de ejemplo:
 
-/* Un renglón de partida. Las fórmulas de encadenamiento del machote quedan
-   intactas —L = F*K y N = L*M, y la línea se autonumera— pero dos columnas
-   cambian de origen, por indicación del área administrativa (2026-11):
+   - G «Precio de Lista» es el precio de venta de la pieza AL CLIENTE, el de
+     la cotización. El costo de compra no entra al PMU; para el margen está el
+     control interno de costos.
+   - K «Precio de Venta Unitario» lo deriva el machote con su propia fórmula,
+     IF(G>0, G*(1-J), 0): el precio de lista menos el descuento global.
+   - M «Comisión %» se deja EN BLANCO, igual que en el ejemplo revisado. Con
+     el costo fuera de la hoja no hay margen que calcular, y la comisión es un
+     dato que pone administración. N = L*M queda en 0 hasta que la capture.
 
-   - G «Precio de Lista» es lo que NOSOTROS pagamos por la pieza (costo de
-     compra). La fórmula de origen, K = IF(G>0, G*(1-J), 0), daba por hecho
-     que G era precio de lista al cliente y que vendemos G menos descuento.
-   - K «Precio de Venta Unitario» es el precio al CLIENTE. Va como fórmula
-     `venta*(1-J)` —con el precio de la cotización dentro— y no como número
-     suelto, para que la celda siga reaccionando al descuento global igual
-     que en el machote.
-   - M «Comisión %» pasa a ser fórmula, K/G − 1: el margen sobre el costo
-     entre esas dos columnas. Antes era un número fijo y se desactualizaba si
-     alguien corregía el costo a mano. Sin costo capturado no hay margen que
-     calcular y la celda da 0. */
-/* Lo que calcularían las fórmulas de la fila, para guardarlo como valor en
-   caché. Vive en un solo sitio porque los totales de la hoja tienen que dar
+   Lo que calcularían las fórmulas se guarda también como valor en caché, y se
+   calcula en un solo sitio porque los totales de la hoja tienen que dar
    exactamente lo mismo que la suma de los renglones. */
 function _pmuCalc(p) {
-  const k = p.venta * (1 - p.desc);            // K: precio de venta unitario
-  const total = p.cantidad * k;                // L: precio de venta total
-  const comision = p.lista > 0 ? (k / p.lista) - 1 : 0;   // M: margen sobre el costo
-  return { k, total, comision, comisionPesos: total * comision };
+  const k = p.lista > 0 ? p.lista * (1 - p.desc) : 0;   // K: precio de venta unitario
+  return { k, total: p.cantidad * k };                  // L: precio de venta total
 }
 
 function _pmuFila(fila, p) {
   const s = _pmuBanda(fila), a = fila - 1;
-  const { k, total, comision, comisionPesos } = _pmuCalc(p);
+  const { k, total } = _pmuCalc(p);
   const c = [];
   c.push(fila === PMU_FILA_1
     ? _pmuNum('A' + fila, s.A, 1)
@@ -5877,10 +5864,10 @@ function _pmuFila(fila, p) {
   c.push(p.comentario ? _pmuTexto('H' + fila, s.H, p.comentario) : _pmuVacia('H' + fila, s.H));
   c.push(_pmuTexto('I' + fila, s.I, p.entrega));
   c.push(_pmuNum  ('J' + fila, s.J, p.desc));
-  c.push(_pmuForm ('K' + fila, s.K, `${_pmuLiteral(p.venta)}*(1-J${fila})`, k));
+  c.push(_pmuForm ('K' + fila, s.K, `IF(G${fila}>0, G${fila}*(1-J${fila}), 0)`, k));
   c.push(_pmuForm ('L' + fila, s.L, `F${fila}*K${fila}`, total));
-  c.push(_pmuForm ('M' + fila, s.M, `IF(G${fila}>0, K${fila}/G${fila}-1, 0)`, comision));
-  c.push(_pmuForm ('N' + fila, s.N, `L${fila}*M${fila}`, comisionPesos));
+  c.push(_pmuVacia('M' + fila, s.M));
+  c.push(_pmuForm ('N' + fila, s.N, `L${fila}*M${fila}`, 0));
   return `<row r="${fila}" spans="1:14" ht="16">${c.join('')}</row>`;
 }
 
@@ -5953,7 +5940,7 @@ function _pmuArmarHoja(xml, partidas, cabecera) {
   cuerpo = cuerpo.replace(/SUM\(L\d+:L\d+\)/g, `SUM(L${PMU_FILA_1}:L${ultima})`)
                  .replace(/SUM\(N\d+:N\d+\)/g, `SUM(N${PMU_FILA_1}:N${ultima})`);
   const totalCot = partidas.reduce((s, p) => s + _pmuCalc(p).total, 0);
-  const totalCom = partidas.reduce((s, p) => s + _pmuCalc(p).comisionPesos, 0);
+  const totalCom = 0;   // la comisión la captura administración, renglón por renglón
   cuerpo = cuerpo.replace(/(<f>SUM\(L\d+:L\d+\)<\/f><v>)[^<]*/, `$1${totalCot}`)
                  .replace(/(<f>SUM\(N\d+:N\d+\)<\/f><v>)[^<]*/, `$1${totalCom}`);
 
@@ -5972,68 +5959,52 @@ function _pmuArmarHoja(xml, partidas, cabecera) {
 }
 
 /* Las partidas: primero el material en el orden del carrito y al final, sólo
-   en IP, lo que se cobra por mano de obra, viáticos, movilidad y renta de
-   equipo. Esos cuatro conceptos también son partidas del PMU —la cotización
-   los cobra al cliente, así que el total del PMU no cuadraría sin ellos— y
-   son lo único que no va como material: entran como servicio.
+   en IP, la mano de obra. Va como UN solo renglón «MANO DE OBRA» —así viene
+   en el PMU de ejemplo— con todo lo que la cotización cobra por salir a campo:
+   personal, viáticos, movilidad y renta de equipo. Sin ese renglón el total
+   del PMU no cuadraría con la cotización.
 
-   - Precio de Lista (G) = lo que nos cuesta (compra de la pieza, o el costo
-     real del servicio).
-   - Precio de Venta Unitario (K) = lo que paga el cliente.
-   - Desc. % (J) = el descuento global de la cotización. Se aplica igual al
-     material y al servicio, como en `updateTotales()`, de modo que la suma de
-     la columna L es el subtotal sin IVA de la cotización. */
+   - Precio de Lista (G) = el precio de venta al cliente, el de la cotización.
+   - Desc. % (J) = el descuento global. Se aplica igual al material y a la mano
+     de obra, como en `updateTotales()`, de modo que la suma de la columna L es
+     el subtotal sin IVA de la cotización.
+   - El número de parte de lo que no tiene CCN va como EXTRA, que es lo que usa
+     administración. La columna A autonumera con IF(B<>"",…), así que dejarlo
+     en blanco perdería el número de línea. */
 function _pmuPartidas() {
   const desc = getDescuentoPct();
   const lista = getMaterialControl().map((m, i) => {
     const it = m.it;
-    const costo = +it.costoCompra || 0;
+    const np = (it.numero_parte || '').trim();
     return {
       linea:       i + 1,
-      parte:       (it.numero_parte || '').trim() || 'SIN No. PARTE',
+      parte:       (!np || /^TEMP-/i.test(np)) ? 'EXTRA' : np,
       tipo:        PMU_MATERIAL.tipo,
       familia:     PMU_MATERIAL.familia,
       descripcion: it.descripcion || '',
       cantidad:    m.cantidad,
-      lista:       costo,
-      venta:       +it.precio || 0,
+      lista:       +it.precio || 0,
       desc,
       entrega:     (it.fechaEntrega || '').trim() || 'INMEDIATO',
-      comentario:  costo > 0 ? '' : 'Sin costo de compra capturado',
+      comentario:  '',
     };
   });
-  for (const s of _pmuServicios()) {
-    lista.push({ ...s, linea: lista.length + 1, desc,
-                 tipo: PMU_SERVICIO.tipo, familia: PMU_SERVICIO.familia, cantidad: 1 });
+  const mo = getMOResult();                 // null en IT: no lleva mano de obra
+  if (mo && mo.total_mo_equipo_viaticos > 0) {
+    lista.push({
+      linea:       lista.length + 1,
+      parte:       'SERVICIO',
+      tipo:        PMU_SERVICIO.tipo,
+      familia:     PMU_SERVICIO.familia,
+      descripcion: 'MANO DE OBRA',
+      cantidad:    1,
+      lista:       mo.total_mo_equipo_viaticos,
+      desc,
+      entrega:     'INMEDIATO',
+      comentario:  '',
+    });
   }
   return lista;
-}
-
-/* Mano de obra, viáticos, movilidad y renta de equipo como partidas de
-   servicio. Los pares (costo real, cobrado al cliente) son los mismos que
-   usa la hoja «Balance de utilidad» del control interno, para que los dos
-   documentos no puedan contradecirse.
-
-   La renta de equipo va con costo 0 a propósito: lo que se paga es la factura
-   del arrendador y el portal no la conoce. Poner costo = cobrado fingiría
-   utilidad cero, que es justo lo que el balance evita. */
-function _pmuServicios() {
-  const mo = getMOResult();
-  if (!mo) return [];                       // IT: la cotización no lleva mano de obra
-  const dias = Math.max(1, Math.round(mo.dias || 0));
-  const entrega = dias + (dias === 1 ? ' día' : ' días');
-  return [
-    { parte: 'SERVICIO', descripcion: 'Mano de obra · ' + mo.total_personas +
-        ' personas × ' + dias + (dias === 1 ? ' día' : ' días'),
-      lista: mo.costo_mo_real, venta: mo.costo_mo, entrega, comentario: '' },
-    { parte: 'SERVICIO', descripcion: 'Viáticos · comidas y hospedaje del personal en sitio',
-      lista: mo.total_viaticos_real, venta: mo.total_viaticos, entrega, comentario: '' },
-    { parte: 'SERVICIO', descripcion: 'Movilidad · traslado del personal (automóvil y vuelo)',
-      lista: mo.total_movilidad_real, venta: mo.total_movilidad, entrega, comentario: '' },
-    { parte: 'SERVICIO', descripcion: 'Renta de equipo de maniobras y embarque',
-      lista: 0, venta: mo.total_plataformas, entrega,
-      comentario: 'Costo según factura del arrendador' },
-  ].filter(s => s.venta > 0);
 }
 
 async function generatePMU() {
