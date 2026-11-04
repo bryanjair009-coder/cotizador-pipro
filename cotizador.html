@@ -1276,6 +1276,7 @@ Precio de venta soportería = costo × 1.40"></button>
       <div class="req-nota" id="req-nota"></div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="generateControlInterno()">📋 Excel de control interno</button>
+        <button class="btn btn-secondary btn-sm" onclick="generatePMU()">🧮 Generar PMU</button>
       </div>
     </div>
   </div>
@@ -1310,6 +1311,8 @@ Precio de venta soportería = costo × 1.40"></button>
     <div class="gen-row">
       <button class="btn btn-secondary" id="btn-gen-interno" onclick="generateControlInterno()"
               title="Un solo Excel con tres hojas: control de costos, balance de utilidad y control de entregas">📋 Control interno (3 hojas)</button>
+      <button class="btn btn-secondary" id="btn-gen-pmu" onclick="generatePMU()"
+              title="Cotización comercial en el formato PMU de Gardner Denver, sobre el machote oficial">🧮 Generar PMU</button>
     </div>
     <div id="gen-progreso" style="display:none;margin-top:12px;"></div>
   </div>
@@ -3893,7 +3896,7 @@ function actualizarBotonGenerar() {
     ? '📦 Generar los 4 archivos · Cotización (PDF + Word + Excel) + Control interno'
     : '📦 Generar los 3 archivos · PDF + Word + Excel';
   // Los botones de control no sirven sin material: se desactivan en vez de fallar
-  ['btn-gen-interno'].forEach(id => {
+  ['btn-gen-interno', 'btn-gen-pmu'].forEach(id => {
     const b = el(id);
     if (!b) return;
     b.disabled = !hay;
@@ -5628,6 +5631,402 @@ function generateControlInterno() {
      «…-EDITADO-EDITADO.xlsx». */
   XLSX.writeFile(wb, ('Control_Interno_' + D.folioCot).replace(/[\/:*?"<>|]/g, '_') + '.xlsx');
   toast('📋 Excel de control interno descargado');
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PMU — COTIZACIÓN COMERCIAL EN EL FORMATO DE GARDNER DENVER
+
+   El área administrativa entrega este formato tal cual lo recibe: mismo
+   logotipo, mismas macros, mismas hojas BD y PlantillaPDF, mismos estilos y
+   —sobre todo— las mismas fórmulas. Reconstruirlo con SheetJS habría perdido
+   el logotipo y las macros, así que el portal NO construye el libro: abre el
+   machote oficial (assets/PMU_GD_Rev2.xlsm) y le inyecta los renglones.
+
+   Un .xlsm es un .zip de XML. Se reescribe únicamente la hoja PMU; el resto de
+   las piezas del zip se copian con sus bytes comprimidos intactos, sin
+   descomprimirlas siquiera. De ahí que no haga falta ninguna librería nueva:
+   para la única pieza que sí hay que leer basta DecompressionStream, que el
+   navegador ya trae.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const PMU_PLANTILLA   = 'assets/PMU_GD_Rev2.xlsm';
+const PMU_HOJA        = 'xl/worksheets/sheet2.xml';   // la hoja «PMU»
+const PMU_FAMILIA     = 11202;                        // «Small Rotary Parts» en la hoja BD
+const PMU_FILA_1      = 11;                           // primer renglón de partida
+const PMU_FILAS_BASE  = 15;                           // renglones que trae el machote (11..25)
+
+/* «Tipo de Producto» sale de la lista de la hoja BD. Las piezas del catálogo
+   son material de Gardner Denver; lo capturado a mano o de proveedor externo
+   se compra localmente. Si el área administrativa prefiere un valor fijo para
+   todo, basta devolver siempre el mismo. */
+function _pmuTipoProducto(it) {
+  return esMaterialPipro(it) ? 'Inventariable GD' : 'Inventariable Compra local';
+}
+
+// ── CRC-32, que es lo único que el formato zip exige calcular ────────────────
+const _CRC_TABLA = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+function _crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = _CRC_TABLA[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+/* Lee el directorio central del zip. Devuelve, por pieza, su nombre y los
+   bytes TAL CUAL están guardados, junto con cómo están guardados: así una
+   pieza que no se toca se vuelve a escribir idéntica. */
+function _zipLeer(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= 0 && i >= buf.byteLength - 65557; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('El machote no parece un archivo de Excel válido.');
+  const total = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+
+  const piezas = [];
+  for (let i = 0; i < total; i++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('Directorio del machote dañado.');
+    const flags   = dv.getUint16(p + 8,  true);
+    const metodo  = dv.getUint16(p + 10, true);
+    const hora    = dv.getUint16(p + 12, true);
+    const fecha   = dv.getUint16(p + 14, true);
+    const crc     = dv.getUint32(p + 16, true);
+    const comp    = dv.getUint32(p + 20, true);
+    const sinComp = dv.getUint32(p + 24, true);
+    const nLen    = dv.getUint16(p + 28, true);
+    const eLen    = dv.getUint16(p + 30, true);
+    const cLen    = dv.getUint16(p + 32, true);
+    const extAttr = dv.getUint32(p + 38, true);
+    const local   = dv.getUint32(p + 42, true);
+    const nombre  = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nLen));
+
+    // Los tamaños de la cabecera local no son de fiar (bit 3 = descriptor al
+    // final); los del directorio central sí.
+    const lnLen = dv.getUint16(local + 26, true);
+    const leLen = dv.getUint16(local + 28, true);
+    const ini   = local + 30 + lnLen + leLen;
+
+    piezas.push({ nombre, metodo, crc, comp, sinComp, hora, fecha, extAttr,
+                  flags: flags & ~0x0008, datos: u8.subarray(ini, ini + comp) });
+    p += 46 + nLen + eLen + cLen;
+  }
+  return piezas;
+}
+
+/** Descomprime una pieza del zip usando lo que ya trae el navegador. */
+async function _zipTexto(pieza) {
+  if (pieza.metodo === 0) return new TextDecoder().decode(pieza.datos);
+  if (typeof DecompressionStream !== 'function') {
+    throw new Error('Tu navegador no puede abrir el machote. Usa Chrome, Edge o Firefox actualizado.');
+  }
+  const flujo = new Blob([pieza.datos]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return await new Response(flujo).text();
+}
+
+/* Vuelve a armar el zip. Lo que se reemplaza se guarda SIN comprimir
+   (método 0): es válido, Excel lo abre igual y ahorra depender de
+   CompressionStream. Lo demás conserva sus bytes originales. */
+function _zipEscribir(piezas, cambios) {
+  const enc = new TextEncoder();
+  const salida = [];
+  const centrales = [];
+  let desplazamiento = 0;
+
+  for (let pieza of piezas) {
+    if (Object.prototype.hasOwnProperty.call(cambios, pieza.nombre)) {
+      const nuevo = cambios[pieza.nombre];
+      if (nuevo === null) continue;                 // pieza eliminada
+      const datos = enc.encode(nuevo);
+      pieza = { ...pieza, metodo: 0, datos, comp: datos.length,
+                sinComp: datos.length, crc: _crc32(datos) };
+    }
+    const nombre = enc.encode(pieza.nombre);
+    const local  = new Uint8Array(30 + nombre.length);
+    const dv     = new DataView(local.buffer);
+    dv.setUint32(0, 0x04034b50, true);
+    dv.setUint16(4, 20, true);                 // versión necesaria
+    dv.setUint16(6, pieza.flags, true);
+    dv.setUint16(8, pieza.metodo, true);
+    dv.setUint16(10, pieza.hora, true);
+    dv.setUint16(12, pieza.fecha, true);
+    dv.setUint32(14, pieza.crc, true);
+    dv.setUint32(18, pieza.comp, true);
+    dv.setUint32(22, pieza.sinComp, true);
+    dv.setUint16(26, nombre.length, true);
+    dv.setUint16(28, 0, true);                 // sin campo extra
+    local.set(nombre, 30);
+
+    centrales.push({ pieza, nombre, desplazamiento });
+    salida.push(local, pieza.datos);
+    desplazamiento += local.length + pieza.datos.length;
+  }
+
+  const inicioCD = desplazamiento;
+  for (const { pieza, nombre, desplazamiento: off } of centrales) {
+    const c  = new Uint8Array(46 + nombre.length);
+    const dv = new DataView(c.buffer);
+    dv.setUint32(0, 0x02014b50, true);
+    dv.setUint16(4, 20, true);                 // versión que lo creó
+    dv.setUint16(6, 20, true);                 // versión necesaria
+    dv.setUint16(8, pieza.flags, true);
+    dv.setUint16(10, pieza.metodo, true);
+    dv.setUint16(12, pieza.hora, true);
+    dv.setUint16(14, pieza.fecha, true);
+    dv.setUint32(16, pieza.crc, true);
+    dv.setUint32(20, pieza.comp, true);
+    dv.setUint32(24, pieza.sinComp, true);
+    dv.setUint16(28, nombre.length, true);
+    dv.setUint32(38, pieza.extAttr, true);
+    dv.setUint32(42, off, true);
+    c.set(nombre, 46);
+    salida.push(c);
+    desplazamiento += c.length;
+  }
+
+  const fin = new Uint8Array(22);
+  const dvf = new DataView(fin.buffer);
+  dvf.setUint32(0, 0x06054b50, true);
+  dvf.setUint16(8,  centrales.length, true);
+  dvf.setUint16(10, centrales.length, true);
+  dvf.setUint32(12, desplazamiento - inicioCD, true);
+  dvf.setUint32(16, inicioCD, true);
+  salida.push(fin);
+
+  const total = salida.reduce((s, x) => s + x.length, 0);
+  const out = new Uint8Array(total);
+  let q = 0;
+  for (const trozo of salida) { out.set(trozo, q); q += trozo.length; }
+  return out;
+}
+
+// ── Escritura de la hoja PMU ────────────────────────────────────────────────
+const _xmlEsc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
+/* Estilos de los renglones de partida, copiados del machote: las filas
+   alternan dos bandas y la primera lleva su propio borde superior. */
+const _PMU_BANDA_A = { A:4, B:3, C:3, D:3, E:3, F:4, G:5, H:5, I:5, J:6, K:5, L:5, M:6, N:5 };
+const _PMU_BANDA_B = { A:8, B:7, C:7, D:7, E:7, F:8, G:9, H:9, I:9, J:10, K:9, L:9, M:10, N:9 };
+const _pmuBanda = fila => {
+  const b = (fila - PMU_FILA_1) % 2 === 0 ? _PMU_BANDA_A : _PMU_BANDA_B;
+  return fila === PMU_FILA_1 ? { ...b, A: 3 } : b;
+};
+
+const _pmuTexto  = (ref, s, v) => `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${_xmlEsc(v)}</t></is></c>`;
+const _pmuNum    = (ref, s, v) => `<c r="${ref}" s="${s}"><v>${Number(v) || 0}</v></c>`;
+const _pmuForm   = (ref, s, f, v) => `<c r="${ref}" s="${s}"><f>${_xmlEsc(f)}</f><v>${Number(v) || 0}</v></c>`;
+const _pmuVacia  = (ref, s) => `<c r="${ref}" s="${s}"/>`;
+
+/* Un renglón de partida con las MISMAS fórmulas del machote:
+   K = IF(G>0, G*(1-J), 0) · L = F*K · N = L*M, y la línea se autonumera. */
+function _pmuFila(fila, p) {
+  const s = _pmuBanda(fila), a = fila - 1;
+  const k = p.lista > 0 ? p.lista * (1 - p.desc) : 0;
+  const c = [];
+  c.push(fila === PMU_FILA_1
+    ? _pmuNum('A' + fila, s.A, 1)
+    : _pmuForm('A' + fila, s.A, `IF(B${fila}<>"",MAX($A$${PMU_FILA_1}:A${a})+1,"")`, p.linea));
+  c.push(_pmuTexto('B' + fila, s.B, p.parte));
+  c.push(_pmuTexto('C' + fila, s.C, p.tipo));
+  c.push(_pmuNum  ('D' + fila, s.D, PMU_FAMILIA));
+  c.push(_pmuTexto('E' + fila, s.E, p.descripcion));
+  c.push(_pmuNum  ('F' + fila, s.F, p.cantidad));
+  c.push(_pmuNum  ('G' + fila, s.G, p.lista));
+  c.push(p.comentario ? _pmuTexto('H' + fila, s.H, p.comentario) : _pmuVacia('H' + fila, s.H));
+  c.push(_pmuTexto('I' + fila, s.I, p.entrega));
+  c.push(_pmuNum  ('J' + fila, s.J, p.desc));
+  c.push(_pmuForm ('K' + fila, s.K, `IF(G${fila}>0, G${fila}*(1-J${fila}), 0)`, k));
+  c.push(_pmuForm ('L' + fila, s.L, `F${fila}*K${fila}`, p.cantidad * k));
+  c.push(_pmuNum  ('M' + fila, s.M, p.comision));
+  c.push(_pmuForm ('N' + fila, s.N, `L${fila}*M${fila}`, p.cantidad * k * p.comision));
+  return `<row r="${fila}" spans="1:14" ht="16">${c.join('')}</row>`;
+}
+
+/* Reemplaza una celda suelta conservando su estilo (`s`), que es lo que le da
+   el formato al machote. Se usa para los datos del cliente del encabezado. */
+function _pmuPonerCelda(xml, ref, contenido) {
+  const re = new RegExp(`<c r="${ref}"([^>]*?)(/>|>[\\s\\S]*?</c>)`);
+  return xml.replace(re, (todo, attrs) => {
+    const s = (attrs.match(/\ss="(\d+)"/) || [])[1];
+    const est = s ? ` s="${s}"` : '';
+    return contenido == null || contenido === ''
+      ? `<c r="${ref}"${est}/>`
+      : `<c r="${ref}"${est} t="inlineStr"><is><t xml:space="preserve">${_xmlEsc(contenido)}</t></is></c>`;
+  });
+}
+
+/* Renglón de partida en blanco, igual que los que trae el machote: sin datos
+   pero con sus fórmulas, para que quede sitio donde agregar una línea a mano. */
+function _pmuFilaVacia(fila) {
+  const s = _pmuBanda(fila), a = fila - 1;
+  return `<row r="${fila}" spans="1:14" ht="16">` +
+    `<c r="A${fila}" s="${s.A}" t="str"><f>${_xmlEsc(`IF(B${fila}<>"",MAX($A$${PMU_FILA_1}:A${a})+1,"")`)}</f><v/></c>` +
+    ['B','C','D','E','F','G','H','I','J'].map(c => _pmuVacia(c + fila, s[c])).join('') +
+    _pmuForm('K' + fila, s.K, `IF(G${fila}>0, G${fila}*(1-J${fila}), 0)`, 0) +
+    _pmuForm('L' + fila, s.L, `F${fila}*K${fila}`, 0) +
+    _pmuVacia('M' + fila, s.M) +
+    _pmuForm('N' + fila, s.N, `L${fila}*M${fila}`, 0) +
+    `</row>`;
+}
+
+/* Construye la hoja PMU a partir de la del machote.
+   Los renglones 11..25 se reemplazan por uno por partida. Se conservan SIEMPRE
+   los 15 del machote —los que sobran van en blanco con sus fórmulas, como
+   vienen de origen— y si las partidas pasan de 15, todo lo que vive debajo
+   (la banda de cierre, los totales y el pie) baja esas filas y los SUM se
+   amplían para abarcarlas. */
+function _pmuArmarHoja(xml, partidas, cabecera) {
+  const n       = partidas.length;
+  const nRengls = Math.max(n, PMU_FILAS_BASE);             // nunca menos que el machote
+  const ultima  = PMU_FILA_1 + nRengls - 1;
+  const extra  = Math.max(0, n - PMU_FILAS_BASE);
+  const corte  = PMU_FILA_1 + PMU_FILAS_BASE - 1;          // 25 en el machote
+
+  // Datos del cliente (el machote viene con datos de prueba)
+  xml = _pmuPonerCelda(xml, 'B7', cabecera.empresa);
+  xml = _pmuPonerCelda(xml, 'K7', cabecera.ordenCompra);
+  xml = _pmuPonerCelda(xml, 'K8', cabecera.envio);
+
+  const bloque = xml.match(/<sheetData>([\s\S]*?)<\/sheetData>/);
+  if (!bloque) throw new Error('No se encontró la hoja PMU dentro del machote.');
+
+  const filas = [...bloque[1].matchAll(/<row [^>]*r="(\d+)"[\s\S]*?<\/row>|<row [^>]*r="(\d+)"[^>]*\/>/g)]
+    .map(m => ({ n: +(m[1] || m[2]), xml: m[0] }));
+
+  const salida = [];
+  for (const f of filas) {
+    if (f.n >= PMU_FILA_1 && f.n <= corte) continue;        // los renglones viejos se van
+    if (f.n < PMU_FILA_1) { salida.push({ n: f.n, xml: f.xml }); continue; }
+    const destino = f.n + extra;                            // lo de abajo se recorre
+    salida.push({ n: destino, xml: f.xml.replace(/(<(?:row|c) [^>]*r=")([A-Z]*)\d+(")/g, `$1$2${destino}$3`) });
+  }
+  for (let i = 0; i < nRengls; i++) {
+    const fila = PMU_FILA_1 + i;
+    salida.push({ n: fila, xml: i < n ? _pmuFila(fila, partidas[i]) : _pmuFilaVacia(fila) });
+  }
+  salida.sort((a, b) => a.n - b.n);
+
+  // Los totales tienen que abarcar todos los renglones de partida
+  let cuerpo = salida.map(f => f.xml).join('');
+  cuerpo = cuerpo.replace(/SUM\(L\d+:L\d+\)/g, `SUM(L${PMU_FILA_1}:L${ultima})`)
+                 .replace(/SUM\(N\d+:N\d+\)/g, `SUM(N${PMU_FILA_1}:N${ultima})`);
+  const totalCot = partidas.reduce((s, p) => s + p.cantidad * (p.lista > 0 ? p.lista * (1 - p.desc) : 0), 0);
+  const totalCom = partidas.reduce((s, p) => s + p.cantidad * (p.lista > 0 ? p.lista * (1 - p.desc) : 0) * p.comision, 0);
+  cuerpo = cuerpo.replace(/(<f>SUM\(L\d+:L\d+\)<\/f><v>)[^<]*/, `$1${totalCot}`)
+                 .replace(/(<f>SUM\(N\d+:N\d+\)<\/f><v>)[^<]*/, `$1${totalCom}`);
+
+  xml = xml.replace(/<sheetData>[\s\S]*?<\/sheetData>/, `<sheetData>${cuerpo}</sheetData>`);
+
+  // Celdas combinadas y dimensión de la hoja, que también se recorren
+  if (extra) {
+    xml = xml.replace(/<mergeCell ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"\/>/g, (t, c1, r1, c2, r2) => {
+      const a = +r1, b = +r2;
+      return a > corte ? `<mergeCell ref="${c1}${a + extra}:${c2}${b + extra}"/>` : t;
+    });
+    xml = xml.replace(/<dimension ref="([A-Z]+\d+):([A-Z]+)(\d+)"\/>/,
+      (t, ini, col, fin) => `<dimension ref="${ini}:${col}${+fin + extra}"/>`);
+  }
+  return xml;
+}
+
+/* Las partidas, en el orden del carrito.
+   - Precio de Lista (G) = costo de COMPRA de la pieza, como lo pidió el área.
+   - Desc. % (J) = el descuento global de la cotización, si lo hay.
+   - Comisión % (M) = precio de venta ÷ K − 1, de modo que N = L × M sea la
+     utilidad en pesos de esa partida. Sin costo capturado no hay margen que
+     calcular: va en cero y la celda de comentarios lo dice. */
+function _pmuPartidas() {
+  const desc = getDescuentoPct();
+  return getMaterialControl().map((m, i) => {
+    const it    = m.it;
+    const lista = +it.costoCompra || 0;
+    const venta = +it.precio || 0;
+    const k     = lista > 0 ? lista * (1 - desc) : 0;
+    return {
+      linea:       i + 1,
+      parte:       (it.numero_parte || '').trim() || 'SIN No. PARTE',
+      tipo:        _pmuTipoProducto(it),
+      descripcion: it.descripcion || '',
+      cantidad:    m.cantidad,
+      lista, desc,
+      comision:    k > 0 ? (venta / k) - 1 : 0,
+      entrega:     (it.fechaEntrega || '').trim() || 'INMEDIATO',
+      comentario:  lista > 0 ? '' : 'Sin costo de compra capturado',
+    };
+  });
+}
+
+async function generatePMU() {
+  if (!validateForm()) return;
+  const partidas = _pmuPartidas();
+  if (!partidas.length) { toast('No hay material en la cotización'); return; }
+
+  const D = _reqEncabezadoDatos();
+  const btn = el('btn-gen-pmu');
+  if (btn) btn.disabled = true;
+  try {
+    const resp = await fetch(PMU_PLANTILLA + '?v=20261104');
+    if (!resp.ok) throw new Error('No se pudo leer el machote (' + resp.status + ').');
+    const piezas = _zipLeer(await resp.arrayBuffer());
+
+    const hoja = piezas.find(p => p.nombre === PMU_HOJA);
+    if (!hoja) throw new Error('El machote no trae la hoja PMU donde se esperaba.');
+
+    const cambios = {};
+    cambios[PMU_HOJA] = _pmuArmarHoja(await _zipTexto(hoja), partidas, {
+      empresa:     D.empresa,
+      ordenCompra: '',   // el portal no captura orden de compra
+      envio:       '',   // ni tipo de envío: se llenan a mano
+    });
+
+    /* La cadena de cálculo quedó obsoleta al mover renglones y Excel la
+       reconstruye sola; dejarla provocaría el aviso de contenido ilegible.
+       Se quita del zip y de los dos índices que la nombran. */
+    const libro = piezas.find(p => p.nombre === 'xl/workbook.xml');
+    const tipos = piezas.find(p => p.nombre === '[Content_Types].xml');
+    const rels  = piezas.find(p => p.nombre === 'xl/_rels/workbook.xml.rels');
+    if (piezas.some(p => p.nombre === 'xl/calcChain.xml')) {
+      cambios['xl/calcChain.xml'] = null;
+      if (tipos) cambios['[Content_Types].xml'] =
+        (await _zipTexto(tipos)).replace(/<Override[^>]*calcChain\.xml"[^>]*\/>/, '');
+      if (rels) cambios['xl/_rels/workbook.xml.rels'] =
+        (await _zipTexto(rels)).replace(/<Relationship[^>]*calcChain\.xml"[^>]*\/>/, '');
+    }
+    /* Y se le pide a Excel recalcular al abrir: los valores que escribe el
+       portal son de cortesía; las fórmulas del machote son las que mandan. */
+    if (libro) {
+      const x = await _zipTexto(libro);
+      cambios['xl/workbook.xml'] = /fullCalcOnLoad/.test(x) ? x
+        : x.replace(/<calcPr([^>]*?)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
+    }
+
+    const bytes = _zipEscribir(piezas, cambios);
+    const nombre = ('PMU_' + D.folioCot).replace(/[\/:*?"<>|]/g, '_') + '.xlsm';
+    const url = URL.createObjectURL(new Blob([bytes],
+      { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    const sinCosto = partidas.filter(p => p.lista <= 0).length;
+    toast('🧮 PMU descargado' + (sinCosto ? ` — ${sinCosto} partida(s) sin costo de compra` : ''));
+  } catch (e) {
+    console.error(e);
+    toast('❌ ' + (e.message || 'No se pudo generar el PMU'));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 /**
