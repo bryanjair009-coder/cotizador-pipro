@@ -744,7 +744,7 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
           <div class="gd-field">
             <label>📅 Días de trabajo
               <button class="gd-i" data-info-title="Días de trabajo"
-                      data-info="Se propaga automáticamente a comidas, hospedaje y renta de equipo de maniobras. Admite medios días (0.5)."
+                      data-info="Se propaga automáticamente a comidas, hospedaje y renta de equipo de elevación. Admite medios días (0.5)."
                       data-formula="Costo M.O. = (Total mensual sueldos / 30) × días"></button>
             </label>
             <input type="number" id="dias_trabajo" value="0" min="0" max="999" step="0.5" oninput="updateMO()">
@@ -973,9 +973,9 @@ Combustible = litros × precio por litro"></button>
       </div>
     </div>
 
-    <!-- Equipo de maniobras -->
+    <!-- Equipo de elevación -->
     <details>
-      <summary id="sum-equipo">🏗️ Equipo de Maniobras · (0 días) = $0.00</summary>
+      <summary id="sum-equipo">🏗️ Equipo de Elevación · (0 días) = $0.00</summary>
       <div class="details-body">
         <div style="margin-bottom:10px;font-size:.85rem;color:var(--gd-text-mute);display:flex;align-items:center;">
           Selecciona el equipo que se usará en el proyecto
@@ -1018,7 +1018,7 @@ Total = costo diario × días de trabajo"
           <div class="gd-field">
             <label>Embarque — monto fijo
               <button class="gd-i" data-info-title="Embarque"
-                      data-info="Flete del equipo de maniobras al sitio. Es un monto fijo: no se multiplica por días."></button>
+                      data-info="Flete del equipo de elevación al sitio. Es un monto fijo: no se multiplica por días."></button>
             </label>
             <span class="gd-input-unit">
               <input type="number" id="embarque" value="0" min="0" max="999999" step="500" oninput="updateMO()" data-chars="7">
@@ -1027,6 +1027,43 @@ Total = costo diario × días de trabajo"
           </div>
         </div>
         <div class="info-box" id="equipo-result" style="margin-top:10px;">Total Equipos: $0.00</div>
+      </div>
+    </details>
+
+    <!-- Equipo de maniobras — precio capturado a mano, con su utilidad ya dentro.
+         A diferencia del equipo de elevación, aquí no hay tarifa de catálogo que
+         multiplicar por días: la maniobra se cotiza caso por caso (grúa, maniobra
+         con malacate, izaje en espacio confinado) y lo que se captura es el
+         precio final al cliente. Si el campo está lleno, sale como su propio
+         renglón en el resumen de costos del PDF, del Word y del Excel. -->
+    <details>
+      <summary id="sum-maniobras">🏋️ Equipo de Maniobras · $0.00</summary>
+      <div class="details-body">
+        <div style="margin-bottom:10px;font-size:.85rem;color:var(--gd-text-mute);display:flex;align-items:center;">
+          Captura el precio de la maniobra y en qué consiste
+          <button class="gd-i" data-info-title="Equipo de maniobras"
+                  data-info="El precio se captura ya con la utilidad incluida: el portal no le suma nada. La descripción es la que el cliente va a leer en el resumen de costos, así que conviene redactarla como concepto cobrable."
+                  data-fuente="Déjalo en cero si el proyecto no lleva maniobra; entonces no aparece en ningún documento."></button>
+        </div>
+        <div class="gd-fields">
+          <div class="gd-field">
+            <label>Precio al cliente — utilidad incluida</label>
+            <span class="gd-input-unit">
+              <input type="number" id="maniobras_precio" value="0" min="0" max="9999999" step="500"
+                     oninput="updateMO()" data-chars="8">
+              <span>MXN</span>
+            </span>
+          </div>
+          <div class="gd-field" style="flex:1 1 100%;">
+            <label>Descripción de la maniobra</label>
+            <!-- gd-no-size: el dimensionado automático topa en 46 caracteres y
+                 esta descripción es la que lee el cliente; se quiere completa. -->
+            <input type="text" id="maniobras_desc" maxlength="160" oninput="updateMO()"
+                   class="gd-no-size" style="width:100%;max-width:100%;"
+                   placeholder="Maniobra de izaje con grúa de 20 t para montaje de cabezal en altura">
+          </div>
+        </div>
+        <div class="info-box" id="maniobras-result" style="margin-top:10px;">Sin maniobra capturada</div>
       </div>
     </details>
 
@@ -2492,6 +2529,8 @@ function restoreCotizacion(data) {
     setVal('embarque', data.mo.embarque);
     setVal('precio_vuelo', data.mo.precio_vuelo);
     setVal('personas_vuelo', data.mo.personas_vuelo);
+    setVal('maniobras_precio', data.mo.maniobras_precio);
+    setVal('maniobras_desc', data.mo.maniobras_desc);
   }
   // Carrito
   state.carrito = data.carrito || {};
@@ -2718,8 +2757,15 @@ function calcularMO(inp) {
   const d_esc=COSTO_ESCALERA_MES/30, d_gen=COSTO_GENNIE_MES/30, d_elev=COSTO_ELEVADOR_MES/30, d_plat=COSTO_PLAT_TIJERA_MES/30;
   const t_esc=usar_esc?d_esc*dias:0, t_gen=usar_gen?d_gen*dias:0, t_elev=usar_elev?d_elev*dias:0, t_plat=usar_plat?d_plat*dias:0;
   const total_plataformas = t_esc+t_gen+t_elev+t_plat+embarque;
+  /* Equipo de maniobras: precio capturado a mano, con la utilidad ya dentro.
+     NO entra en total_mo_equipo_viaticos a propósito — va como su propio
+     renglón del resumen de costos, con la descripción que se escribió, en vez
+     de esconderse dentro del servicio de instalación. */
+  const maniobras_total = Math.max(0, +inp.maniobras_precio||0);
+  const maniobras_desc  = String(inp.maniobras_desc||'').trim();
   const total_mo_equipo_viaticos = costo_mo+total_viaticos+total_movilidad+total_plataformas;
   return {
+    maniobras_total,maniobras_desc,
     n_tec,n_aya,n_ing,n_seg,tec_total,aya_total,ing_total,seg_total,
     total_personas,total_mensual,dias,costo_mo,costo_mo_real,utilidad_mo,
     dia_inhabil,factor_inhabil,costo_mo_base,recargo_inhabil,
@@ -2753,6 +2799,20 @@ function getMOInputs() {
     embarque: +el('embarque').value,
     precio_vuelo: +el('precio_vuelo').value,
     personas_vuelo: +el('personas_vuelo').value,
+    maniobras_precio: el('maniobras_precio') ? +el('maniobras_precio').value : 0,
+    maniobras_desc: el('maniobras_desc') ? el('maniobras_desc').value : '',
+  };
+}
+
+/* El equipo de maniobras, listo para cualquier documento, o null si no se
+   capturó. Un solo sitio decide la etiqueta que lee el cliente, para que el
+   PDF, el Word y el Excel no puedan decir cosas distintas. */
+function getManiobras() {
+  const mo = getMOResult();
+  if (!mo || !(mo.maniobras_total > 0)) return null;
+  return {
+    precio: mo.maniobras_total,
+    descripcion: mo.maniobras_desc || 'Maniobras con equipo especializado',
   };
 }
 
@@ -2809,7 +2869,12 @@ function updateMO() {
   el('info-elevador').textContent = `${fmt(COSTO_ELEVADOR_MES)}/mes → ${fmt(r.d_elev)}/día → ${fmt(r.t_elev)} total`;
   el('info-plat').textContent     = `${fmt(COSTO_PLAT_TIJERA_MES)}/mes → ${fmt(r.d_plat)}/día → ${fmt(r.t_plat)} total`;
   el('equipo-result').innerHTML = `<b>Total Equipos: ${fmt(r.total_plataformas)}</b>`;
-  el('sum-equipo').textContent = `🏗️ Equipo de Maniobras · (${dias_label} días) = ${fmt(r.total_plataformas)}`;
+  el('sum-equipo').textContent = `🏗️ Equipo de Elevación · (${dias_label} días) = ${fmt(r.total_plataformas)}`;
+  // Equipo de maniobras
+  el('sum-maniobras').textContent = `🏋️ Equipo de Maniobras · ${fmt(r.maniobras_total)}`;
+  el('maniobras-result').innerHTML = r.maniobras_total > 0
+    ? `<b>${fmt(r.maniobras_total)}</b> · aparece en el resumen de costos como «${GD.esc(r.maniobras_desc || 'Maniobras con equipo especializado')}»`
+    : 'Sin maniobra capturada';
   // Resumen
   el('r-mo').textContent = fmt(r.costo_mo);
   el('r-mo-d').textContent = `${r.total_personas} pers × ${dias_label} días`;
@@ -3923,8 +3988,9 @@ function updateTotales() {
   const subtotal_mat = getCartSubtotal();
   const mo_res = getMOResult();
   const costo_mo = mo_res ? mo_res.total_mo_equipo_viaticos : 0;
+  const maniobras = getManiobras();
   const descuento = getDescuentoPct();
-  const total_bruto = subtotal_mat + costo_mo;
+  const total_bruto = subtotal_mat + costo_mo + (maniobras ? maniobras.precio : 0);
   const desc_monto = total_bruto * descuento;
   const total_neto = total_bruto - desc_monto;
   const iva = total_neto * 0.16;
@@ -3932,7 +3998,10 @@ function updateTotales() {
 
   let html = `<div class="cart-total-row subtotal"><span class="label">Subtotal Material</span><span class="amount">${fmt(subtotal_mat)}</span></div>`;
   if (state.tipo==='ip' && costo_mo>0) {
-    html += `<div class="cart-total-row"><span class="label">M.O. y Maniobras</span><span class="amount">${fmt(costo_mo)}</span></div>`;
+    html += `<div class="cart-total-row"><span class="label">M.O. e instalación</span><span class="amount">${fmt(costo_mo)}</span></div>`;
+  }
+  if (maniobras) {
+    html += `<div class="cart-total-row"><span class="label">Equipo de maniobras</span><span class="amount">${fmt(maniobras.precio)}</span></div>`;
   }
   if (descuento>0) {
     html += `<div class="cart-total-row"><span class="label">Descuento (${(descuento*100).toFixed(0)}%)</span><span class="amount" style="color:var(--gd-error);">-${fmt(desc_monto)}</span></div>`;
@@ -3978,7 +4047,8 @@ function collectData() {
     folio: getFolio(),
     desc_proy: el('desc_proy').value.trim(),
   };
-  return { cliente, items, costo_mo, descuento, mo_res, tipo: state.tipo, catMat: state.catMat };
+  return { cliente, items, costo_mo, descuento, mo_res, maniobras: getManiobras(),
+           tipo: state.tipo, catMat: state.catMat };
 }
 
 // ─ EXCEL GENERATOR ────────────────────────────────────────────────────────────
@@ -3993,6 +4063,35 @@ function generateExcel() {
   toast('📊 Excel descargado');
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   TEXTOS DE LA COTIZACIÓN
+
+   El PDF y el Word son el MISMO documento en dos formatos, así que los textos
+   viven una sola vez. Tenerlos escritos dos veces fue justo lo que los
+   desalineó: la copia del Word se quedó sin acentos y con redacciones viejas,
+   y nadie se enteró hasta que alguien comparó los dos archivos de la misma
+   cotización. Si hay que cambiar una leyenda, se cambia aquí y cambia en los
+   dos. Las condiciones comerciales siguen escritas en cada generador porque
+   cada uno las maqueta distinto, pero las cadenas son idénticas.
+   ════════════════════════════════════════════════════════════════════════════ */
+const TXT_COT = {
+  listaMateriales: 'La lista de materiales es de acuerdo con la información que se nos proporcionó; de existir alguna diferencia al colocarse el pedido, se ajustará el costo de esta cotización.',
+  iva: 'A estos precios añadirles el 16% de I.V.A.',
+  avisoStock: n => `AVISO: ${n} partida(s) marcada(s) en amarillo requieren reposición — ver "T. Entrega" en la tabla.`,
+  notaTiempo: esInhabil => esInhabil
+    ? 'El tiempo de instalación indicado contempla trabajo en días inhábiles (domingos o días festivos), por lo que la mano de obra se cotiza con el recargo correspondiente conforme a la Ley Federal del Trabajo. El programa de trabajo se acordará previamente con el cliente.'
+    : 'El tiempo de instalación indicado corresponde a días hábiles (lunes a viernes). Los trabajos en fines de semana o días festivos no están contemplados en esta cotización; en caso de requerirse, el costo se recotizará de acuerdo con el programa de trabajo acordado con el cliente.',
+  unidadDias: esInhabil => esInhabil ? 'días' : 'días hábiles',
+  firma: {
+    nombre: 'Ing. Marco Antonio Millán Ramírez',
+    puesto: 'Gerente de Ingeniería',
+    tel: 'Tel: 5555 63 26 11 Ext: 520',
+    correo: 'MARCOANTONIO.MILLAN@GARDNERDENVER.COM',
+    empresa: 'GARDNER DENVER México, S.A. DE C.V.',
+    depto: esIP => esIP ? 'Departamento de Ingeniería' : 'Departamento de Ingeniería de Tubería',
+  },
+};
+
 function generatePDF() {
   if (!validateForm()) return;
   const d = collectData();
@@ -4004,9 +4103,11 @@ function generatePDF() {
   const RED = [200, 16, 46], DARK = [30, 30, 38], GRAY = [150, 150, 160], LGRAY = [220, 220, 225];
   const is_ip = d.tipo === 'ip';
   const catTxt = CAT_TEXTS[d.catMat] || CAT_TEXTS.pipro;
+  const maniobras = is_ip ? d.maniobras : null;
+  const man_monto = maniobras ? maniobras.precio : 0;
 
   const subtotal_mat = items.reduce((s, it) => s + it.cantidad * it.precio, 0);
-  const total_bruto = subtotal_mat + (is_ip ? costo_mo : 0);
+  const total_bruto = subtotal_mat + (is_ip ? costo_mo : 0) + man_monto;
   const desc_monto = total_bruto * descuento;
   const total_neto = total_bruto - desc_monto;
   const iva = total_neto * 0.16;
@@ -4067,8 +4168,10 @@ function generatePDF() {
   }
 
   const COND_IND = (PW - ML * 2) * 0.29;
+  /* Las condiciones traen guiones largos («1–3 días hábiles»), que no existen
+     en Latin-1 y salían como basura en el PDF: pasan por txtPDF. */
   function condRow(lbl, txt, yy) {
-    const lines = doc.splitTextToSize(txt, PW - ML * 2 - COND_IND);
+    const lines = doc.splitTextToSize(txtPDF(txt), PW - ML * 2 - COND_IND);
     const lh = 4.2;
     yy = checkY(yy, lines.length * lh + 3);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
@@ -4193,7 +4296,7 @@ function generatePDF() {
   doc.text(fmtPDF(subtotal_mat), PW - ML - 2, y + 5, { align: 'right' });
   y += 10;
 
-  y = para('La lista de materiales es de acuerdo con la información que se nos proporcionó; de existir alguna diferencia al colocarse el pedido, se ajustará el costo de esta cotización.', y, 7.5, [130, 130, 130], 'italic');
+  y = para(txtPDF(TXT_COT.listaMateriales), y, 7.5, [130, 130, 130], 'italic');
 
   // Aviso de partidas con stock insuficiente
   const itemsFaltantes = items.filter(it => {
@@ -4207,14 +4310,14 @@ function generatePDF() {
     doc.setFillColor(255, 245, 157); doc.setDrawColor(245, 158, 11); doc.setLineWidth(0.4);
     doc.roundedRect(ML, y, PW - ML * 2, 6, 1, 1, 'FD');
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(120, 70, 0);
-    doc.text(`AVISO: ${itemsFaltantes.length} partida(s) marcada(s) en amarillo requieren reposicion - ver "T. Entrega" en la tabla.`, ML + 3, y + 4);
+    doc.text(txtPDF(TXT_COT.avisoStock(itemsFaltantes.length)), ML + 3, y + 4);
     y += 9;
   }
 
   // En IT sin descuento mostramos la leyenda corta de IVA; con descuento o IP
   // construimos la tabla de resumen para que el cliente vea el desglose.
   const mostrarResumen = is_ip || descuento > 0;
-  if (!is_ip && !mostrarResumen) { y += 2; y = para('A estos precios añadirles el 16% de I.V.A.', y, 9, DARK, 'bold'); }
+  if (!is_ip && !mostrarResumen) { y += 2; y = para(txtPDF(TXT_COT.iva), y, 9, DARK, 'bold'); }
   y += 5;
 
   // ── RESUMEN DE COSTOS (IP siempre, IT cuando hay descuento) ──────────────────
@@ -4224,7 +4327,12 @@ function generatePDF() {
       ? 'Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)'
       : 'Subtotal de materiales';
     const costoBody = [[matLabel, fmtPDF(subtotal_mat)]];
-    if (is_ip && costo_mo > 0) costoBody.push(['Servicio de instalación y maniobras de tubería de aluminio', fmtPDF(costo_mo)]);
+    if (is_ip && costo_mo > 0) costoBody.push(['Servicio de instalación de tubería de aluminio', fmtPDF(costo_mo)]);
+    if (maniobras) costoBody.push([txtPDF(maniobras.descripcion), fmtPDF(man_monto)]);
+    /* El índice de la fila del descuento se toma de la lista ya armada: antes
+       iba calculado a mano y cualquier renglón nuevo —como el de maniobras—
+       pintaba de rojo el concepto equivocado. */
+    const descRowIdx = descuento > 0 ? costoBody.length : -1;
     if (descuento > 0) costoBody.push([`Descuento (${(descuento * 100).toFixed(0)}%)`, '- ' + fmtPDF(desc_monto)]);
     costoBody.push(['Subtotal sin IVA', fmtPDF(total_neto)], ['IVA (16%)', fmtPDF(iva)]);
     doc.autoTable({
@@ -4239,7 +4347,6 @@ function generatePDF() {
       didParseCell: (data) => {
         // Resaltar la fila del descuento en rojo Gardner Denver
         if (descuento > 0 && data.section === 'body') {
-          const descRowIdx = is_ip ? (costo_mo > 0 ? 2 : 1) : 1;
           if (data.row.index === descRowIdx) {
             data.cell.styles.textColor = RED;
             data.cell.styles.fontStyle = 'bold';
@@ -4277,15 +4384,12 @@ function generatePDF() {
     doc.text(`${diasFmt}`, ML + 6, y + 11.5);
     const diasNumW = doc.getTextWidth(`${diasFmt}`);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...DARK);
-    doc.text(esInhabil ? ' días' : ' días hábiles', ML + 6 + diasNumW, y + 11.5);
+    doc.text(' ' + TXT_COT.unidadDias(esInhabil), ML + 6 + diasNumW, y + 11.5);
 
     y += 20;
 
     // Nota de tiempo — cambia según si la cotización contempla días inhábiles
-    const notaTiempo = esInhabil
-      ? 'El tiempo de instalación indicado contempla trabajo en días inhábiles (domingos o días festivos), por lo que la mano de obra se cotiza con el recargo correspondiente conforme a la Ley Federal del Trabajo. El programa de trabajo se acordará previamente con el cliente.'
-      : 'El tiempo de instalación indicado corresponde a días hábiles (lunes a viernes). Los trabajos en fines de semana o días festivos no están contemplados en esta cotización; en caso de requerirse, el costo se recotizará de acuerdo con el programa de trabajo acordado con el cliente.';
-    y = para(notaTiempo, y, 7.5, [100, 100, 100], 'italic');
+    y = para(txtPDF(TXT_COT.notaTiempo(esInhabil)), y, 7.5, [100, 100, 100], 'italic');
     y += 4;
   }
 
@@ -4312,15 +4416,16 @@ function generatePDF() {
   y = checkY(y, 32);
   doc.setFillColor(...RED); doc.rect(ML, y, 18, 2, 'F'); y += 6;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
-  doc.text('Ing. Marco Antonio Millán Ramírez', ML, y); y += 5;
+  const F = TXT_COT.firma;
+  doc.text(txtPDF(F.nombre), ML, y); y += 5;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
-  doc.text('Gerente de Ingeniería', ML, y); y += 4;
-  doc.text('Tel: 5555 63 26 11  Ext: 520', ML, y); y += 4;
-  if (!is_ip) { doc.text('MARCOANTONIO.MILLAN@GARDNERDENVER.COM', ML, y); y += 4; }
+  doc.text(txtPDF(F.puesto), ML, y); y += 4;
+  doc.text(txtPDF(F.tel), ML, y); y += 4;
+  if (!is_ip) { doc.text(F.correo, ML, y); y += 4; }
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
-  doc.text('GARDNER DENVER México, S.A. DE C.V.', ML, y); y += 4;
+  doc.text(txtPDF(F.empresa), ML, y); y += 4;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text(is_ip ? 'Departamento de Ingeniería' : 'Departamento de Ingeniería de Tubería', ML, y);
+  doc.text(txtPDF(F.depto(is_ip)), ML, y);
 
   // ── TÉRMINOS Y CONDICIONES (NUEVA PÁGINA) ────────────────────────────────────
   addNewPage();
@@ -4473,6 +4578,23 @@ function fmtPDF(nMXN) {
   }
   return '$' + Number(nMXN).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/* Texto libre que va a salir en el PDF. La Helvetica de serie de jsPDF usa
+   WinAnsi/Latin-1: los acentos y la ñ pasan, pero lo que se pega desde Word
+   —rayas, comillas tipográficas, puntos suspensivos, el signo de grados— sale
+   como basura. Se cambia por su equivalente de Latin-1 antes de imprimirlo.
+   Los campos que escribe el portal no lo necesitan; los que escribe una
+   persona, sí. */
+function txtPDF(s) {
+  return String(s == null ? '' : s)
+    .replace(/[‐-―−]/g, '-')     // guiones y rayas → guion
+    .replace(/[‘’‛′]/g, "'")
+    .replace(/[“”‟″]/g, '"')
+    .replace(/…/g, '...')
+    .replace(/[    ]/g, ' ')
+    .replace(/€/g, 'EUR')
+    .replace(/[^\x00-\xFF]/g, '');              // lo que Latin-1 no tiene, fuera
+}
 // Convierte un monto MXN al valor numérico de la moneda activa (para Excel u operaciones)
 function cur(nMXN) {
   if (state.moneda === 'USD') {
@@ -4572,9 +4694,11 @@ function buildCotizacionSheet(wb, d) {
     setCell(r,7, xlCell(cur(val), true, f, fc, '$#,##0.00', 'right'));
     r++;
   };
+  const maniobras = is_ip ? d.maniobras : null;
   addTotRow('Subtotal Material:', subtotal, false);
-  if (is_ip && costo_mo>0) addTotRow('Mano de Obra y Maniobras:', costo_mo, false);
-  const total_bruto = subtotal + (is_ip ? costo_mo : 0);
+  if (is_ip && costo_mo>0) addTotRow('Servicio de instalación:', costo_mo, false);
+  if (maniobras) addTotRow(maniobras.descripcion + ':', maniobras.precio, false);
+  const total_bruto = subtotal + (is_ip ? costo_mo : 0) + (maniobras ? maniobras.precio : 0);
   let total_neto = total_bruto;
   if (descuento>0) { const dm=total_bruto*descuento; addTotRow(`Descuento (${(descuento*100).toFixed(0)}%):`, -dm, false); total_neto = total_bruto - dm; }
   const iva = total_neto * 0.16;
@@ -4716,7 +4840,7 @@ function buildMOSheet(wb, mo) {
   setCell(r,5,xlCell(cur(mo.total_movilidad),true,orangeF,'000000',MXN,'right')); r+=2;
 
   // Equipo
-  hdr(r,0,5,'EQUIPO DE MANIOBRAS Y ELEVACIÓN'); r++;
+  hdr(r,0,5,'EQUIPO DE ELEVACIÓN'); r++;
   hdr(r,0,1,'Descripción'); hdr(r,2,2,`Costo mensual (${curLabel()})`); hdr(r,3,3,`Costo diario (${curLabel()})`); hdr(r,4,4,`Días (=${mo.dias})`); hdr(r,5,5,`Total (${curLabel()})`); r++;
   [
     ['Escalera',COSTO_ESCALERA_MES,mo.d_esc,mo.usar_esc,mo.t_esc],
@@ -4733,14 +4857,31 @@ function buildMOSheet(wb, mo) {
   setCell(r,0,xlCell('Total Plataformas',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
   setCell(r,5,xlCell(cur(mo.total_plataformas),true,orangeF,'000000',MXN,'right')); r+=2;
 
+  /* Equipo de maniobras. Es su propio bloque y no se mezcla con el de
+     elevación: aquí no hay tarifa mensual ni días que multiplicar, sólo el
+     precio cerrado con su utilidad dentro y en qué consiste la maniobra. */
+  if (mo.maniobras_total > 0) {
+    hdr(r,0,5,'EQUIPO DE MANIOBRAS'); r++;
+    hdr(r,0,4,'Descripción de la maniobra'); hdr(r,5,5,`Precio al cliente (${curLabel()})`); r++;
+    setCell(r,0,xlCell(mo.maniobras_desc||'Maniobras con equipo especializado',false,'FFFFFF',null,null,'left'));
+    merge(r,0,r,4); val(r,5,mo.maniobras_total,MXN,true); r++;
+    setCell(r,0,xlCell('La utilidad ya viene incluida en el precio capturado.',false,null,'777777',null,'left'));
+    merge(r,0,r,5); r+=2;
+  }
+
   // Resumen
   hdr(r,0,5,'RESUMEN GENERAL'); r++;
-  ['Total M.O.','Total Viáticos','Total Movilidad','Total Equipos','Total Material','TOTAL PROYECTO'].forEach((lbl,c)=>hdr(r,c,c,lbl)); r++;
+  ['Total M.O.','Total Viáticos','Total Movilidad','Total Equipos','Maniobras','TOTAL PROYECTO'].forEach((lbl,c)=>hdr(r,c,c,lbl)); r++;
   const subtot = mo.subtotal_material||0;
-  const totProyecto = mo.costo_mo + mo.total_viaticos + mo.total_movilidad + mo.total_plataformas + subtot;
-  [mo.costo_mo,mo.total_viaticos,mo.total_movilidad,mo.total_plataformas,subtot,totProyecto].forEach((v,c) => {
+  const man = mo.maniobras_total||0;
+  const totProyecto = mo.costo_mo + mo.total_viaticos + mo.total_movilidad + mo.total_plataformas + man + subtot;
+  [mo.costo_mo,mo.total_viaticos,mo.total_movilidad,mo.total_plataformas,man,totProyecto].forEach((v,c) => {
     setCell(r,c,xlCell(cur(v),c===5,c===5?orangeF:'FFFFFF','000000',MXN,'right'));
-  }); r+=2;
+  }); r++;
+  // El material se saca de la cotización, no de esta hoja; va aparte para que
+  // el renglón de arriba no mezcle conceptos de obra con material.
+  setCell(r,0,xlCell('Total Material de la cotización',false,null,'777777',null,'right')); merge(r,0,r,4);
+  setCell(r,5,xlCell(cur(subtot),false,'FFFFFF','000000',MXN,'right')); r+=2;
 
   // Total final
   setCell(r,0,xlCell('TOTAL M.O. + EQUIPO + VIÁTICOS',true,hdrF,'FFFFFF',null,'right')); merge(r,0,r,4);
@@ -4773,8 +4914,9 @@ function buildWordHTML(d) {
   const is_ip = tipo === 'ip';
   const catTxt = CAT_TEXTS[catMat] || CAT_TEXTS.pipro;
   const fechaES = cliente.fecha ? formatDateES(cliente.fecha) : '';
+  const maniobras = is_ip ? d.maniobras : null;
   const subtotal = items.reduce((s,i)=>s+i.cantidad*i.precio,0);
-  const total_bruto = subtotal + (is_ip?costo_mo:0);
+  const total_bruto = subtotal + (is_ip?costo_mo:0) + (maniobras ? maniobras.precio : 0);
   const desc_monto = total_bruto*descuento;
   const total_neto = total_bruto - desc_monto;
   const iva = total_neto * 0.16;
@@ -4786,13 +4928,13 @@ function buildWordHTML(d) {
   const gdLogo = window.LOGO_GD || '';
   const logoCell = gdLogo
     ? `<img src="${gdLogo}" alt="Gardner Denver" style="height:48pt;width:auto;display:block;">`
-    : `<span style="font-family:'Century Gothic',Arial,sans-serif;font-size:15pt;font-weight:bold;color:var(--gd-text);">GARDNER DENVER</span>`;
+    : `<span style="font-family:'Century Gothic',Arial,sans-serif;font-size:15pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER</span>`;
 
   // ── Section header bar — mismo estilo del PDF (texto rojo + línea roja) ─────
   const sectionHdr = (text) =>
     `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:12pt 0 6pt 0;"><tr>
-      <td style="border:none;border-bottom:1.5pt solid var(--gd-red);padding:0 0 3pt 0;">
-        <span style="font-family:var(--gd-font-sans);font-size:9.5pt;font-weight:bold;color:var(--gd-red-ink);letter-spacing:.04em;">${text}</span>
+      <td style="border:none;border-bottom:1.5pt solid #CF112B;padding:0 0 3pt 0;">
+        <span style="font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;font-weight:bold;color:#B30F25;letter-spacing:.04em;">${text}</span>
       </td>
     </tr></table>`;
 
@@ -4812,20 +4954,20 @@ function buildWordHTML(d) {
       ? ((item.fechaEntrega || '').trim() || 'Por confirmar')
       : '—';
     return `<tr>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${i+1}</td>
-      <td bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${item.descripcion}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${item.numero_parte}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${item.cantidad}</td>
-      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid var(--gd-border);font-size:7.5pt;">${fechaTxt}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid var(--gd-border);font-size:8pt;">${fmt(item.precio)}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid var(--gd-border);font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #D6D6DA;font-size:8pt;">${i+1}</td>
+      <td bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #D6D6DA;font-size:8pt;">${item.descripcion}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #D6D6DA;font-size:8pt;">${item.numero_parte}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #D6D6DA;font-size:8pt;">${item.cantidad}</td>
+      <td align="center" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 5pt;border:0.5pt solid #D6D6DA;font-size:7.5pt;">${fechaTxt}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #D6D6DA;font-size:8pt;">${fmt(item.precio)}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};padding:3pt 7pt;border:0.5pt solid #D6D6DA;font-size:8pt;font-weight:bold;">${fmt(tot)}</td>
     </tr>`;
   }).join('');
 
   // Aviso de stock insuficiente (sólo si aplica)
   const avisoStockHTML = nFaltantes > 0
     ? `<p style="font-size:8pt;color:#5A3A00;background:#FFF59D;border:0.5pt solid #F57F17;padding:5pt 8pt;margin:4pt 0 6pt 0;">
-         <b>AVISO:</b> ${nFaltantes} partida(s) marcada(s) en amarillo requieren reposicion - ver columna "T. Entrega" en la tabla.
+         ${GD.esc(TXT_COT.avisoStock(nFaltantes))}
        </p>`
     : '';
 
@@ -4835,8 +4977,8 @@ function buildWordHTML(d) {
   // ── Cost table (IP only) – compact single rows ─────────────────────────────
   function costRow(label, amount, bg, fc, fw, fs) {
     return `<tr>
-      <td bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid var(--gd-border-strong);">${label}</td>
-      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid var(--gd-border-strong);white-space:nowrap;">${fmt(amount)}</td>
+      <td bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid #B9B9C0;">${label}</td>
+      <td align="right" bgcolor="${bg}" style="background:${bg};color:${fc};font-weight:${fw};font-size:${fs};padding:5pt 9pt;border:0.5pt solid #B9B9C0;white-space:nowrap;">${fmt(amount)}</td>
     </tr>`;
   }
 
@@ -4848,13 +4990,14 @@ function buildWordHTML(d) {
       ? 'Material en tubería de aluminio importado (230 PSIG @ -20°C a +80°C)'
       : 'Subtotal de materiales';
     let rows = costRow(matLabel, subtotal, '#EDF4FB','#1F1F1F','600','9pt');
-    if (is_ip && costo_mo > 0) rows += costRow('Servicio de instalación y maniobras de tubería de aluminio', costo_mo, '#EDF4FB','#1F1F1F','600','9pt');
+    if (is_ip && costo_mo > 0) rows += costRow('Servicio de instalación de tubería de aluminio', costo_mo, '#EDF4FB','#1F1F1F','600','9pt');
+    if (maniobras) rows += costRow(GD.esc(maniobras.descripcion), maniobras.precio, '#EDF4FB','#1F1F1F','600','9pt');
     if (descuento > 0) rows += costRow(`Descuento (${(descuento*100).toFixed(0)}%)`, -desc_monto, '#FFF9E6','#CF112B','600','9pt');
-    rows += costRow('Subtotal', total_neto, '#D6E4F0','#1F1F1F','700','9.5pt');
+    rows += costRow('Subtotal sin IVA', total_neto, '#D6E4F0','#1F1F1F','700','9.5pt');
     rows += costRow('IVA (16%)', iva, '#F5F5F5','#555555','400','8.5pt');
     rows += costRow('TOTAL DEL PROYECTO', total_con_iva, '#1F3864','#FFFFFF','700','10.5pt');
-    return `<table width="60%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6pt 0 4pt auto;">${rows}</table>
-      <p style="font-size:7.5pt;font-style:italic;color:var(--gd-text-mute);margin:3pt 0 8pt 0;">(${amountWords(total_con_iva)} incluye IVA)</p>`;
+    return `<table width="62%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6pt 0 4pt auto;">${rows}</table>
+      <p style="font-size:7.5pt;font-style:italic;color:#666666;margin:3pt 0 8pt 0;">(${amountWords(total_con_iva)} incluye IVA)</p>`;
   })() : '';
 
   // ── Bloque TIEMPO DE INSTALACIÓN (solo IP) ─────────────────────────────────
@@ -4864,25 +5007,23 @@ function buildWordHTML(d) {
     const esInhabil = !!mo_res.dia_inhabil;
     // Solo se muestran los días; la equivalencia en semanas se retiró porque
     // daba una referencia engañosa del plazo real.
-    const notaTiempo = esInhabil
-      ? 'El tiempo de instalacion indicado contempla trabajo en dias inhabiles (domingos o dias festivos), por lo que la mano de obra se cotiza con el recargo correspondiente conforme a la Ley Federal del Trabajo. El programa de trabajo se acordara previamente con el cliente.'
-      : 'El tiempo de instalacion indicado corresponde a dias habiles (lunes a viernes). Los trabajos en fines de semana o dias festivos no estan contemplados en esta cotizacion; en caso de requerirse, el costo se recotizara de acuerdo con el programa de trabajo acordado con el cliente.';
+    const notaTiempo = TXT_COT.notaTiempo(esInhabil);
     return `${sectionHdr('TIEMPO DE INSTALACIÓN')}
-<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#F5F8FC;border:0.5pt solid var(--gd-border);margin:0 0 6pt 0;">
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#F5F8FC;border:0.5pt solid #D6D6DA;margin:0 0 6pt 0;">
   <tr>
     <td style="border:none;padding:10pt 16pt;">
-      <span style="font-size:22pt;font-weight:bold;color:var(--gd-red-ink);">${diasFmt}</span>
-      <span style="font-size:12pt;font-weight:bold;color:var(--gd-text);"> ${esInhabil ? 'dias' : 'dias habiles'}</span>
+      <span style="font-size:22pt;font-weight:bold;color:#B30F25;">${diasFmt}</span>
+      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;"> ${TXT_COT.unidadDias(esInhabil)}</span>
     </td>
   </tr>
 </table>
-<p style="font-size:7.5pt;font-style:italic;color:var(--gd-text-mute);margin:0 0 8pt 0;">${notaTiempo}</p>`;
+<p style="font-size:7.5pt;font-style:italic;color:#666666;margin:0 0 8pt 0;">${notaTiempo}</p>`;
   })() : '';
 
   // ── Conditions ─────────────────────────────────────────────────────────────
   const condRow = (b, t) =>
     `<tr><td valign="top" width="26%" style="border:none;padding:3pt 9pt 3pt 0;"><b style="font-size:9pt;">${b}</b></td>
-     <td style="border:none;padding:3pt 0;font-size:9pt;color:var(--gd-text);">${t}</td></tr>`;
+     <td style="border:none;padding:3pt 0;font-size:9pt;color:#1F1F1F;">${t}</td></tr>`;
 
   const P_COM = `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
     ${state.moneda === 'USD' ? condRow('MONEDA:', `Cotización en Dólares Americanos (USD). Tipo de cambio del día: $${state.tipoCambio.toFixed(4)} MXN por 1.00 USD.`) : ''}
@@ -4916,7 +5057,7 @@ function buildWordHTML(d) {
   mso-footer: wdFtr;
 }
 div.Section1 { page:Word_Section_1; }
-body { font-family:var(--gd-font-sans); font-size:9pt; color:var(--gd-text); line-height:1.4; margin:0; padding:0; }
+body { font-family:Arial,Helvetica,sans-serif; font-size:9pt; color:#1F1F1F; line-height:1.4; margin:0; padding:0; }
 p  { margin:0 0 4pt 0; }
 ul { margin:3pt 0; padding-left:16pt; }
 li { margin:2pt 0; }
@@ -4932,15 +5073,15 @@ table { border-collapse:collapse; }
       <td valign="middle" style="border:none;padding:0;">
         ${gdLogo
           ? `<img src="${gdLogo}" alt="Gardner Denver" style="height:40pt;width:auto;">`
-          : `<span style="font-family:var(--gd-font-sans);font-size:13pt;font-weight:bold;color:var(--gd-text);">GARDNER DENVER</span>`}
+          : `<span style="font-family:Arial,Helvetica,sans-serif;font-size:13pt;font-weight:bold;color:#1F1F1F;">GARDNER DENVER</span>`}
       </td>
       <td align="right" valign="middle" style="border:none;padding:0;">
-        <span style="font-size:8pt;font-weight:bold;color:var(--gd-text);">${cliente.folio || ''}</span><br>
-        <span style="font-size:7.5pt;color:var(--gd-text-mute);">${fechaES ? 'Ciudad de Mexico, ' + fechaES : ''}</span>
+        <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">${cliente.folio || ''}</span><br>
+        <span style="font-size:7.5pt;color:#666666;">${fechaES ? 'Ciudad de Mexico, ' + fechaES : ''}</span>
       </td>
     </tr>
     <tr>
-      <td colspan="2" bgcolor="#CF112B" style="background:var(--gd-red);height:2pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+      <td colspan="2" bgcolor="#CF112B" style="background:#CF112B;height:2pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
     </tr>
   </table>
 </div>
@@ -4949,13 +5090,13 @@ table { border-collapse:collapse; }
 <div style="mso-element:footer" id="wdFtr">
   <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
     <tr>
-      <td colspan="2" bgcolor="#CF112B" style="background:var(--gd-red);height:1pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
+      <td colspan="2" bgcolor="#CF112B" style="background:#CF112B;height:1pt;font-size:1pt;line-height:1pt;">&nbsp;</td>
     </tr>
     <tr>
-      <td style="border:none;padding:3pt 0 0 0;font-size:6pt;color:var(--gd-text-mute);">
+      <td style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#666666;">
         GARDNER DENVER México, S.A. DE C.V. &nbsp;·&nbsp; Av. Eje 3 Oriente No. 55, Col. Granjas de San Antonio, CP 09070, Iztapalapa, CDMX
       </td>
-      <td align="right" style="border:none;padding:3pt 0 0 0;font-size:6pt;color:var(--gd-text-mute);">${cliente.folio || ''}</td>
+      <td align="right" style="border:none;padding:3pt 0 0 0;font-size:6pt;color:#666666;">${cliente.folio || ''}</td>
     </tr>
   </table>
 </div>
@@ -4966,13 +5107,13 @@ table { border-collapse:collapse; }
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8pt;">
   <tr>
     <td width="55%" valign="top" style="border:none;padding:0 10pt 0 0;">
-      <span style="font-size:12pt;font-weight:bold;color:var(--gd-text);">${cliente.empresa || ''}</span>
-      ${cliente.atencion ? `<br><span style="font-size:8.5pt;color:var(--gd-text-mute);">Atencion: <b>${cliente.atencion}</b></span>` : ''}
+      <span style="font-size:12pt;font-weight:bold;color:#1F1F1F;">${cliente.empresa || ''}</span>
+      ${cliente.atencion ? `<br><span style="font-size:8.5pt;color:#666666;">Atención: <b>${cliente.atencion}</b></span>` : ''}
     </td>
     <td width="45%" valign="top" align="right" style="border:none;padding:0;">
-      <table cellpadding="0" cellspacing="0" style="border:1pt solid var(--gd-red);border-collapse:collapse;margin-left:auto;">
+      <table cellpadding="0" cellspacing="0" style="border:1pt solid #CF112B;border-collapse:collapse;margin-left:auto;">
         <tr><td style="padding:5pt 10pt;background:#FFF8F8;">
-          <span style="font-size:8pt;color:var(--gd-text);">
+          <span style="font-size:8pt;color:#1F1F1F;">
             <b>Asunto:</b> ${(is_ip ? catTxt.asunto_ip : catTxt.asunto_it).join('<br>')}
           </span>
         </td></tr>
@@ -4985,8 +5126,8 @@ table { border-collapse:collapse; }
 
 <!-- ═══ OBJETIVO ════════════════════════════════════════════════════════════ -->
 ${sectionHdr('OBJETIVO')}
-<p style="font-size:8.5pt;margin-bottom:4pt;color:var(--gd-text);">${catTxt.obj_intro}</p>
-<ul style="margin:0;padding-left:15pt;">${BENEFITS.map(b=>`<li style="font-size:8pt;color:var(--gd-text);margin:2pt 0;">${b}</li>`).join('')}</ul>
+<p style="font-size:8.5pt;margin-bottom:4pt;color:#1F1F1F;">${catTxt.obj_intro}</p>
+<ul style="margin:0;padding-left:15pt;">${BENEFITS.map(b=>`<li style="font-size:8pt;color:#1F1F1F;margin:2pt 0;">${b}</li>`).join('')}</ul>
 
 <!-- ═══ LISTA DE MATERIALES ══════════════════════════════════════════════════ -->
 ${sectionHdr(is_ip ? 'ALCANCE Y COSTO DEL MATERIAL' : 'LISTA DE MATERIALES')}
@@ -4994,13 +5135,13 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <thead><tr>
-    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:4%;">#</th>
-    <th bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;text-align:left;width:34%;">Descripcion</th>
-    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:16%;">No. de Parte</th>
-    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:6%;">Cant.</th>
-    <th align="center" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:14%;">T. Entrega</th>
-    <th align="right" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:13%;">P. Unitario</th>
-    <th align="right" bgcolor="#1F3864" style="background:var(--gd-invert-bg);color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid var(--gd-blue);font-size:7.5pt;width:13%;">Total ${curLabel()}</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:4%;">#</th>
+    <th bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;text-align:left;width:34%;">Descripción</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:16%;">No. de Parte</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:6%;">Cant.</th>
+    <th align="center" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 3pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:14%;">T. Entrega</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">P. Unitario</th>
+    <th align="right" bgcolor="#1F3864" style="background:#1F3864;color:#FFFFFF;font-weight:bold;padding:4pt 5pt;border:0.5pt solid #1F3864;font-size:7.5pt;width:13%;">Total ${curLabel()}</th>
   </tr></thead>
   <tbody>${matRows}</tbody>
 </table>
@@ -5008,14 +5149,14 @@ ${is_ip && cliente.desc_proy ? `<p style="font-size:8.5pt;margin-bottom:5pt;"><b
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:5pt;">
   <tr>
     <td width="54%" style="border:none;"></td>
-    <td bgcolor="#D6E4F0" style="background:#D6E4F0;font-weight:bold;font-size:8.5pt;padding:4pt 8pt;border:0.5pt solid var(--gd-border-strong);">SUBTOTAL MATERIAL</td>
-    <td align="right" style="padding:4pt 8pt;border:0.5pt solid var(--gd-border-strong);font-weight:bold;font-size:9pt;white-space:nowrap;">${fmt(subtotal)}</td>
+    <td bgcolor="#D6E4F0" style="background:#D6E4F0;font-weight:bold;font-size:8.5pt;padding:4pt 8pt;border:0.5pt solid #B9B9C0;">SUBTOTAL MATERIAL</td>
+    <td align="right" style="padding:4pt 8pt;border:0.5pt solid #B9B9C0;font-weight:bold;font-size:9pt;white-space:nowrap;">${fmt(subtotal)}</td>
   </tr>
 </table>
-<p style="font-size:7pt;color:var(--gd-text-mute);margin:3pt 0 6pt 0;font-style:italic;">${amountWords(subtotal)}</p>
+<p style="font-size:7pt;color:#666666;margin:3pt 0 6pt 0;font-style:italic;">${amountWords(subtotal)}</p>
 ${avisoStockHTML}
-<p style="font-size:7.5pt;color:var(--gd-text-mute);margin-bottom:4pt;">La lista de materiales es de acuerdo con la informacion que se nos proporciono; de existir alguna diferencia al colocarse el pedido, se ajustara el costo de esta cotizacion.</p>
-${(!is_ip && !mostrarResumenWord) ? '<p style="font-size:9pt;font-weight:bold;margin-bottom:4pt;">A estos precios anadirles el 16% de I.V.A.</p>' : ''}
+<p style="font-size:7.5pt;color:#666666;margin-bottom:4pt;">${TXT_COT.listaMateriales}</p>
+${(!is_ip && !mostrarResumenWord) ? '<p style="font-size:9pt;font-weight:bold;margin-bottom:4pt;">${TXT_COT.iva}</p>' : ''}
 
 <!-- ═══ RESUMEN DE COSTOS (IP siempre, IT cuando hay descuento) ══════════════ -->
 ${mostrarResumenWord ? sectionHdr('RESUMEN DE COSTOS DEL PROYECTO') : ''}
@@ -5034,14 +5175,14 @@ ${is_ip ? P_IP_extra : P_IT_extra}
   <tr>
     <td width="55%" valign="top" style="border:none;padding:0;">
       <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-        <tr><td bgcolor="#CF112B" style="background:var(--gd-red);height:2.5pt;width:60pt;font-size:1pt;line-height:1pt;">&nbsp;</td></tr>
+        <tr><td bgcolor="#CF112B" style="background:#CF112B;height:2.5pt;width:60pt;font-size:1pt;line-height:1pt;">&nbsp;</td></tr>
         <tr><td style="border:none;padding:5pt 0 0 0;">
-          <span style="font-size:9pt;font-weight:bold;color:var(--gd-text);">Ing. Marco Antonio Millan Ramirez</span><br>
-          <span style="font-size:8pt;color:var(--gd-text-mute);">Gerente de Ingenieria</span><br>
-          <span style="font-size:8pt;color:var(--gd-text-mute);">Tel: 5555 63 26 11 Ext: 520</span><br>
-          ${!is_ip ? '<span style="font-size:7.5pt;color:var(--gd-text-mute);">MARCOANTONIO.MILLAN@GARDNERDENVER.COM</span><br>' : ''}
-          <span style="font-size:8pt;font-weight:bold;color:var(--gd-text);">GARDNER DENVER México, S.A. DE C.V.</span><br>
-          <span style="font-size:7.5pt;color:var(--gd-text-mute);">${is_ip ? 'Departamento de Ingenieria' : 'Departamento de Ingenieria de Tuberia'}</span>
+          <span style="font-size:9pt;font-weight:bold;color:#1F1F1F;">${TXT_COT.firma.nombre}</span><br>
+          <span style="font-size:8pt;color:#666666;">${TXT_COT.firma.puesto}</span><br>
+          <span style="font-size:8pt;color:#666666;">${TXT_COT.firma.tel}</span><br>
+          ${!is_ip ? '<span style="font-size:7.5pt;color:#666666;">${TXT_COT.firma.correo}</span><br>' : ''}
+          <span style="font-size:8pt;font-weight:bold;color:#1F1F1F;">${TXT_COT.firma.empresa}</span><br>
+          <span style="font-size:7.5pt;color:#666666;">${TXT_COT.firma.depto(is_ip)}</span>
         </td></tr>
       </table>
     </td>
@@ -5427,9 +5568,15 @@ function _hojasCostos(wb, mats, sop) {
      realmente pagamos es la factura del arrendador y eso el portal no lo sabe:
      va en blanco. Antes se ponía costo = cobrado, lo que fingía utilidad cero
      y escondía el dato. */
-  rsFila('Renta de equipo y plataformas', null,
+  rsFila('Renta de equipo de elevación', null,
          mo ? mo.total_plataformas : null,
          'capturar la factura del arrendador');
+  /* El equipo de maniobras se cotiza con el precio ya cerrado y con su
+     utilidad dentro, así que aquí sólo se conoce lo cobrado: el costo es la
+     factura del maniobrista y se captura después, como la renta. */
+  rsFila('Equipo de maniobras', null,
+         mo && mo.maniobras_total > 0 ? mo.maniobras_total : null,
+         mo && mo.maniobras_total > 0 ? 'capturar la factura del maniobrista' : null);
   rsFila('Fletes y embarques',               null, null);
   rsFila('Herramienta y consumibles de obra', null, null);
   rsFila('Permisos, trámites y seguros',     null, null);
@@ -5438,7 +5585,8 @@ function _hojasCostos(wb, mats, sop) {
 
   if (d.descuento > 0) {
     // El descuento no tiene costo: baja lo cobrado y por eso baja el margen
-    const desc = -(getCartSubtotal() + (esIP ? (d.costo_mo || 0) : 0)) * d.descuento;
+    const desc = -(getCartSubtotal() + (esIP ? (d.costo_mo || 0) : 0)
+                   + (esIP && mo ? (mo.maniobras_total || 0) : 0)) * d.descuento;
     rsFila(`Descuento al cliente (${(d.descuento * 100).toFixed(0)} %)`, 0, desc);
   }
   const rsFin = br;
@@ -5464,18 +5612,20 @@ function _hojasCostos(wb, mats, sop) {
   br += 2;
 
   if (d.descuento > 0) {
-    bset(br, 0, xlCell(`La cotización lleva ${(d.descuento * 100).toFixed(0)} % de descuento sobre material y M.O. Ya está restado del total de arriba; los bloques A y B son ANTES de descuento.`, true, capFill, null, null, 'left'));
+    bset(br, 0, xlCell(`La cotización lleva ${(d.descuento * 100).toFixed(0)} % de descuento sobre todo lo cotizado. Ya está restado del total de arriba; los bloques A y B son ANTES de descuento.`, true, capFill, null, null, 'left'));
     bmerge(br, 0, br, 4); br += 2;
   }
 
   // Contexto: cómo se compone lo cotizado
   const subtotalMat = getCartSubtotal();
   const costoMO     = esIP ? (d.costo_mo || 0) : 0;
+  const manMonto    = esIP && mo && mo.maniobras_total > 0 ? mo.maniobras_total : 0;
   titulo('Referencia: lo cotizado al cliente');
   linea('Material de la cotización', subtotalMat);
   if (secB) linea(`Soportería (costo + ${(UTIL_SOPORTERIA * 100).toFixed(0)} %)`, secB.venta);
   if (esIP) linea('Mano de obra y viáticos', costoMO);
-  if (d.descuento > 0) linea(`Descuento sobre material y M.O. (${(d.descuento * 100).toFixed(0)} %)`, -(subtotalMat + costoMO) * d.descuento);
+  if (manMonto) linea('Equipo de maniobras', manMonto);
+  if (d.descuento > 0) linea(`Descuento sobre lo cotizado (${(d.descuento * 100).toFixed(0)} %)`, -(subtotalMat + costoMO + manMonto) * d.descuento);
   br++;
 
   bset(br, 0, xlCell('Importes en pesos (MXN), sin IVA. La soportería se imprime por separado de la cotización del cliente; aquí se suma para el control del proyecto.', false, null, '777777', null, 'left'));
@@ -5989,21 +6139,22 @@ function _pmuPartidas() {
       comentario:  '',
     };
   });
+  const servicio = (descripcion, importe) => lista.push({
+    linea:       lista.length + 1,
+    parte:       'SERVICIO',
+    tipo:        PMU_SERVICIO.tipo,
+    familia:     PMU_SERVICIO.familia,
+    descripcion, cantidad: 1, lista: importe, desc,
+    entrega:     'INMEDIATO',
+    comentario:  '',
+  });
   const mo = getMOResult();                 // null en IT: no lleva mano de obra
-  if (mo && mo.total_mo_equipo_viaticos > 0) {
-    lista.push({
-      linea:       lista.length + 1,
-      parte:       'SERVICIO',
-      tipo:        PMU_SERVICIO.tipo,
-      familia:     PMU_SERVICIO.familia,
-      descripcion: 'MANO DE OBRA',
-      cantidad:    1,
-      lista:       mo.total_mo_equipo_viaticos,
-      desc,
-      entrega:     'INMEDIATO',
-      comentario:  '',
-    });
-  }
+  if (mo && mo.total_mo_equipo_viaticos > 0) servicio('MANO DE OBRA', mo.total_mo_equipo_viaticos);
+  /* El equipo de maniobras va aparte de la mano de obra, igual que en el
+     resumen de costos del cliente: es un concepto cobrable por sí mismo y sin
+     él la suma de la columna L no cuadraría con la cotización. */
+  const man = getManiobras();
+  if (man) servicio(man.descripcion.toUpperCase(), man.precio);
   return lista;
 }
 
