@@ -781,7 +781,7 @@ hr{border:none;border-top:1.5px solid var(--gd-border);margin:16px 0;}
           <div class="gd-field">
             <label>Costo por comida/persona</label>
             <span class="gd-input-unit">
-              <input type="number" id="costo_comida" value="80" min="0" max="9999" step="10" oninput="updateMO()" data-chars="5">
+              <input type="number" id="costo_comida" value="30" min="0" max="9999" step="10" oninput="updateMO()" data-chars="5">
               <span>MXN</span>
             </span>
           </div>
@@ -1230,9 +1230,14 @@ Descuento = Base × %"></button>
       <div style="font-size:.82rem;color:var(--gd-text-soft);" id="mat-count-label">
         Catálogo: <b>—</b> materiales
       </div>
-      <button class="mod-btn" onclick="openQuickMatModal()" title="Agregar un material temporal al carrito — no se guarda en el catálogo">
-        <span>⚡</span> Material rápido
-      </button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="mod-btn" onclick="abrirImportar()" title="Cargar la lista de material que sale de AutoCAD y volcarla al carrito">
+          <span>📥</span> Importar lista
+        </button>
+        <button class="mod-btn" onclick="openQuickMatModal()" title="Agregar un material temporal al carrito — no se guarda en el catálogo">
+          <span>⚡</span> Material rápido
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1510,6 +1515,37 @@ Precio de venta soportería = costo × 1.40"></button>
     <div class="gd-modal-foot">
       <span style="flex:1;font-size:.8rem;color:var(--gd-text-soft);">El costo de compra es interno: no aparece en el PDF ni en el Word del cliente.</span>
       <button class="btn btn-secondary btn-sm" onclick="cerrarCosto()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL — IMPORTAR LISTA DE MATERIAL (la que sale de AutoCAD)
+     Nada entra al carrito hasta que se confirma la vista previa.
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="import-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)cerrarImportar()">
+  <div class="gd-modal is-lg" role="dialog" aria-modal="true" aria-labelledby="import-title">
+    <div class="gd-modal-header">
+      <h3 id="import-title">📥 Importar lista de material</h3>
+      <button class="gd-modal-close" onclick="cerrarImportar()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="gd-modal-body">
+      <div class="info-box" style="margin-bottom:14px;">
+        Carga la tabla de Excel que se extrae del dibujo de AutoCAD. Basta con que traiga
+        una columna de <b>número de parte</b> y otra de <b>cantidad</b>; los títulos se
+        reconocen solos (No. de parte, CCN, Clave, Part Number · Cantidad, Cant, Qty, Count).
+        Si el archivo no trae títulos, el portal deduce las columnas cruzando contra el catálogo.
+        <br><br>
+        Las cantidades <b>se suman</b> a lo que ya tenga el carrito. Nada se agrega hasta que confirmes.
+      </div>
+      <input type="file" id="import-file" accept=".xlsx,.xls,.csv" onchange="leerListaImportada(this)">
+      <div id="import-status" style="margin-top:12px;"></div>
+      <div id="import-preview" style="margin-top:12px;"></div>
+    </div>
+    <div class="gd-modal-foot">
+      <span style="flex:1;font-size:.8rem;color:var(--gd-text-soft);" id="import-resumen"></span>
+      <button class="btn btn-secondary btn-sm" onclick="cerrarImportar()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" id="import-ok" onclick="confirmarImportacion()" disabled>Agregar al carrito</button>
     </div>
   </div>
 </div>
@@ -2720,7 +2756,7 @@ function calcularMO(inp) {
   const recargo_inhabil = costo_mo_real - costo_mo_base;  // lo que suma el día inhábil
   const utilidad_mo = costo_mo_real * (UTIL_MO_FACTOR - 1);
   const costo_mo = costo_mo_real * UTIL_MO_FACTOR;
-  const comidas_por_dia = +inp.comidas_por_dia||3, costo_comida = +inp.costo_comida||80;
+  const comidas_por_dia = +inp.comidas_por_dia||3, costo_comida = +inp.costo_comida||30;
   const comidas_total = total_personas*costo_comida*comidas_por_dia*dias;
   const req_hospe = !!inp.req_hospedaje;
   const costo_hospe = +inp.costo_hospedaje||450;
@@ -6753,6 +6789,242 @@ function aplicarPermisos() {
    contra el catálogo para traer la descripción y el precio buenos; lo que no
    esté en el catálogo entra como material rápido, con precio 0 para que salte
    a la vista que falta ponérselo. */
+/* ════════════════════════════════════════════════════════════════════════════
+   IMPORTAR LA LISTA DE MATERIAL QUE SALE DE AUTOCAD
+
+   Del dibujo se extrae una tabla de Excel con el número de parte y la cantidad
+   de cada pieza. El portal la cruza contra el catálogo y vuelca las cantidades
+   al carrito, que es lo que antes se tecleaba pieza por pieza.
+
+   Dos cosas que hacen que funcione con archivos reales y no sólo con el ideal:
+
+   - Los títulos se reconocen por nombre, no por posición, y se buscan en los
+     primeros quince renglones: la extracción de AutoCAD suele dejar arriba el
+     nombre del dibujo, la fecha o una fila vacía.
+   - Si el archivo no trae títulos —pasa cuando se copia sólo el cuerpo de la
+     tabla—, las columnas se deducen CRUZANDO CONTRA EL CATÁLOGO: la columna de
+     números de parte es la que más coincidencias reales produce. Es más fiable
+     que adivinar por el tipo de dato, porque un número de parte como «12500 00»
+     parece un número cualquiera.
+
+   Nada entra al carrito hasta que se confirma la vista previa.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const IMP_COLS = {
+  parte: ['numerodeparte','numeroparte','nodeparte','noparte','numparte','parte','partnumber',
+          'partno','part','ccn','clave','codigo','sku','modelo','referencia','ref'],
+  cant:  ['cantidad','cant','cantidadtotal','qty','quantity','count','piezas','pzas','pz','total'],
+};
+
+/* Lo leído, a la espera de confirmación. Fuera de la función para que el botón
+   «Agregar al carrito» lo encuentre. */
+let _importado = null;
+
+function abrirImportar() {
+  _importado = null;
+  if (el('import-file')) el('import-file').value = '';
+  el('import-status').innerHTML = '';
+  el('import-preview').innerHTML = '';
+  el('import-resumen').textContent = '';
+  el('import-ok').disabled = true;
+  el('import-modal').style.display = 'flex';
+}
+function cerrarImportar() {
+  el('import-modal').style.display = 'none';
+  _importado = null;
+}
+
+/** Cantidad: entero positivo. Acepta «12», «12.0», «12 pz», «1,200». */
+function _impCantidad(v) {
+  const n = _numeroDeCelda(typeof v === 'string' ? v.replace(/[^\d.,-]/g, '') : v);
+  if (n == null || !Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n);
+}
+
+/** Busca el renglón de títulos y devuelve {fila, parte, cant} o null. */
+function _impPorTitulos(filas) {
+  for (let i = 0; i < Math.min(filas.length, 15); i++) {
+    let parte = -1, cant = -1;
+    filas[i].forEach((celda, j) => {
+      const t = _norm(celda);
+      if (!t) return;
+      if (parte < 0 && IMP_COLS.parte.includes(t)) parte = j;
+      if (cant  < 0 && IMP_COLS.cant.includes(t))  cant  = j;
+    });
+    if (parte >= 0 && cant >= 0) return { fila: i, parte, cant };
+  }
+  return null;
+}
+
+/** Sin títulos: la columna de parte es la que más piezas del catálogo acierta. */
+function _impPorCatalogo(filas) {
+  const enCatalogo = new Set(state.materiales.map(m => _norm(m.numero_parte)));
+  const anchura = filas.reduce((a, f) => Math.max(a, f.length), 0);
+  let parte = -1, mejor = 0;
+  for (let j = 0; j < anchura; j++) {
+    let aciertos = 0;
+    for (const f of filas) if (enCatalogo.has(_norm(f[j]))) aciertos++;
+    if (aciertos > mejor) { mejor = aciertos; parte = j; }
+  }
+  if (parte < 0) return null;
+  /* La cantidad es la columna con más enteros positivos, pero descartando la
+     columna «ITEM» / «No.» que AutoCAD pone al principio: numera los renglones
+     1, 2, 3… y tiene exactamente tantos enteros como la de cantidad, así que
+     sin esta regla ganaba ella y se importaba 1 pieza de todo. Se reconoce
+     porque es la sucesión 1..N en orden. En un empate gana la columna que está
+     a la derecha del número de parte, que es donde suele ir la cantidad. */
+  const esContador = j => {
+    const vals = filas.map(f => _impCantidad(f[j])).filter(v => v != null);
+    return vals.length > 2 && vals.every((v, i) => v === i + 1);
+  };
+  let cant = -1, mejorN = 0;
+  for (let j = 0; j < anchura; j++) {
+    if (j === parte || esContador(j)) continue;
+    let n = 0;
+    for (const f of filas) if (_impCantidad(f[j]) != null) n++;
+    if (n > mejorN || (n === mejorN && n > 0 && cant < parte && j > parte)) { mejorN = n; cant = j; }
+  }
+  return cant < 0 ? null : { fila: -1, parte, cant, deducido: true, aciertos: mejor };
+}
+
+function leerListaImportada(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  _importado = null;
+  el('import-ok').disabled = true;
+  el('import-preview').innerHTML = '';
+  el('import-resumen').textContent = '';
+  el('import-status').innerHTML = '<div class="info-box">Leyendo el archivo…</div>';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      /* Se recorren TODAS las hojas: la extracción de AutoCAD a veces deja la
+         tabla en la segunda, detrás de una portada. Gana la que dé más
+         partidas reconocidas. */
+      let mejor = null;
+      for (const nombre of wb.SheetNames) {
+        const filas = XLSX.utils.sheet_to_json(wb.Sheets[nombre], { header: 1, defval: '' })
+          .filter(f => Array.isArray(f) && f.some(c => String(c).trim() !== ''));
+        if (!filas.length) continue;
+        const mapa = _impPorTitulos(filas) || _impPorCatalogo(filas);
+        if (!mapa) continue;
+        const leido = _impFilas(filas, mapa);
+        if (!mejor || leido.partidas.length > mejor.partidas.length) {
+          mejor = { ...leido, hoja: nombre, mapa };
+        }
+      }
+
+      if (!mejor || !mejor.partidas.length) {
+        el('import-status').innerHTML = '<div class="error-box">No encontré número de parte y cantidad en el archivo. ' +
+          'Revisa que la tabla traiga una columna con el número de parte y otra con la cantidad; ' +
+          'si trae títulos, pueden decir «No. de parte» / «CCN» / «Clave» y «Cantidad» / «Qty» / «Count».</div>';
+        return;
+      }
+      _importado = mejor;
+      _impVistaPrevia(mejor);
+    } catch (err) {
+      el('import-status').innerHTML = '<div class="error-box">No pude leer el archivo: ' +
+        GD.esc(err.message) + '</div>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/** Convierte las filas en partidas, sumando lo repetido y apartando lo malo. */
+function _impFilas(filas, mapa) {
+  const desde = mapa.fila + 1;
+  const porParte = new Map();   // clave normalizada → partida
+  const rechazos = [];
+  for (let i = desde; i < filas.length; i++) {
+    const f = filas[i] || [];
+    const np = String(f[mapa.parte] ?? '').trim();
+    if (!np) continue;                                   // renglón vacío o de relleno
+    const q = _impCantidad(f[mapa.cant]);
+    const clave = _norm(np);
+    if (!clave) continue;
+    if (q == null) { rechazos.push({ np, motivo: 'cantidad no válida o en cero' }); continue; }
+    const previa = porParte.get(clave);
+    /* Un mismo número de parte puede venir varias veces (AutoCAD extrae por
+       bloque): se suman en vez de quedarse con el último. */
+    if (previa) { previa.cantidad += q; previa.repetida = true; }
+    else porParte.set(clave, { np, cantidad: q, repetida: false });
+  }
+  const partidas = [...porParte.values()].map(p => {
+    const m = materialDeCatalogo(p.np) ||
+              state.materiales.find(x => _norm(x.numero_parte) === _norm(p.np)) || null;
+    return { ...p, mat: m, enCarrito: _impEnCarrito(p.np, m) };
+  });
+  return { partidas, rechazos };
+}
+
+/** Cuántas piezas de ese material trae ya el carrito (para avisarlo). */
+function _impEnCarrito(np, mat) {
+  const k = cartKey(mat || { numero_parte: np, descripcion: np });
+  return state.carrito[k] ? state.carrito[k].cantidad : 0;
+}
+
+function _impVistaPrevia(r) {
+  const conocidas = r.partidas.filter(p => p.mat);
+  const sueltas   = r.partidas.filter(p => !p.mat);
+  const m = r.mapa;
+
+  el('import-status').innerHTML =
+    `<div class="info-box">Hoja <b>${GD.esc(r.hoja)}</b> · ` +
+    (m.deducido
+      ? `sin títulos: las columnas se dedujeron cruzando contra el catálogo (${m.aciertos} coincidencias)`
+      : `títulos encontrados en el renglón ${m.fila + 1}`) +
+    ` · <b>${r.partidas.length}</b> partida(s) leída(s).</div>`;
+
+  const fila = p => `<tr>
+      <td style="font-family:var(--gd-font-mono,monospace);font-size:.78rem;">${GD.esc(p.np)}</td>
+      <td>${GD.esc(p.mat ? p.mat.descripcion : '— no está en el catálogo —')}</td>
+      <td style="text-align:right;">${p.cantidad}${p.repetida ? ' <span title="venía repetida en el archivo; se sumó">∑</span>' : ''}</td>
+      <td style="text-align:right;">${p.mat ? fmt(p.mat.precio) : '<b style="color:var(--gd-warning);">$0.00</b>'}</td>
+      <td style="text-align:right;color:var(--gd-text-mute);">${p.enCarrito ? '+' + p.enCarrito + ' ya en carrito' : ''}</td>
+    </tr>`;
+
+  let html = `<table class="cart-table" style="width:100%;">
+      <thead><tr><th>No. de parte</th><th>Descripción</th><th style="text-align:right;">Cant.</th>
+      <th style="text-align:right;">P. unit.</th><th style="text-align:right;">Carrito</th></tr></thead>
+      <tbody>${conocidas.map(fila).join('')}${sueltas.map(fila).join('')}</tbody></table>`;
+
+  if (sueltas.length) {
+    html = `<div class="error-box" style="margin-bottom:10px;">
+        <b>${sueltas.length} pieza(s) no están en el catálogo.</b> Entran al carrito con precio
+        $0.00 para que salten a la vista; hay que capturarles el precio antes de cotizar.
+      </div>` + html;
+  }
+  if (r.rechazos.length) {
+    html += `<div class="error-box" style="margin-top:10px;"><b>${r.rechazos.length} renglón(es) sin cantidad válida, se omiten:</b><br>` +
+      r.rechazos.slice(0, 12).map(x => GD.esc(x.np) + ' — ' + x.motivo).join('<br>') +
+      (r.rechazos.length > 12 ? `<br>… y ${r.rechazos.length - 12} más` : '') + '</div>';
+  }
+  el('import-preview').innerHTML = html;
+
+  const piezas = r.partidas.reduce((s, p) => s + p.cantidad, 0);
+  el('import-resumen').textContent =
+    `${conocidas.length} del catálogo · ${sueltas.length} sin catalogar · ${piezas} piezas en total`;
+  el('import-ok').disabled = false;
+}
+
+function confirmarImportacion() {
+  if (!_importado || !_importado.partidas.length) return;
+  let delCatalogo = 0, sueltos = 0;
+  _importado.partidas.forEach(p => {
+    if (p.mat) { addToCart(p.mat, p.cantidad); delCatalogo++; }
+    else {
+      addToCart({ descripcion: p.np, numero_parte: p.np, precio: 0 }, p.cantidad);
+      sueltos++;
+    }
+  });
+  renderCart();
+  cerrarImportar();
+  toast(`📥 ${delCatalogo} partida(s) agregadas al carrito` +
+        (sueltos ? ` · ${sueltos} sin precio, revísalas` : ''));
+}
+
 window.gdMaterialExterno = function (items) {
   let delCatalogo = 0, sueltos = 0;
   items.forEach(it => {
@@ -8909,6 +9181,9 @@ const _SOP_TIPOS = {
     { np: 'TUE-3/8-GAL',       calc: n => n * 4 },
     { np: 'RPL-3/8-GAL',       calc: n => n * 4 },
     { np: 'PPBCH-3/8X1',       calc: n => n * 2 },
+    // Fijación al PTR (2026-11): cinco tornillos y cinco taquetes por abrazadera
+    { np: 'TCH-3/8X1-GAL',     calc: n => n * 5 },
+    { np: 'TAQ-C-3/8',         calc: n => n * 5 },
   ],
   mens: [
     { np: 'U-CAN-U30-4X2-C16', calc: n => Math.ceil(n * 70 / 300) },
