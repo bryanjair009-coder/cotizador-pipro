@@ -516,11 +516,19 @@ genera siempre los 5 archivos cuando hay material.
   vista) porque `navigator.clipboard` falla si la ventana no tiene el foco.
 - Quien registró horas sin estar en la lista (cuenta inactiva, otro rol u otra
   área) sale en un aviso aparte, no se cuela a la tabla.
-- Botón **«🖨️ Formato de horas»** (`incFormatoHoras`): PDF con **Fecha ·
-  Nombre · Hora de entrada · Hora de salida · Horas trabajadas** y un resumen
-  por persona (días con registro y horas). **Sí respeta** los filtros de
-  persona y empresa. `showFoot:'lastPage'` en las dos tablas: con el valor por
-  omisión el TOTAL se repetía a media lista.
+- **Reporte de horas**, en PDF (`incFormatoHoras`) y en Excel
+  (`incHorasExcel`): **Fecha · Nombre · Hora de entrada · Hora de salida ·
+  Horas trabajadas**, con resumen por persona (días con registro y horas).
+  Los dos **sí respetan** los filtros de persona y empresa, y los dos salen de
+  `incFilasHoras()` / `incResumenHoras()` para que no puedan discrepar.
+- **El reporte de horas y el archivo de carga de iScala son dos documentos
+  distintos**: se suben en sitios distintos, así que no comparten formato ni
+  nombre (`Horas_Trabajadas_<mes>.xlsx` vs `Carga_Incidencias_<mes>.xlsx`). En
+  el de horas la fecha va legible (DD/MM/AAAA) y **las horas van como número**
+  con un TOTAL por fórmula, al revés del machote de iScala, donde **todo es
+  texto** a propósito. No unificarlos.
+- `showFoot:'lastPage'` en las tablas del PDF: con el valor por omisión el
+  TOTAL se repetía a media lista.
 
 ### Archivo de carga iScala (el machote)
 

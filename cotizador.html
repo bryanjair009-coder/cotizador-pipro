@@ -2011,8 +2011,12 @@ Precio de venta soportería = costo × 1.40"></button>
           <select id="inc-filtro-emp" onchange="incPintar()"><option value="">Todas</option></select>
         </div>
         <button class="btn btn-primary" onclick="incDescargar()">⬇️ Descargar archivo de carga</button>
+        <!-- Dos documentos distintos del mismo mes: el archivo de carga es el
+             de iScala y el reporte de horas se sube en otro sitio. -->
+        <button class="btn btn-secondary" onclick="incHorasExcel()"
+                title="Reporte de horas en Excel: fecha, nombre, entrada, salida y horas trabajadas">📊 Horas (Excel)</button>
         <button class="btn btn-secondary" onclick="incFormatoHoras()"
-                title="Imprime fecha, nombre, hora de entrada, hora de salida y horas trabajadas">🖨️ Formato de horas</button>
+                title="Reporte de horas en PDF, para imprimir o firmar">🖨️ Horas (PDF)</button>
       </div>
       <div id="inc-aviso" style="margin-top:12px;"></div>
     </div>
@@ -6785,11 +6789,83 @@ function incCopiarPendientes() {
    ══════════════════════════════════════════════════════════════════════════ */
 const incHM = h => String(h == null ? '' : h).slice(0, 5);
 
-function incFormatoHoras() {
-  const filas = incFiltradas().slice().sort((a, b) =>
+/** Los renglones del reporte de horas, ya ordenados. Los comparten el PDF y
+    el Excel, para que los dos documentos digan exactamente lo mismo. */
+function incFilasHoras() {
+  return incFiltradas().slice().sort((a, b) =>
     a.fecha.localeCompare(b.fecha) ||
     String(incNombreDe(a.usuario)).localeCompare(String(incNombreDe(b.usuario)), 'es') ||
     incHM(a.hora_entrada).localeCompare(incHM(b.hora_entrada)));
+}
+
+/** Días con registro y horas acumuladas por persona. */
+function incResumenHoras(filas) {
+  const m = new Map();
+  filas.forEach(f => {
+    const r = m.get(f.usuario) || { dias: new Set(), horas: 0 };
+    r.dias.add(f.fecha); r.horas += (+f.horas || 0);
+    m.set(f.usuario, r);
+  });
+  return [...m.entries()]
+    .sort((a, b) => String(incNombreDe(a[0])).localeCompare(String(incNombreDe(b[0])), 'es'));
+}
+
+/* El reporte de horas en Excel. Es un documento DISTINTO del archivo de carga
+   de iScala —se suben en sitios distintos— así que no comparte ni formato ni
+   nombre: aquí la fecha va legible, las horas van como número para que sumen,
+   y hay una segunda hoja con el resumen por persona. */
+function incHorasExcel() {
+  const filas = incFilasHoras();
+  if (!filas.length) { alert('No hay registros para descargar en ese mes.'); return; }
+
+  const mes  = el('inc-mes').value;
+  const pers = el('inc-filtro-pers').value;
+  const emp  = el('inc-filtro-emp').value;
+
+  const cab = ['Fecha', 'Nombre', 'Hora de entrada', 'Hora de salida', 'Horas trabajadas'];
+  const aoa = [
+    ['Reporte de horas trabajadas'],
+    [`${ETIQUETA_AREA[incSegArea()] || incSegArea()} · ${incMesTexto()}` +
+     `${pers ? ' · ' + incNombreDe(pers) : ''}${emp ? ' · ' + emp : ''}`],
+    [],
+    cab,
+    ...filas.map(f => [incDDMMYYYY(f.fecha), incNombreDe(f.usuario),
+                       incHM(f.hora_entrada), incHM(f.hora_salida), +f.horas || 0]),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const rTot = aoa.length + 1;                       // 1-based: el renglón del total
+  ws['D' + rTot] = { v: 'TOTAL', t: 's' };
+  // Suma por fórmula: si alguien corrige una celda a mano, el total la sigue
+  ws['E' + rTot] = { t: 'n', f: `SUM(E5:E${rTot - 1})`,
+                     v: filas.reduce((s, f) => s + (+f.horas || 0), 0) };
+  ws['!ref']   = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rTot - 1, c: 4 } });
+  ws['!cols']  = [{ wch: 12 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 17 }];
+  ws['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:4 } }, { s: { r:1, c:0 }, e: { r:1, c:4 } }];
+
+  const res = incResumenHoras(filas);
+  const aoaR = [
+    ['Resumen por persona'],
+    [],
+    ['Nombre', 'Días con registro', 'Horas trabajadas'],
+    ...res.map(([u, r]) => [incNombreDe(u), r.dias.size, r.horas]),
+  ];
+  const wsR = XLSX.utils.aoa_to_sheet(aoaR);
+  const rTotR = aoaR.length + 1;
+  wsR['A' + rTotR] = { v: 'TOTAL', t: 's' };
+  wsR['B' + rTotR] = { t: 'n', f: `SUM(B4:B${rTotR - 1})`, v: res.reduce((s, r) => s + r[1].dias.size, 0) };
+  wsR['C' + rTotR] = { t: 'n', f: `SUM(C4:C${rTotR - 1})`, v: res.reduce((s, r) => s + r[1].horas, 0) };
+  wsR['!ref']  = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rTotR - 1, c: 2 } });
+  wsR['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 17 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws,  'Horas');
+  XLSX.utils.book_append_sheet(wb, wsR, 'Resumen por persona');
+  XLSX.writeFile(wb, `Horas_Trabajadas_${mes}${pers ? '_' + pers : ''}.xlsx`
+    .replace(/[\/:*?"<>|]/g, '_'));
+}
+
+function incFormatoHoras() {
+  const filas = incFilasHoras();
   if (!filas.length) { alert('No hay registros para imprimir en ese mes.'); return; }
 
   const { jsPDF } = window.jspdf;
@@ -6876,16 +6952,11 @@ function incFormatoHoras() {
   });
 
   // Resumen por persona: días con registro y horas acumuladas
-  const porPers = new Map();
-  filas.forEach(f => {
-    const r = porPers.get(f.usuario) || { dias: new Set(), horas: 0 };
-    r.dias.add(f.fecha); r.horas += (+f.horas || 0);
-    porPers.set(f.usuario, r);
-  });
-  if (porPers.size > 1) {
+  const porPers = incResumenHoras(filas);
+  if (porPers.length > 1) {
     let y2 = doc.lastAutoTable.finalY + 10;
     // El resumen no se parte: si no cabe entero, empieza en página nueva
-    const alto = 10 + 7 * (porPers.size + 2);
+    const alto = 10 + 7 * (porPers.length + 2);
     if (y2 + alto > PH - 14) { doc.addPage(); encabezado(); y2 = 24; }
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...RED);
     doc.text('RESUMEN POR PERSONA', ML, y2);
@@ -6893,9 +6964,7 @@ function incFormatoHoras() {
       startY: y2 + 3,
       didDrawPage(d) { pieDePagina(d); },
       head: [['Nombre', 'Dias con registro', 'Horas trabajadas']],
-      body: [...porPers.entries()]
-        .sort((a, b) => String(incNombreDe(a[0])).localeCompare(String(incNombreDe(b[0])), 'es'))
-        .map(([u, r]) => [txtPDF(incNombreDe(u)), r.dias.size, incHoras(r.horas)]),
+      body: porPers.map(([u, r]) => [txtPDF(incNombreDe(u)), r.dias.size, incHoras(r.horas)]),
       foot: [['TOTAL', '', incHoras(total)]],
       showFoot: 'lastPage',
       margin: { left: ML, right: ML },
