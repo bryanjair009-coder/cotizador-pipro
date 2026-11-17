@@ -491,6 +491,37 @@ genera siempre los 5 archivos cuando hay material.
   (se le suman 24 h) en vez de dar negativo: los técnicos sí hacen paros
   nocturnos.
 
+### Seguimiento de captura y formato de horas (2026-11)
+
+- Panel **«🔔 Seguimiento de captura»** dentro de la pestaña «🕐 Incidencias»
+  del panel de administrador. Cruza al **personal activo del área** contra los
+  días laborados del mes: **todos los técnicos deben tener incidencias
+  diarias**. La casilla «Incluir a todo el personal» extiende la revisión a los
+  demás roles; por omisión sólo mira `rol === 'tecnico'`.
+- **Qué día se espera** (`incReglaDia`): lunes a viernes siempre; **sábado y
+  domingo sólo si se trabajaron**, y eso **se detecta solo** — basta con que
+  alguien del área ya haya registrado algo ese día. Los días que todavía no
+  pasan nunca cuentan como falta.
+- El calendario de chips permite **marcar un día a mano** (un fin de semana que
+  se va a trabajar y nadie ha capturado aún, o un festivo entre semana). Un
+  segundo clic devuelve el día a la regla automática: la marca se borra cuando
+  coincide con ella, para que el calendario siga reaccionando a los datos.
+  Las marcas viven en `localStorage` (`pipro_inc_dias`) **por área**: son el
+  calendario laboral de quien supervisa, no dato del negocio.
+- El panel **no usa los filtros** de persona y empresa: su pregunta es quién
+  falta en todo el mes y el área, así que lee `INC.filas` completa.
+- Botón 📋 por renglón: copia un mensaje personal listo para WhatsApp con los
+  días que debe esa persona; «Copiar pendientes» copia la lista entera. El
+  portapapeles tiene dos respaldos (textarea + `execCommand`, y el texto a la
+  vista) porque `navigator.clipboard` falla si la ventana no tiene el foco.
+- Quien registró horas sin estar en la lista (cuenta inactiva, otro rol u otra
+  área) sale en un aviso aparte, no se cuela a la tabla.
+- Botón **«🖨️ Formato de horas»** (`incFormatoHoras`): PDF con **Fecha ·
+  Nombre · Hora de entrada · Hora de salida · Horas trabajadas** y un resumen
+  por persona (días con registro y horas). **Sí respeta** los filtros de
+  persona y empresa. `showFoot:'lastPage'` en las dos tablas: con el valor por
+  omisión el TOTAL se repetía a media lista.
+
 ### Archivo de carga iScala (el machote)
 
 - Columnas, en este orden: `Codigo Recurso · Proyecto · ID · Cod Actividade ·

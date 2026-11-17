@@ -440,6 +440,18 @@ summary::-webkit-details-marker{display:none;}
 .admin-table td{padding:4px 8px;border-bottom:1px solid var(--gd-border);vertical-align:middle;}
 .admin-table tr:nth-child(even) td{background:var(--gd-bg-alt);}
 .admin-wrap{max-height:480px;overflow-y:auto;border:1px solid var(--gd-border);border-radius:var(--radius);}
+/* Calendario del seguimiento de incidencias: un botón por día del mes */
+.inc-cal{display:flex;flex-wrap:wrap;gap:4px;}
+.inc-cal button{position:relative;width:38px;padding:3px 0 4px;border:1px solid var(--gd-border);
+  border-radius:6px;background:var(--gd-bg-alt);color:var(--gd-text-mute);font:inherit;font-size:.82rem;
+  font-weight:600;line-height:1.1;cursor:pointer;text-align:center;}
+.inc-cal button .dw{display:block;font-size:.6rem;font-weight:500;letter-spacing:.04em;opacity:.75;}
+.inc-cal button.lab{background:var(--gd-bg-elev);border-color:var(--gd-red);color:var(--gd-red-ink);}
+.inc-cal button.fut{opacity:.4;}
+.inc-cal button i{position:absolute;top:2px;right:4px;font-size:.7rem;font-style:normal;}
+.inc-cal button:hover{border-color:var(--gd-border-strong);}
+.inc-chip{display:inline-block;font-size:.7rem;font-family:ui-monospace,monospace;background:var(--gd-bg-alt);
+  border:1px solid var(--gd-border);border-radius:99px;padding:1px 6px;margin:1px 2px 1px 0;}
 /* Inputs editables inline */
 .admin-edit{width:100%;padding:5px 7px;border:1px solid transparent;background:transparent;font:inherit;font-size:.85rem;color:inherit;border-radius:4px;box-sizing:border-box;}
 .admin-edit:hover{border-color:var(--gd-border-strong);background:var(--gd-bg-elev);}
@@ -1999,8 +2011,48 @@ Precio de venta soportería = costo × 1.40"></button>
           <select id="inc-filtro-emp" onchange="incPintar()"><option value="">Todas</option></select>
         </div>
         <button class="btn btn-primary" onclick="incDescargar()">⬇️ Descargar archivo de carga</button>
+        <button class="btn btn-secondary" onclick="incFormatoHoras()"
+                title="Imprime fecha, nombre, hora de entrada, hora de salida y horas trabajadas">🖨️ Formato de horas</button>
       </div>
       <div id="inc-aviso" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- ── Seguimiento de captura ──────────────────────────────────────────
+         Todos los técnicos deben tener incidencias TODOS los días laborados.
+         De lunes a viernes se esperan siempre; sábado y domingo sólo si el
+         día se trabajó, y eso se detecta solo (alguien ya registró algo) o se
+         marca a mano en el calendario. Los días por venir no cuentan. -->
+    <div class="card">
+      <div class="sec-title" style="margin-top:0;display:flex;align-items:center;">
+        🔔 Seguimiento de captura
+        <button class="gd-i" type="button"
+                data-info-title="Seguimiento de captura"
+                data-info="Cruza al personal activo del área contra los días laborados del mes: <b>todos los técnicos deben tener incidencias diarias</b>.<br><br>De lunes a viernes se esperan incidencias siempre. <b>Sábado y domingo no</b>, salvo que el día se haya trabajado: se detecta solo cuando ya hay al menos un registro de ese día, y si no, se marca a mano en el calendario.<br><br>Los días que todavía no han pasado no se cuentan como falta."
+                data-fuente="Clic en un día del calendario para marcarlo como laborado o no laborado"></button>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:7px;font-size:.84rem;cursor:pointer;">
+          <input type="checkbox" id="inc-seg-todos" onchange="incPintarSeguimiento()" style="width:auto;">
+          Incluir a todo el personal, no sólo técnicos
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="incCopiarPendientes()"
+                title="Copia al portapapeles la lista de quién debe qué días">📋 Copiar pendientes</button>
+      </div>
+      <div style="font-size:.76rem;color:var(--gd-text-mute);margin-bottom:6px;">
+        Días laborados del mes — clic para cambiar uno (el punto indica que se marcó a mano):
+      </div>
+      <div id="inc-seg-cal" class="inc-cal"></div>
+      <div id="inc-seg-resumen" style="margin:12px 0;"></div>
+      <div class="admin-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Persona</th><th style="text-align:center;">Días esperados</th>
+            <th style="text-align:center;">Con registro</th><th style="text-align:center;">Faltan</th>
+            <th style="text-align:center;">Cumplimiento</th><th>Días sin incidencias</th><th></th>
+          </tr></thead>
+          <tbody id="inc-seg-tbody"><tr><td colspan="7" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Elige un mes</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="card">
@@ -6472,6 +6524,10 @@ function incPintar() {
       <td>${GD.esc(f.nota || '')}</td>
       <td><button class="btn-icon-del" title="Eliminar este registro" onclick="incBorrar(${+f.id})">🗑</button></td>
     </tr>`).join('') : '<tr><td colspan="10" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Sin registros para ese mes y filtro.</td></tr>';
+
+  /* El seguimiento NO usa los filtros: su pregunta es quién falta en TODO el
+     mes y el área, así que lee `INC.filas` completa. */
+  incPintarSeguimiento();
 }
 
 async function incBorrar(id) {
@@ -6514,6 +6570,344 @@ function incDescargar() {
   const pers = el('inc-filtro-pers').value;
   XLSX.writeFile(wb, `Carga_Incidencias_${el('inc-mes').value}${pers ? '_' + pers : ''}.xlsx`
     .replace(/[\/:*?"<>|]/g, '_'));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SEGUIMIENTO DE CAPTURA (2026-11)
+   Todos los técnicos deben tener incidencias TODOS los días laborados. El
+   panel cruza al personal activo del área contra los días del mes y dice a
+   quién hay que apretar y por qué días.
+
+   Qué día se espera:
+     · lunes a viernes  → siempre, salvo que se marque a mano (día festivo)
+     · sábado y domingo → NO, salvo que ese día se haya trabajado. Se detecta
+       solo: si alguien del área ya registró algo ese día, el día cuenta. Y si
+       nadie registró nada todavía, se marca a mano en el calendario.
+     · los días que no han pasado nunca cuentan como falta.
+   Las marcas a mano viven en localStorage por área (no son dato del negocio
+   ni cambian lo ya registrado; son el calendario laboral de quien supervisa).
+   ══════════════════════════════════════════════════════════════════════════ */
+const INC_SEG_LS = 'pipro_inc_dias';
+const INC_DOW    = ['D','L','M','M','J','V','S'];
+
+const incSegArea = () => INC.area || miArea();
+const incHoyISO  = () => { const h = new Date();
+  return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`; };
+const incDiaSemana = iso => new Date(iso + 'T12:00:00').getDay();
+
+function incMarcas() {
+  try { return JSON.parse(localStorage.getItem(INC_SEG_LS) || '{}') || {}; } catch (e) { return {}; }
+}
+const incMarcasArea = () => incMarcas()[incSegArea()] || {};
+
+/** La regla automática, sin intervención de nadie. */
+function incReglaDia(iso) {
+  const d = incDiaSemana(iso);
+  if (d !== 0 && d !== 6) return true;
+  // Fin de semana trabajado: lo delata el propio registro de alguien
+  return INC.filas.some(f => f.fecha === iso);
+}
+const incEsLaborable = iso => {
+  const m = incMarcasArea()[iso];
+  return m === undefined ? incReglaDia(iso) : !!m;
+};
+
+/* Un clic cambia el día. Si lo que queda coincide con la regla automática se
+   borra la marca, para que el calendario siga reaccionando a los datos. */
+function incMarcarDia(iso) {
+  const nuevo = !incEsLaborable(iso);
+  const todo  = incMarcas(), a = incSegArea();
+  const m = todo[a] = todo[a] || {};
+  if (nuevo === incReglaDia(iso)) delete m[iso]; else m[iso] = nuevo;
+  try { localStorage.setItem(INC_SEG_LS, JSON.stringify(todo)); } catch (e) {}
+  incPintarSeguimiento();
+}
+
+function incDiasDelMes() {
+  const mes = el('inc-mes').value;
+  if (!mes) return [];
+  const [a, m] = mes.split('-').map(Number);
+  const ultimo = new Date(a, m, 0).getDate();
+  const out = [];
+  for (let d = 1; d <= ultimo; d++) out.push(`${mes}-${String(d).padStart(2, '0')}`);
+  return out;
+}
+
+/** Personal al que se le exige captura: activo, del área que se está mirando. */
+function incPersonalSeguimiento() {
+  const todos = el('inc-seg-todos') && el('inc-seg-todos').checked;
+  const area  = incSegArea();
+  return INC.usuarios
+    .filter(u => u.activo !== false && (u.area || 'ingenieria') === area)
+    .filter(u => todos || u.rol === 'tecnico')
+    .sort((a, b) => String(a.nombre || a.usuario).localeCompare(String(b.nombre || b.usuario), 'es'));
+}
+
+/* Lo que debe cada persona. Se guarda para que el botón de copiar no tenga
+   que volver a calcularlo. */
+INC.pendientes = {};
+
+function incPintarSeguimiento() {
+  const cal = el('inc-seg-cal');
+  if (!cal) return;
+  const dias = incDiasDelMes(), hoy = incHoyISO(), marcas = incMarcasArea();
+
+  cal.innerHTML = dias.map(iso => {
+    const lab = incEsLaborable(iso), fut = iso > hoy, manual = marcas[iso] !== undefined;
+    const d = incDiaSemana(iso);
+    return `<button type="button" class="inc-dia${lab ? ' lab' : ''}${fut ? ' fut' : ''}"
+      onclick="incMarcarDia('${iso}')" title="${INC_DOW[d]} ${incDDMMYYYY(iso)} · ${
+        fut ? 'todavía no pasa' : (lab ? 'se esperan incidencias' : 'no laborado')}${
+        manual ? ' (marcado a mano)' : ''}"><span class="dw">${INC_DOW[d]}</span>${
+      +iso.slice(-2)}${manual ? '<i>•</i>' : ''}</button>`;
+  }).join('');
+
+  const esperados = dias.filter(d => d <= hoy && incEsLaborable(d));
+  const porPersona = new Map();
+  INC.filas.forEach(f => {
+    if (!porPersona.has(f.usuario)) porPersona.set(f.usuario, new Set());
+    porPersona.get(f.usuario).add(f.fecha);
+  });
+
+  const gente = incPersonalSeguimiento();
+  INC.pendientes = {};
+  const filas = gente.map(u => {
+    const tiene  = porPersona.get(u.usuario) || new Set();
+    const faltan = esperados.filter(d => !tiene.has(d));
+    if (faltan.length) INC.pendientes[u.usuario] = faltan;
+    return { u, faltan, con: esperados.length - faltan.length };
+  }).sort((a, b) => b.faltan.length - a.faltan.length ||
+                    String(a.u.nombre || a.u.usuario).localeCompare(String(b.u.nombre || b.u.usuario), 'es'));
+
+  const alDia = filas.filter(f => !f.faltan.length).length;
+  const deuda = filas.reduce((s, f) => s + f.faltan.length, 0);
+  // Quien registró algo sin estar en la lista (cuenta inactiva, otro rol u otra área)
+  const ajenos = [...porPersona.keys()].filter(u => !gente.some(g => g.usuario === u));
+
+  el('inc-seg-resumen').innerHTML = !esperados.length
+    ? '<div class="info-box">Ese mes todavía no tiene días laborados que revisar.</div>'
+    : (!gente.length
+      ? `<div class="info-box">No hay técnicos activos en <b>${GD.esc(ETIQUETA_AREA[incSegArea()] || incSegArea())}</b>.
+           Marca «Incluir a todo el personal» para revisar a los demás roles.</div>`
+      : (deuda
+        ? `<div class="error-box">⚠️ <b>${filas.length - alDia} de ${filas.length}</b> persona(s) traen
+             <b>${deuda}</b> día(s) sin incidencias, sobre <b>${esperados.length}</b> día(s) laborado(s)
+             del mes. Usa 📋 de cada renglón para copiar el mensaje y mandarlo personal.</div>`
+        : `<div class="success-box">✅ Las ${filas.length} persona(s) tienen incidencias en los
+             ${esperados.length} día(s) laborado(s) del mes.</div>`)) +
+    (ajenos.length
+      ? `<div class="info-box" style="margin-top:8px;">ℹ️ Registraron horas este mes sin estar en la
+           lista de arriba (cuenta inactiva, otro rol u otra área):
+           ${ajenos.map(u => GD.esc(incNombreDe(u))).join(', ')}.</div>`
+      : '');
+
+  el('inc-seg-tbody').innerHTML = (esperados.length && filas.length) ? filas.map(f => {
+    const pct = esperados.length ? Math.round(f.con / esperados.length * 100) : 100;
+    const col = f.faltan.length === 0 ? 'var(--gd-success)' : (pct >= 70 ? 'var(--gd-warning)' : 'var(--gd-error)');
+    const chips = f.faltan.slice(0, 10).map(d =>
+      `<span class="inc-chip">${d.slice(8)}/${d.slice(5,7)} ${INC_DOW[incDiaSemana(d)]}</span>`).join('') +
+      (f.faltan.length > 10 ? `<span class="inc-chip">+${f.faltan.length - 10}</span>` : '');
+    return `<tr>
+      <td><b>${GD.esc(f.u.nombre || f.u.usuario)}</b>
+        <br><span style="font-size:.7rem;color:var(--gd-text-mute);">${GD.esc(f.u.usuario)}${
+          f.u.codigo_recurso ? ' · ' + GD.esc(f.u.codigo_recurso) : ''}</span></td>
+      <td style="text-align:center;">${esperados.length}</td>
+      <td style="text-align:center;">${f.con}</td>
+      <td style="text-align:center;font-weight:700;color:${col};">${f.faltan.length}</td>
+      <td style="text-align:center;font-weight:700;color:${col};">${pct}%</td>
+      <td>${f.faltan.length ? chips : '<span style="color:var(--gd-success);">— al día —</span>'}</td>
+      <td>${f.faltan.length
+        ? `<button class="btn btn-secondary btn-sm" data-u="${_attrEsc(f.u.usuario)}"
+             onclick="incCopiarAviso(this)" title="Copiar el mensaje para mandarlo personal">📋</button>`
+        : ''}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Sin días laborados o sin personal que revisar.</td></tr>';
+}
+
+const incMesTexto = () => {
+  const mes = el('inc-mes').value;
+  if (!mes) return '';
+  const [a, m] = mes.split('-').map(Number);
+  return new Date(a, m - 1, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+};
+
+/** El mensaje que se le manda a la persona, listo para pegar en WhatsApp. */
+function incMensajeAviso(usuario) {
+  const faltan = INC.pendientes[usuario] || [];
+  const nombre = String(incNombreDe(usuario)).split(/\s+/)[0] || usuario;
+  return `Hola ${nombre}, buen día. Te faltan incidencias de ${incMesTexto()}: ` +
+    `${faltan.length} día(s) sin registrar — ${faltan.map(incDDMMYYYY).join(', ')}. ` +
+    `¿Puedes capturarlas hoy en el portal, en la pestaña Incidencias? Gracias.`;
+}
+
+/* El portapapeles moderno falla si la ventana no tiene el foco, así que hay
+   dos respaldos: la selección de un textarea oculto y, si todo falla, el
+   mensaje a la vista para copiarlo a mano. */
+function incCopiar(texto, aviso) {
+  const listo = () => toast(aviso || '📋 Copiado');
+  const viejo = () => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      ta.style.cssText = 'position:fixed;top:-1000px;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      if (ok) return listo();
+    } catch (e) {}
+    alert('No se pudo usar el portapapeles. Copia el mensaje:\n\n' + texto);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto).then(listo, viejo);
+  } else viejo();
+}
+
+function incCopiarAviso(btn) {
+  const u = btn.getAttribute('data-u');
+  incCopiar(incMensajeAviso(u), `📋 Mensaje de ${incNombreDe(u)} copiado`);
+}
+
+function incCopiarPendientes() {
+  const us = Object.keys(INC.pendientes);
+  if (!us.length) { toast('✅ Nadie trae días pendientes'); return; }
+  const txt = `Incidencias pendientes · ${incMesTexto()} · ${ETIQUETA_AREA[incSegArea()] || incSegArea()}\n\n` +
+    us.map(u => `• ${incNombreDe(u)} — ${INC.pendientes[u].length} día(s): ` +
+                INC.pendientes[u].map(incDDMMYYYY).join(', ')).join('\n');
+  incCopiar(txt, `📋 ${us.length} persona(s) pendientes copiadas`);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FORMATO DE HORAS TRABAJADAS (2026-11)
+   Fecha · Nombre · Hora de entrada · Hora de salida · Horas trabajadas, con
+   el resumen por persona abajo. Respeta los filtros de persona y empresa.
+   Helvetica de jsPDF es Latin-1: los nombres pasan por `txtPDF()`.
+   ══════════════════════════════════════════════════════════════════════════ */
+const incHM = h => String(h == null ? '' : h).slice(0, 5);
+
+function incFormatoHoras() {
+  const filas = incFiltradas().slice().sort((a, b) =>
+    a.fecha.localeCompare(b.fecha) ||
+    String(incNombreDe(a.usuario)).localeCompare(String(incNombreDe(b.usuario)), 'es') ||
+    incHM(a.hora_entrada).localeCompare(incHM(b.hora_entrada)));
+  if (!filas.length) { alert('No hay registros para imprimir en ese mes.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const ML = 13;
+  const RED = [200, 16, 46], DARK = [30, 30, 38], GRAY = [150, 150, 160];
+
+  const mes   = el('inc-mes').value;
+  const pers  = el('inc-filtro-pers').value;
+  const emp   = el('inc-filtro-emp').value;
+  const total = filas.reduce((s, f) => s + (+f.horas || 0), 0);
+
+  function encabezado() {
+    const logo = window.LOGO_GD || null;
+    const LW = 32, LH = 13;
+    if (logo) { try { doc.addImage(logo, 'PNG', ML, 4, LW, LH); } catch (e) {} }
+    else {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+      doc.text('GARDNER DENVER', ML, 12);
+    }
+    const tx = ML + LW + 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+    doc.text('Reporte de horas trabajadas', tx, 10);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(txtPDF('Gardner Denver Mexico  ·  ' +
+      (ETIQUETA_AREA[incSegArea()] || incSegArea())), tx, 14.5);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+    doc.text(txtPDF(incMesTexto().toUpperCase()), PW - ML, 9, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text(new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' }),
+             PW - ML, 14, { align: 'right' });
+    doc.setDrawColor(...RED); doc.setLineWidth(0.5); doc.line(ML, 18, PW - ML, 18);
+  }
+
+  /* Cada página nueva de una tabla repite el encabezado y lleva su folio.
+     Se numera con el total de páginas del documento, no con el de la tabla:
+     el resumen de abajo puede empezar en la página 2. */
+  const foliadas = new Set();
+  function pieDePagina(d) {
+    if (d.pageNumber > 1) encabezado();
+    const pag = doc.internal.getNumberOfPages();
+    if (foliadas.has(pag)) return;       // dos tablas en la misma página: un solo folio
+    foliadas.add(pag);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+    doc.text(`Pagina ${pag}`, PW - ML, PH - 8, { align: 'right' });
+  }
+
+  encabezado();
+  let y = 24;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...DARK);
+  doc.text(txtPDF(`Persona: ${pers ? incNombreDe(pers) : 'Todas'}` +
+                  `     Empresa: ${emp || 'Todas'}` +
+                  `     Registros: ${filas.length}` +
+                  `     Horas totales: ${incHoras(total)}`), ML, y);
+  y += 5;
+
+  doc.autoTable({
+    startY: y,
+    head: [['Fecha', 'Nombre', 'Hora de entrada', 'Hora de salida', 'Horas trabajadas']],
+    body: filas.map(f => [
+      incDDMMYYYY(f.fecha),
+      txtPDF(incNombreDe(f.usuario)),
+      incHM(f.hora_entrada),
+      incHM(f.hora_salida),
+      incHoras(f.horas),
+    ]),
+    foot: [['', '', '', 'TOTAL', incHoras(total)]],
+    showFoot: 'lastPage',          // si no, el TOTAL se repite a media lista
+    margin: { left: ML, right: ML },
+    styles:     { font: 'helvetica', fontSize: 8.5, cellPadding: 2.2, textColor: [40, 40, 40] },
+    headStyles: { fillColor: RED, textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+    footStyles: { fillColor: [245, 245, 245], textColor: DARK, fontStyle: 'bold', fontSize: 8.5 },
+    alternateRowStyles: { fillColor: [253, 248, 248] },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 24 },
+      1: { cellWidth: 'auto' },
+      2: { halign: 'center', cellWidth: 30 },
+      3: { halign: 'center', cellWidth: 30 },
+      4: { halign: 'right',  cellWidth: 30 },
+    },
+    didDrawPage(d) { pieDePagina(d); },
+  });
+
+  // Resumen por persona: días con registro y horas acumuladas
+  const porPers = new Map();
+  filas.forEach(f => {
+    const r = porPers.get(f.usuario) || { dias: new Set(), horas: 0 };
+    r.dias.add(f.fecha); r.horas += (+f.horas || 0);
+    porPers.set(f.usuario, r);
+  });
+  if (porPers.size > 1) {
+    let y2 = doc.lastAutoTable.finalY + 10;
+    // El resumen no se parte: si no cabe entero, empieza en página nueva
+    const alto = 10 + 7 * (porPers.size + 2);
+    if (y2 + alto > PH - 14) { doc.addPage(); encabezado(); y2 = 24; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...RED);
+    doc.text('RESUMEN POR PERSONA', ML, y2);
+    doc.autoTable({
+      startY: y2 + 3,
+      didDrawPage(d) { pieDePagina(d); },
+      head: [['Nombre', 'Dias con registro', 'Horas trabajadas']],
+      body: [...porPers.entries()]
+        .sort((a, b) => String(incNombreDe(a[0])).localeCompare(String(incNombreDe(b[0])), 'es'))
+        .map(([u, r]) => [txtPDF(incNombreDe(u)), r.dias.size, incHoras(r.horas)]),
+      foot: [['TOTAL', '', incHoras(total)]],
+      showFoot: 'lastPage',
+      margin: { left: ML, right: ML },
+      styles:     { font: 'helvetica', fontSize: 8.5, cellPadding: 2.2, textColor: [40, 40, 40] },
+      headStyles: { fillColor: DARK, textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+      footStyles: { fillColor: [245, 245, 245], textColor: DARK, fontStyle: 'bold', fontSize: 8.5 },
+      columnStyles: { 0: { cellWidth: 'auto' }, 1: { halign: 'center', cellWidth: 36 },
+                      2: { halign: 'right', cellWidth: 36 } },
+    });
+  }
+
+  doc.save(`Horas_Trabajadas_${mes}${pers ? '_' + pers : ''}.pdf`.replace(/[\/:*?"<>|]/g, '_'));
 }
 
 // ── Empresas y proyectos ───────────────────────────────────────────────────
