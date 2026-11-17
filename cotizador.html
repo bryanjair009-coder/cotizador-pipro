@@ -450,6 +450,11 @@ summary::-webkit-details-marker{display:none;}
 .inc-cal button.fut{opacity:.4;}
 .inc-cal button i{position:absolute;top:2px;right:4px;font-size:.7rem;font-style:normal;}
 .inc-cal button:hover{border-color:var(--gd-border-strong);}
+.inc-cal button.sel{outline:2px solid var(--gd-red);outline-offset:1px;}
+.inc-dia{border:1px solid var(--gd-border);border-radius:var(--radius);padding:10px 12px;background:var(--gd-bg-alt);}
+.inc-dia-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.inc-dia table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.inc-dia td,.inc-dia th{padding:3px 8px;border-bottom:1px solid var(--gd-border);text-align:left;}
 .inc-chip{display:inline-block;font-size:.7rem;font-family:ui-monospace,monospace;background:var(--gd-bg-alt);
   border:1px solid var(--gd-border);border-radius:99px;padding:1px 6px;margin:1px 2px 1px 0;}
 /* Inputs editables inline */
@@ -2043,9 +2048,11 @@ Precio de venta soportería = costo × 1.40"></button>
                 title="Copia al portapapeles la lista de quién debe qué días">📋 Copiar pendientes</button>
       </div>
       <div style="font-size:.76rem;color:var(--gd-text-mute);margin-bottom:6px;">
-        Días laborados del mes — clic para cambiar uno (el punto indica que se marcó a mano):
+        Días laborados del mes — clic en un día para ver <b>quién registró</b> y marcarlo como
+        laborado o no laborado (el punto indica que se marcó a mano):
       </div>
       <div id="inc-seg-cal" class="inc-cal"></div>
+      <div id="inc-seg-dia" style="margin-top:12px;"></div>
       <div id="inc-seg-resumen" style="margin:12px 0;"></div>
       <div class="admin-wrap">
         <table class="admin-table">
@@ -6616,8 +6623,18 @@ const incEsLaborable = iso => {
   return m === undefined ? incReglaDia(iso) : !!m;
 };
 
-/* Un clic cambia el día. Si lo que queda coincide con la regla automática se
-   borra la marca, para que el calendario siga reaccionando a los datos. */
+const incFinDeSemana  = iso => incDiaSemana(iso) === 0 || incDiaSemana(iso) === 6;
+const incDiaConTrabajo = iso => INC.filas.some(f => f.fecha === iso);
+
+/* Un clic en el calendario abre el día; el cambio de laborado/no laborado se
+   hace con el botón del detalle, para no cambiarlo sin querer al consultar. */
+function incVerDia(iso) {
+  INC.diaSel = (INC.diaSel === iso) ? null : iso;
+  incPintarSeguimiento();
+}
+
+/* Cambia el día. Si lo que queda coincide con la regla automática se borra la
+   marca, para que el calendario siga reaccionando a los datos. */
 function incMarcarDia(iso) {
   const nuevo = !incEsLaborable(iso);
   const todo  = incMarcas(), a = incSegArea();
@@ -6656,14 +6673,17 @@ function incPintarSeguimiento() {
   if (!cal) return;
   const dias = incDiasDelMes(), hoy = incHoyISO(), marcas = incMarcasArea();
 
+  if (INC.diaSel && !dias.includes(INC.diaSel)) INC.diaSel = null;   // se cambió de mes
+
   cal.innerHTML = dias.map(iso => {
     const lab = incEsLaborable(iso), fut = iso > hoy, manual = marcas[iso] !== undefined;
     const d = incDiaSemana(iso);
-    return `<button type="button" class="inc-dia${lab ? ' lab' : ''}${fut ? ' fut' : ''}"
-      onclick="incMarcarDia('${iso}')" title="${INC_DOW[d]} ${incDDMMYYYY(iso)} · ${
+    return `<button type="button" class="${lab ? 'lab ' : ''}${fut ? 'fut ' : ''}${
+      INC.diaSel === iso ? 'sel' : ''}"
+      onclick="incVerDia('${iso}')" title="${INC_DOW[d]} ${incDDMMYYYY(iso)} · ${
         fut ? 'todavía no pasa' : (lab ? 'se esperan incidencias' : 'no laborado')}${
-        manual ? ' (marcado a mano)' : ''}"><span class="dw">${INC_DOW[d]}</span>${
-      +iso.slice(-2)}${manual ? '<i>•</i>' : ''}</button>`;
+        manual ? ' (marcado a mano)' : ''} · clic para ver quién registró"><span class="dw">${
+      INC_DOW[d]}</span>${+iso.slice(-2)}${manual ? '<i>•</i>' : ''}</button>`;
   }).join('');
 
   const esperados = dias.filter(d => d <= hoy && incEsLaborable(d));
@@ -6708,8 +6728,13 @@ function incPintarSeguimiento() {
   el('inc-seg-tbody').innerHTML = (esperados.length && filas.length) ? filas.map(f => {
     const pct = esperados.length ? Math.round(f.con / esperados.length * 100) : 100;
     const col = f.faltan.length === 0 ? 'var(--gd-success)' : (pct >= 70 ? 'var(--gd-warning)' : 'var(--gd-error)');
-    const chips = f.faltan.slice(0, 10).map(d =>
-      `<span class="inc-chip">${d.slice(8)}/${d.slice(5,7)} ${INC_DOW[incDiaSemana(d)]}</span>`).join('') +
+    const chips = f.faltan.slice(0, 10).map(d => {
+      // Fin de semana sin trabajo de nadie: se ve, pero no se le reclama
+      const flojo = incFinDeSemana(d) && !incDiaConTrabajo(d);
+      return `<span class="inc-chip"${flojo
+        ? ' style="opacity:.45;" title="Fin de semana sin trabajo registrado: no entra al mensaje"'
+        : ''}>${d.slice(8)}/${d.slice(5,7)} ${INC_DOW[incDiaSemana(d)]}</span>`;
+    }).join('') +
       (f.faltan.length > 10 ? `<span class="inc-chip">+${f.faltan.length - 10}</span>` : '');
     return `<tr>
       <td><b>${GD.esc(f.u.nombre || f.u.usuario)}</b>
@@ -6726,6 +6751,65 @@ function incPintarSeguimiento() {
         : ''}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--gd-text-mute);">Sin días laborados o sin personal que revisar.</td></tr>';
+
+  incPintarDia(gente);
+}
+
+/** El día que se eligió en el calendario: quién registró, cuánto y quién no. */
+function incPintarDia(gente) {
+  const caja = el('inc-seg-dia');
+  if (!caja) return;
+  const iso = INC.diaSel;
+  if (!iso) { caja.innerHTML = ''; return; }
+
+  const regs = INC.filas.filter(f => f.fecha === iso)
+    .sort((a, b) => String(incNombreDe(a.usuario)).localeCompare(String(incNombreDe(b.usuario)), 'es'));
+  const lab    = incEsLaborable(iso);
+  const manual = incMarcasArea()[iso] !== undefined;
+  const fds    = incFinDeSemana(iso);
+  const futuro = iso > incHoyISO();
+  const conReg = new Set(regs.map(f => f.usuario));
+  const sinReg = (gente || []).filter(u => !conReg.has(u.usuario));
+  // Sólo la inicial en mayúscula: `text-transform:capitalize` dejaba «14 De Noviembre»
+  const f0 = new Date(iso + 'T12:00:00')
+    .toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  const fecha = f0.charAt(0).toUpperCase() + f0.slice(1);
+
+  caja.innerHTML = `<div class="inc-dia">
+    <div class="inc-dia-h">
+      <b>${GD.esc(fecha)}</b>
+      <span class="inc-chip" style="background:${lab ? 'var(--gd-success-light,#e8f5e9)' : 'var(--gd-bg)'};">${
+        lab ? 'Día laborado' : 'No laborado'}${manual ? ' · marcado a mano' : ''}</span>
+      <button class="btn btn-secondary btn-sm" onclick="incMarcarDia('${iso}')">${
+        lab ? '🚫 Marcar como NO laborado' : '✅ Marcar como laborado'}</button>
+      <button class="btn btn-secondary btn-sm" onclick="incVerDia('${iso}')" title="Cerrar">✕</button>
+    </div>
+    ${fds && !regs.length
+      ? `<div class="info-box" style="margin-bottom:8px;">Es fin de semana y <b>nadie registró nada</b>.
+           Sábados y domingos no se trabajan salvo que se dé la orden: por eso este día no se le
+           reclama a nadie en los mensajes.</div>` : ''}
+    ${regs.length ? `<table>
+        <thead><tr><th>Persona</th><th>Empresa</th><th>Entrada</th><th>Salida</th>
+          <th style="text-align:right;">Horas</th><th>Actividad</th></tr></thead>
+        <tbody>${regs.map(f => `<tr>
+          <td><b>${GD.esc(incNombreDe(f.usuario))}</b></td>
+          <td>${GD.esc(f.empresa || '')}</td>
+          <td>${GD.esc(incHM(f.hora_entrada))}</td>
+          <td>${GD.esc(incHM(f.hora_salida))}</td>
+          <td style="text-align:right;">${incHoras(f.horas)}</td>
+          <td>${GD.esc(f.actividad_txt || '')}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right;font-weight:700;">${
+          conReg.size} persona(s) · total</td>
+          <td style="text-align:right;font-weight:700;">${
+            incHoras(regs.reduce((s, f) => s + (+f.horas || 0), 0))}</td><td></td></tr></tfoot>
+      </table>`
+      : `<div style="font-size:.84rem;color:var(--gd-text-mute);">Nadie registró incidencias este día.</div>`}
+    ${(lab && !futuro && sinReg.length)
+      ? `<div style="margin-top:8px;font-size:.82rem;">
+           <b style="color:var(--gd-error);">Sin registrar (${sinReg.length}):</b>
+           ${sinReg.map(u => `<span class="inc-chip">${GD.esc(u.nombre || u.usuario)}</span>`).join('')}
+         </div>` : ''}
+  </div>`;
 }
 
 const incMesTexto = () => {
@@ -6735,13 +6819,27 @@ const incMesTexto = () => {
   return new Date(a, m - 1, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
 };
 
+/* Lo que se le reclama a una persona. Sábado y domingo NO se trabajan salvo
+   orden expresa, así que un fin de semana en el que nadie del área registró
+   nada no entra al mensaje aunque el día esté marcado como laborado: no se le
+   puede exigir a alguien un día que no se trabajó. */
+const incFaltasReclamables = faltan =>
+  (faltan || []).filter(d => !incFinDeSemana(d) || incDiaConTrabajo(d));
+
+const INC_NOTA_FDS = 'Si entre los días enviados a completar viene algún fin de semana que no se ' +
+  'trabajó, favor de no incluirlo.';
+
 /** El mensaje que se le manda a la persona, listo para pegar en WhatsApp. */
 function incMensajeAviso(usuario) {
-  const faltan = INC.pendientes[usuario] || [];
+  const faltan = incFaltasReclamables(INC.pendientes[usuario]);
   const nombre = String(incNombreDe(usuario)).split(/\s+/)[0] || usuario;
+  if (!faltan.length) {
+    return `Hola ${nombre}, buen día. Ya no tienes días hábiles pendientes de ${incMesTexto()}. ` +
+      `Gracias.`;
+  }
   return `Hola ${nombre}, buen día. Te faltan incidencias de ${incMesTexto()}: ` +
     `${faltan.length} día(s) sin registrar — ${faltan.map(incDDMMYYYY).join(', ')}. ` +
-    `¿Puedes capturarlas hoy en el portal, en la pestaña Incidencias? Gracias.`;
+    `¿Puedes capturarlas hoy en el portal, en la pestaña Incidencias? ${INC_NOTA_FDS} Gracias.`;
 }
 
 /* El portapapeles moderno falla si la ventana no tiene el foco, así que hay
@@ -6773,11 +6871,14 @@ function incCopiarAviso(btn) {
 }
 
 function incCopiarPendientes() {
-  const us = Object.keys(INC.pendientes);
+  const us = Object.keys(INC.pendientes)
+    .map(u => [u, incFaltasReclamables(INC.pendientes[u])])
+    .filter(([, f]) => f.length);
   if (!us.length) { toast('✅ Nadie trae días pendientes'); return; }
   const txt = `Incidencias pendientes · ${incMesTexto()} · ${ETIQUETA_AREA[incSegArea()] || incSegArea()}\n\n` +
-    us.map(u => `• ${incNombreDe(u)} — ${INC.pendientes[u].length} día(s): ` +
-                INC.pendientes[u].map(incDDMMYYYY).join(', ')).join('\n');
+    us.map(([u, f]) => `• ${incNombreDe(u)} — ${f.length} día(s): ` +
+                       f.map(incDDMMYYYY).join(', ')).join('\n') +
+    `\n\n${INC_NOTA_FDS}`;
   incCopiar(txt, `📋 ${us.length} persona(s) pendientes copiadas`);
 }
 

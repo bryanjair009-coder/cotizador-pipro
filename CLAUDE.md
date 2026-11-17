@@ -510,6 +510,17 @@ genera siempre los 5 archivos cuando hay material.
   calendario laboral de quien supervisa, no dato del negocio.
 - El panel **no usa los filtros** de persona y empresa: su pregunta es quién
   falta en todo el mes y el área, así que lee `INC.filas` completa.
+- **Clic en un día del calendario = consultar, no cambiar** (`incVerDia`):
+  abre abajo el detalle de ese día —quién registró, con empresa, entrada,
+  salida, horas y actividad, más quién no registró— y ahí mismo está el botón
+  para marcarlo como laborado o no. Antes el clic cambiaba el día, y se movía
+  el calendario sin querer al querer consultarlo.
+- **Un fin de semana sin trabajo de nadie NO se le reclama a nadie**
+  (`incFaltasReclamables`): sábado y domingo no se trabajan salvo orden
+  expresa, así que aunque el día esté marcado a mano como laborado, si nadie
+  del área registró nada ese día queda fuera de los mensajes (en la tabla se
+  ve atenuado, para que no parezca que se perdió). Además todo mensaje lleva
+  `INC_NOTA_FDS`, que pide no tomar en cuenta un fin de semana no trabajado.
 - Botón 📋 por renglón: copia un mensaje personal listo para WhatsApp con los
   días que debe esa persona; «Copiar pendientes» copia la lista entera. El
   portapapeles tiene dos respaldos (textarea + `execCommand`, y el texto a la
