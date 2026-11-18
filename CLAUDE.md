@@ -527,21 +527,42 @@ genera siempre los 5 archivos cuando hay material.
   vista) porque `navigator.clipboard` falla si la ventana no tiene el foco.
 - Quien registró horas sin estar en la lista (cuenta inactiva, otro rol u otra
   área) sale en un aviso aparte, no se cuela a la tabla.
-- **Reporte de horas**, en PDF (`incFormatoHoras`) y en Excel
-  (`incHorasExcel`): **Fecha · Nombre · Hora de entrada · Hora de salida ·
-  Horas trabajadas**, con resumen por persona (días con registro y horas).
-  Los dos **sí respetan** los filtros de persona y empresa, y los dos salen de
-  `incFilasHoras()` / `incResumenHoras()` para que no puedan discrepar.
-- **El reporte de horas y el archivo de carga de iScala son dos documentos
-  distintos**: se suben en sitios distintos, así que no comparten formato ni
-  nombre (`Horas_Trabajadas_<mes>.xlsx` vs `Carga_Incidencias_<mes>.xlsx`). En
-  el de horas hay además una columna **«Empresa visitada»** (`incLugar`): el
-  trabajo sin proyecto facturable lleva el folio comodín `NONPROJECT`, y ahí
-  la columna dice **NONPROJECT** en vez del nombre de la planta a la que se le
-  colgó el registro, porque no se visitó ninguna empresa. La fecha va legible
-  (DD/MM/AAAA) y **las horas van como número**
-  con un TOTAL por fórmula, al revés del machote de iScala, donde **todo es
-  texto** a propósito. No unificarlos.
+- **Reporte de horas en PDF** (`incFormatoHoras`): **Fecha · Nombre · Hora de
+  entrada · Hora de salida · Horas trabajadas**, con resumen por persona
+  (días con registro y horas). Respeta los filtros de persona y empresa.
+- **Asistencias en Excel** (`incHorasExcel`, 2026-11): sale con el **machote
+  de ASISTENCIAS de la empresa**, no con un libro inventado. Igual que el PMU,
+  el portal **no reconstruye el libro**: abre `assets/ASISTENCIAS_machote.xlsx`
+  —copia del machote con encabezado, anchos, columnas ocultas y estilos, y
+  **sin datos de ninguna persona**— y le inyecta los renglones con
+  `_zipLeer` / `_zipTexto` / `_zipEscribir`, las mismas utilidades del PMU.
+  - Dos hojas, una por quincena (`01 al 15 de <mes>`, `16 al <último> de
+    <mes>`), agrupando por persona: **un renglón por día del periodo**, fines
+    de semana incluidos, y un renglón en blanco entre una persona y la
+    siguiente. Es la colocación exacta del machote; no reordenar.
+  - El portal llena **C NOMBRE · F DIA · G FECHA · I ENTRADA · J SALIDA ·
+    P COMENTARIOS** (dónde estuvo, con `incLugar`). SUC, NUMERO, AREA,
+    DEPARTAMENTO y HORARIO se dejan en blanco: son datos de nómina que el
+    portal no tiene.
+  - **La columna J del machote se titula «SALIDA COMIDA» pero ahí va la hora
+    de salida**: así la usa el departamento (la columna L, «SALIDA», está
+    oculta en el machote). No «corregirlo».
+  - La fecha va como **número de serie** con el estilo 8 (formato de fecha) y
+    las horas como **fracción del día** con el estilo 5 (formato de hora), que
+    es como las guarda el machote. Los estilos por columna están en
+    `ASIS_ESTILO` y vienen del machote; si se cambia el machote hay que
+    revisarlos.
+  - El nombre va en mayúsculas y sin acentos, conservando la Ñ
+    (`_asisNombre`), como en el ejemplo. El **orden** es el que tenga la
+    cuenta en `usuarios.nombre`.
+  - Si una persona registró varios proyectos el mismo día, se toma la
+    **primera entrada y la última salida**, y la columna P lista los lugares
+    separados por « / ».
+- **El reporte de asistencias y el archivo de carga de iScala son dos
+  documentos distintos**: se suben en sitios distintos, así que no comparten
+  formato ni nombre (`ASISTENCIAS_<MES>_<año>.xlsx` vs
+  `Carga_Incidencias_<mes>.xlsx`). En el de iScala **todo es texto** a
+  propósito. No unificarlos.
 - `showFoot:'lastPage'` en las tablas del PDF: con el valor por omisión el
   TOTAL se repetía a media lista.
 

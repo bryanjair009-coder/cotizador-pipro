@@ -2019,7 +2019,7 @@ Precio de venta soportería = costo × 1.40"></button>
         <!-- Dos documentos distintos del mismo mes: el archivo de carga es el
              de iScala y el reporte de horas se sube en otro sitio. -->
         <button class="btn btn-secondary" onclick="incHorasExcel()"
-                title="Reporte de horas en Excel: fecha, nombre, entrada, salida y horas trabajadas">📊 Horas (Excel)</button>
+                title="Asistencias en el machote de la empresa: nombre, día, fecha, entrada y salida">📊 Asistencias (Excel)</button>
         <button class="btn btn-secondary" onclick="incFormatoHoras()"
                 title="Reporte de horas en PDF, para imprimir o firmar">🖨️ Horas (PDF)</button>
       </div>
@@ -6921,59 +6921,160 @@ function incResumenHoras(filas) {
     .sort((a, b) => String(incNombreDe(a[0])).localeCompare(String(incNombreDe(b[0])), 'es'));
 }
 
-/* El reporte de horas en Excel. Es un documento DISTINTO del archivo de carga
-   de iScala —se suben en sitios distintos— así que no comparte ni formato ni
-   nombre: aquí la fecha va legible, las horas van como número para que sumen,
-   y hay una segunda hoja con el resumen por persona. */
-function incHorasExcel() {
-  const filas = incFilasHoras();
+/* ══════════════════════════════════════════════════════════════════════════
+   REPORTE DE ASISTENCIAS (2026-11)
+   El Excel de horas se entrega con el machote de ASISTENCIAS de la empresa,
+   con sus mismas columnas, anchos, columnas ocultas y formatos. Igual que con
+   el PMU, el portal NO reconstruye el libro: abre
+   assets/ASISTENCIAS_machote.xlsx —una copia del machote con el encabezado y
+   los estilos, sin datos de nadie— y le inyecta los renglones, con las mismas
+   utilidades de zip que usa el PMU.
+
+   El machote parte el mes en dos quincenas, una por hoja, y agrupa por
+   persona: un renglón por día del periodo, fines de semana incluidos, y un
+   renglón en blanco entre una persona y la siguiente.
+
+   El portal llena lo que sabe:
+     C NOMBRE · F DIA · G FECHA · I ENTRADA · J SALIDA · P COMENTARIOS (dónde
+     estuvo; NONPROJECT cuando no se visitó ninguna empresa).
+   SUC, NUMERO, AREA, DEPARTAMENTO y HORARIO se dejan en blanco a propósito:
+   son datos de nómina que el portal no tiene.
+   ══════════════════════════════════════════════════════════════════════════ */
+const ASIS_PLANTILLA = 'assets/ASISTENCIAS_machote.xlsx';
+const ASIS_HOJAS     = ['xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml'];
+const ASIS_DIA  = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+const ASIS_MES  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+/* Estilo de cada columna, tal como los trae el machote: el 8 da formato de
+   fecha a G y el 5 formato de hora a I y J. */
+const ASIS_ESTILO = { A:3, B:11, C:3, D:2, E:2, F:3, G:8, H:7, I:5, J:5,
+                      K:6, L:6, M:4, N:3, O:2, P:2, Q:2, R:2 };
+const ASIS_COLS = Object.keys(ASIS_ESTILO);
+
+/** Nombre como lo escribe el machote: mayúsculas y sin acentos, con la Ñ. */
+const _asisNombre = u => String(incNombreDe(u)).toUpperCase()
+  .replace(/Ñ/g, '\u0001').normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/\u0001/g, 'Ñ').trim();
+
+/** Fecha de Excel: días desde el 30/12/1899. */
+const _asisSerie = iso => {
+  const [a, m, d] = iso.split('-').map(Number);
+  return Math.round((Date.UTC(a, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000);
+};
+/** Hora como fracción del día, que es como Excel guarda las horas. */
+const _asisHora = h => {
+  const [hh, mm] = incHM(h).split(':').map(Number);
+  return isFinite(hh) ? (hh * 3600 + (mm || 0) * 60) / 86400 : null;
+};
+
+function _asisFila(n, vals) {
+  const celdas = ASIS_COLS.map(col => {
+    const v = vals ? vals[col] : null;
+    const s = ` s="${ASIS_ESTILO[col]}"`;
+    if (v === null || v === undefined || v === '') return `<c r="${col}${n}"${s}/>`;
+    if (typeof v === 'number') return `<c r="${col}${n}"${s}><v>${v}</v></c>`;
+    return `<c r="${col}${n}"${s} t="inlineStr"><is><t xml:space="preserve">${_xmlEsc(v)}</t></is></c>`;
+  }).join('');
+  return `<row r="${n}" spans="1:18" ht="20.1" customHeight="1">${celdas}</row>`;
+}
+
+/** La jornada de una persona en un día: primera entrada, última salida y dónde. */
+function _asisJornada(filas, usuario, iso) {
+  const regs = filas.filter(f => f.usuario === usuario && f.fecha === iso);
+  if (!regs.length) return null;
+  const ent = regs.map(f => incHM(f.hora_entrada)).filter(Boolean).sort();
+  const sal = regs.map(f => incHM(f.hora_salida)).filter(Boolean).sort();
+  return {
+    entrada: ent[0] || '',
+    salida:  sal[sal.length - 1] || '',
+    lugar:   [...new Set(regs.map(incLugar))].join(' / '),
+  };
+}
+
+/** A quién se le hace hoja: el personal del área más quien haya registrado. */
+function _asisGente(filas) {
+  const pers = el('inc-filtro-pers').value;
+  if (pers) return [pers];
+  const base = incPersonalSeguimiento().map(u => u.usuario);
+  return [...new Set([...base, ...filas.map(f => f.usuario)])]
+    .sort((a, b) => _asisNombre(a).localeCompare(_asisNombre(b), 'es'));
+}
+
+/** Los renglones de una quincena, listos para meterse en su hoja. */
+function _asisHoja(filas, gente, dias) {
+  let n = 1, xml = '';
+  gente.forEach((u, i) => {
+    if (i) xml += _asisFila(++n, null);          // renglón en blanco entre personas
+    const nombre = _asisNombre(u);
+    dias.forEach(iso => {
+      const j = _asisJornada(filas, u, iso);
+      xml += _asisFila(++n, {
+        C: nombre,
+        F: ASIS_DIA[incDiaSemana(iso)],
+        G: _asisSerie(iso),
+        I: j ? _asisHora(j.entrada) : null,
+        J: j ? _asisHora(j.salida)  : null,
+        P: j ? j.lugar : null,
+      });
+    });
+  });
+  return { xml, ultima: n };
+}
+
+async function incHorasExcel() {
+  const mes = el('inc-mes').value;
+  if (!mes) { alert('Elige primero un mes.'); return; }
+  const filas = incFiltradas();
   if (!filas.length) { alert('No hay registros para descargar en ese mes.'); return; }
 
-  const mes  = el('inc-mes').value;
-  const pers = el('inc-filtro-pers').value;
-  const emp  = el('inc-filtro-emp').value;
+  const gente = _asisGente(filas);
+  if (!gente.length) { alert('No hay personal que reportar en ese mes.'); return; }
 
-  const cab = ['Fecha', 'Nombre', 'Empresa visitada', 'Hora de entrada', 'Hora de salida',
-               'Horas trabajadas'];
-  const aoa = [
-    ['Reporte de horas trabajadas'],
-    [`${ETIQUETA_AREA[incSegArea()] || incSegArea()} · ${incMesTexto()}` +
-     `${pers ? ' · ' + incNombreDe(pers) : ''}${emp ? ' · ' + emp : ''}`],
-    [],
-    cab,
-    ...filas.map(f => [incDDMMYYYY(f.fecha), incNombreDe(f.usuario), incLugar(f),
-                       incHM(f.hora_entrada), incHM(f.hora_salida), +f.horas || 0]),
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  const rTot = aoa.length + 1;                       // 1-based: el renglón del total
-  ws['E' + rTot] = { v: 'TOTAL', t: 's' };
-  // Suma por fórmula: si alguien corrige una celda a mano, el total la sigue
-  ws['F' + rTot] = { t: 'n', f: `SUM(F5:F${rTot - 1})`,
-                     v: filas.reduce((s, f) => s + (+f.horas || 0), 0) };
-  ws['!ref']   = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rTot - 1, c: 5 } });
-  ws['!cols']  = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 17 }];
-  ws['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:5 } }, { s: { r:1, c:0 }, e: { r:1, c:5 } }];
+  const dias = incDiasDelMes();
+  const quincenas = [dias.filter(d => +d.slice(-2) <= 15), dias.filter(d => +d.slice(-2) > 15)];
+  const [a, m] = mes.split('-').map(Number);
+  const nombres = [`01 al 15 de ${ASIS_MES[m - 1]}`,
+                   `16 al ${dias.length} de ${ASIS_MES[m - 1]}`];
 
-  const res = incResumenHoras(filas);
-  const aoaR = [
-    ['Resumen por persona'],
-    [],
-    ['Nombre', 'Días con registro', 'Horas trabajadas'],
-    ...res.map(([u, r]) => [incNombreDe(u), r.dias.size, r.horas]),
-  ];
-  const wsR = XLSX.utils.aoa_to_sheet(aoaR);
-  const rTotR = aoaR.length + 1;
-  wsR['A' + rTotR] = { v: 'TOTAL', t: 's' };
-  wsR['B' + rTotR] = { t: 'n', f: `SUM(B4:B${rTotR - 1})`, v: res.reduce((s, r) => s + r[1].dias.size, 0) };
-  wsR['C' + rTotR] = { t: 'n', f: `SUM(C4:C${rTotR - 1})`, v: res.reduce((s, r) => s + r[1].horas, 0) };
-  wsR['!ref']  = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rTotR - 1, c: 2 } });
-  wsR['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 17 }];
+  try {
+    const resp = await fetch(ASIS_PLANTILLA, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('No se encontró el machote de asistencias.');
+    const piezas = _zipLeer(await resp.arrayBuffer());
+    const cambios = {};
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws,  'Horas');
-  XLSX.utils.book_append_sheet(wb, wsR, 'Resumen por persona');
-  XLSX.writeFile(wb, `Horas_Trabajadas_${mes}${pers ? '_' + pers : ''}.xlsx`
-    .replace(/[\/:*?"<>|]/g, '_'));
+    for (let i = 0; i < ASIS_HOJAS.length; i++) {
+      const pieza = piezas.find(p => p.nombre === ASIS_HOJAS[i]);
+      if (!pieza) throw new Error('El machote de asistencias no trae la hoja ' + (i + 1) + '.');
+      const base = await _zipTexto(pieza);
+      const { xml, ultima } = _asisHoja(filas, gente, quincenas[i]);
+      cambios[ASIS_HOJAS[i]] = base
+        .replace(/<dimension ref="[^"]*"\/>/, `<dimension ref="A1:R${ultima}"/>`)
+        .replace('</sheetData>', xml + '</sheetData>');
+    }
+
+    // Los nombres de las hojas dicen qué quincena es cada una
+    const libro = piezas.find(p => p.nombre === 'xl/workbook.xml');
+    if (libro) {
+      let x = await _zipTexto(libro);
+      x = x.replace(/name="01 al 15"/, `name="${_xmlEsc(nombres[0])}"`)
+           .replace(/name="16 al 31"/, `name="${_xmlEsc(nombres[1])}"`);
+      cambios['xl/workbook.xml'] = x;
+    }
+
+    const bytes = _zipEscribir(piezas, cambios);
+    const pers  = el('inc-filtro-pers').value;
+    const archivo = `ASISTENCIAS_${ASIS_MES[m - 1].toUpperCase()}_${a}${pers ? '_' + pers : ''}.xlsx`
+      .replace(/[\/:*?"<>|]/g, '_');
+    const url = URL.createObjectURL(new Blob([bytes],
+      { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const el_a = document.createElement('a');
+    el_a.href = url; el_a.download = archivo;
+    document.body.appendChild(el_a); el_a.click(); el_a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast(`📊 Asistencias de ${gente.length} persona(s) descargadas`);
+  } catch (e) {
+    console.error(e);
+    alert('No se pudo generar el reporte de asistencias: ' + (e.message || e));
+  }
 }
 
 function incFormatoHoras() {
