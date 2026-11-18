@@ -6890,6 +6890,16 @@ function incCopiarPendientes() {
    ══════════════════════════════════════════════════════════════════════════ */
 const incHM = h => String(h == null ? '' : h).slice(0, 5);
 
+/* Dónde estuvo esa jornada. El trabajo sin proyecto facturable se registra con
+   el folio comodín NONPROJECT: ahí no se visitó ninguna empresa, así que la
+   columna lo dice con todas sus letras en vez de poner el nombre de la planta
+   a la que se le colgó el registro. */
+function incLugar(f) {
+  const folio = String(f.folio || '').toUpperCase();
+  const emp   = String(f.empresa || '').trim();
+  return (!emp || folio === INC_SIN_PROYECTO) ? INC_SIN_PROYECTO : emp;
+}
+
 /** Los renglones del reporte de horas, ya ordenados. Los comparten el PDF y
     el Excel, para que los dos documentos digan exactamente lo mismo. */
 function incFilasHoras() {
@@ -6923,25 +6933,26 @@ function incHorasExcel() {
   const pers = el('inc-filtro-pers').value;
   const emp  = el('inc-filtro-emp').value;
 
-  const cab = ['Fecha', 'Nombre', 'Hora de entrada', 'Hora de salida', 'Horas trabajadas'];
+  const cab = ['Fecha', 'Nombre', 'Empresa visitada', 'Hora de entrada', 'Hora de salida',
+               'Horas trabajadas'];
   const aoa = [
     ['Reporte de horas trabajadas'],
     [`${ETIQUETA_AREA[incSegArea()] || incSegArea()} · ${incMesTexto()}` +
      `${pers ? ' · ' + incNombreDe(pers) : ''}${emp ? ' · ' + emp : ''}`],
     [],
     cab,
-    ...filas.map(f => [incDDMMYYYY(f.fecha), incNombreDe(f.usuario),
+    ...filas.map(f => [incDDMMYYYY(f.fecha), incNombreDe(f.usuario), incLugar(f),
                        incHM(f.hora_entrada), incHM(f.hora_salida), +f.horas || 0]),
   ];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   const rTot = aoa.length + 1;                       // 1-based: el renglón del total
-  ws['D' + rTot] = { v: 'TOTAL', t: 's' };
+  ws['E' + rTot] = { v: 'TOTAL', t: 's' };
   // Suma por fórmula: si alguien corrige una celda a mano, el total la sigue
-  ws['E' + rTot] = { t: 'n', f: `SUM(E5:E${rTot - 1})`,
+  ws['F' + rTot] = { t: 'n', f: `SUM(F5:F${rTot - 1})`,
                      v: filas.reduce((s, f) => s + (+f.horas || 0), 0) };
-  ws['!ref']   = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rTot - 1, c: 4 } });
-  ws['!cols']  = [{ wch: 12 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 17 }];
-  ws['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:4 } }, { s: { r:1, c:0 }, e: { r:1, c:4 } }];
+  ws['!ref']   = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rTot - 1, c: 5 } });
+  ws['!cols']  = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 17 }];
+  ws['!merges'] = [{ s: { r:0, c:0 }, e: { r:0, c:5 } }, { s: { r:1, c:0 }, e: { r:1, c:5 } }];
 
   const res = incResumenHoras(filas);
   const aoaR = [

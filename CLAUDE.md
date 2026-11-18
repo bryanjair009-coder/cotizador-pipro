@@ -535,7 +535,11 @@ genera siempre los 5 archivos cuando hay material.
 - **El reporte de horas y el archivo de carga de iScala son dos documentos
   distintos**: se suben en sitios distintos, así que no comparten formato ni
   nombre (`Horas_Trabajadas_<mes>.xlsx` vs `Carga_Incidencias_<mes>.xlsx`). En
-  el de horas la fecha va legible (DD/MM/AAAA) y **las horas van como número**
+  el de horas hay además una columna **«Empresa visitada»** (`incLugar`): el
+  trabajo sin proyecto facturable lleva el folio comodín `NONPROJECT`, y ahí
+  la columna dice **NONPROJECT** en vez del nombre de la planta a la que se le
+  colgó el registro, porque no se visitó ninguna empresa. La fecha va legible
+  (DD/MM/AAAA) y **las horas van como número**
   con un TOTAL por fórmula, al revés del machote de iScala, donde **todo es
   texto** a propósito. No unificarlos.
 - `showFoot:'lastPage'` en las tablas del PDF: con el valor por omisión el
