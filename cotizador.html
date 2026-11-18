@@ -6893,14 +6893,13 @@ const incHM = h => String(h == null ? '' : h).slice(0, 5);
 /* Dónde trabajó esa jornada, como va en la columna COMENTARIOS del machote:
    el nombre de la empresa. El trabajo sin proyecto facturable se registra con
    el folio comodín NONPROJECT —ahí no se visitó ninguna empresa—, así que la
-   columna lo dice con todas sus letras y entre paréntesis a qué se destinó:
-   la actividad, o la empresa si el registro no trae actividad. */
+   columna lo dice con todas sus letras y, entre paréntesis, la empresa en la
+   que se trabajó ese día: NONPROJECT (CEMEX), NONPROJECT (Gardner Denver). */
 function incLugar(f) {
   const folio = String(f.folio || '').toUpperCase();
   const emp   = String(f.empresa || '').trim();
   if (emp && folio !== INC_SIN_PROYECTO) return emp;
-  const detalle = String(f.actividad_txt || '').trim() || emp;
-  return detalle ? `${INC_SIN_PROYECTO} (${detalle})` : INC_SIN_PROYECTO;
+  return emp ? `${INC_SIN_PROYECTO} (${emp})` : INC_SIN_PROYECTO;
 }
 
 /** Los renglones del reporte de horas, ya ordenados. Los comparten el PDF y
@@ -6965,6 +6964,15 @@ const _asisNombre = u => String(incNombreDe(u)).toUpperCase()
   .replace(/Ñ/g, '\u0001').normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/\u0001/g, 'Ñ').trim();
 
+/* La columna NUMERO del machote es el identificador de la persona, y el que
+   lleva el portal es el código de recurso de iScala. Va como número cuando lo
+   es —la columna trae formato de entero—, y tal cual si alguien lo capturó
+   con letras. Sin código, la celda se queda vacía. */
+function _asisNumero(u) {
+  const c = String(incCodigoDe(u) || '').trim();
+  return c ? (/^\d+$/.test(c) ? +c : c) : null;
+}
+
 /** Fecha de Excel: días desde el 30/12/1899. */
 const _asisSerie = iso => {
   const [a, m, d] = iso.split('-').map(Number);
@@ -7015,10 +7023,12 @@ function _asisHoja(filas, gente, dias) {
   gente.forEach((u, i) => {
     if (i) xml += _asisFila(++n, null);          // renglón en blanco entre personas
     const nombre = _asisNombre(u);
+    const numero = _asisNumero(u);
     dias.forEach(iso => {
       const j = _asisJornada(filas, u, iso);
       xml += _asisFila(++n, {
         A: ASIS_SUC,
+        B: numero,
         C: nombre,
         E: ASIS_DEPTO,
         F: ASIS_DIA[incDiaSemana(iso)],

@@ -543,15 +543,17 @@ genera siempre los 5 archivos cuando hay material.
   - El portal llena **A SUC** (siempre `MEXICO`), **C NOMBRE**,
     **E DEPARTAMENTO** (siempre `INGENIERIA DE TUBERIA`), **F DIA**,
     **G FECHA**, **H HORARIO**, **I ENTRADA**, **J SALIDA** y
-    **P COMENTARIOS** (dónde trabajó, con `incLugar`). **NUMERO** se queda en
-    blanco: es el número de nómina, que el portal no tiene.
+    **P COMENTARIOS** (dónde trabajó, con `incLugar`). **B NUMERO** lleva el
+    **código de recurso** de la cuenta (`_asisNumero`), que es el
+    identificador que sí conoce el portal; va como número cuando lo es, y
+    vacío si la cuenta todavía no tiene código.
   - **HORARIO** es `08:00:00 -- 17:00:00` siempre, salvo el fin de semana
     **sin** trabajo registrado, que lleva `00:00:00 -- 00:00:00`. Un sábado
     trabajado va con el horario normal, como cualquier otro día.
   - **COMENTARIOS** lleva el nombre de la empresa. Si el registro es
-    `NONPROJECT` —no se visitó ninguna empresa— se escribe el folio comodín y
-    **entre paréntesis** a qué se destinó: la actividad, o la empresa si el
-    registro no trae actividad.
+    `NONPROJECT` se escribe el folio comodín y **entre paréntesis la empresa**
+    en la que se trabajó ese día: `NONPROJECT (CEMEX)`,
+    `NONPROJECT (Gardner Denver)`. La actividad no va ahí.
   - **La columna J del machote se titula «SALIDA COMIDA» pero ahí va la hora
     de salida**: así la usa el departamento (la columna L, «SALIDA», está
     oculta en el machote). No «corregirlo».
