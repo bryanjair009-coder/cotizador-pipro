@@ -6890,14 +6890,17 @@ function incCopiarPendientes() {
    ══════════════════════════════════════════════════════════════════════════ */
 const incHM = h => String(h == null ? '' : h).slice(0, 5);
 
-/* Dónde estuvo esa jornada. El trabajo sin proyecto facturable se registra con
-   el folio comodín NONPROJECT: ahí no se visitó ninguna empresa, así que la
-   columna lo dice con todas sus letras en vez de poner el nombre de la planta
-   a la que se le colgó el registro. */
+/* Dónde trabajó esa jornada, como va en la columna COMENTARIOS del machote:
+   el nombre de la empresa. El trabajo sin proyecto facturable se registra con
+   el folio comodín NONPROJECT —ahí no se visitó ninguna empresa—, así que la
+   columna lo dice con todas sus letras y entre paréntesis a qué se destinó:
+   la actividad, o la empresa si el registro no trae actividad. */
 function incLugar(f) {
   const folio = String(f.folio || '').toUpperCase();
   const emp   = String(f.empresa || '').trim();
-  return (!emp || folio === INC_SIN_PROYECTO) ? INC_SIN_PROYECTO : emp;
+  if (emp && folio !== INC_SIN_PROYECTO) return emp;
+  const detalle = String(f.actividad_txt || '').trim() || emp;
+  return detalle ? `${INC_SIN_PROYECTO} (${detalle})` : INC_SIN_PROYECTO;
 }
 
 /** Los renglones del reporte de horas, ya ordenados. Los comparten el PDF y
@@ -6934,13 +6937,20 @@ function incResumenHoras(filas) {
    persona: un renglón por día del periodo, fines de semana incluidos, y un
    renglón en blanco entre una persona y la siguiente.
 
-   El portal llena lo que sabe:
-     C NOMBRE · F DIA · G FECHA · I ENTRADA · J SALIDA · P COMENTARIOS (dónde
-     estuvo; NONPROJECT cuando no se visitó ninguna empresa).
-   SUC, NUMERO, AREA, DEPARTAMENTO y HORARIO se dejan en blanco a propósito:
-   son datos de nómina que el portal no tiene.
+   El portal llena:
+     A SUC (siempre MEXICO) · C NOMBRE · E DEPARTAMENTO (siempre INGENIERIA DE
+     TUBERIA) · F DIA · G FECHA · H HORARIO · I ENTRADA · J SALIDA ·
+     P COMENTARIOS (dónde trabajó).
+   NUMERO se deja en blanco: es el número de nómina, que el portal no tiene.
    ══════════════════════════════════════════════════════════════════════════ */
 const ASIS_PLANTILLA = 'assets/ASISTENCIAS_machote.xlsx';
+const ASIS_SUC   = 'MEXICO';
+const ASIS_DEPTO = 'INGENIERIA DE TUBERIA';
+/* El horario de la casa. El de ceros es el del día en que no se trabaja, y
+   sólo se pone en fin de semana SIN trabajo registrado: un sábado trabajado
+   lleva el horario normal, como cualquier otro día. */
+const ASIS_HORARIO  = '08:00:00 -- 17:00:00';
+const ASIS_DESCANSO = '00:00:00 -- 00:00:00';
 const ASIS_HOJAS     = ['xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml'];
 const ASIS_DIA  = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
 const ASIS_MES  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -7008,9 +7018,12 @@ function _asisHoja(filas, gente, dias) {
     dias.forEach(iso => {
       const j = _asisJornada(filas, u, iso);
       xml += _asisFila(++n, {
+        A: ASIS_SUC,
         C: nombre,
+        E: ASIS_DEPTO,
         F: ASIS_DIA[incDiaSemana(iso)],
         G: _asisSerie(iso),
+        H: (incFinDeSemana(iso) && !j) ? ASIS_DESCANSO : ASIS_HORARIO,
         I: j ? _asisHora(j.entrada) : null,
         J: j ? _asisHora(j.salida)  : null,
         P: j ? j.lugar : null,

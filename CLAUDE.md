@@ -540,10 +540,18 @@ genera siempre los 5 archivos cuando hay material.
     <mes>`), agrupando por persona: **un renglón por día del periodo**, fines
     de semana incluidos, y un renglón en blanco entre una persona y la
     siguiente. Es la colocación exacta del machote; no reordenar.
-  - El portal llena **C NOMBRE · F DIA · G FECHA · I ENTRADA · J SALIDA ·
-    P COMENTARIOS** (dónde estuvo, con `incLugar`). SUC, NUMERO, AREA,
-    DEPARTAMENTO y HORARIO se dejan en blanco: son datos de nómina que el
-    portal no tiene.
+  - El portal llena **A SUC** (siempre `MEXICO`), **C NOMBRE**,
+    **E DEPARTAMENTO** (siempre `INGENIERIA DE TUBERIA`), **F DIA**,
+    **G FECHA**, **H HORARIO**, **I ENTRADA**, **J SALIDA** y
+    **P COMENTARIOS** (dónde trabajó, con `incLugar`). **NUMERO** se queda en
+    blanco: es el número de nómina, que el portal no tiene.
+  - **HORARIO** es `08:00:00 -- 17:00:00` siempre, salvo el fin de semana
+    **sin** trabajo registrado, que lleva `00:00:00 -- 00:00:00`. Un sábado
+    trabajado va con el horario normal, como cualquier otro día.
+  - **COMENTARIOS** lleva el nombre de la empresa. Si el registro es
+    `NONPROJECT` —no se visitó ninguna empresa— se escribe el folio comodín y
+    **entre paréntesis** a qué se destinó: la actividad, o la empresa si el
+    registro no trae actividad.
   - **La columna J del machote se titula «SALIDA COMIDA» pero ahí va la hora
     de salida**: así la usa el departamento (la columna L, «SALIDA», está
     oculta en el machote). No «corregirlo».
