@@ -6394,7 +6394,8 @@ function admSeccion(id) {
    ══════════════════════════════════════════════════════════════════════════ */
 
 // Constantes del machote: vienen prellenadas en todos sus renglones
-const INC_ID = '000000', INC_TIPO = 'A', INC_CENTRO = '300';
+// El centro de costo pasó de 300 a 310 el 2026-11 (indicación del área)
+const INC_ID = '000000', INC_TIPO = 'A', INC_CENTRO = '310';
 // Folio comodín: trabajo sin proyecto facturable. Es el único que se repite.
 const INC_SIN_PROYECTO = 'NONPROJECT';
 const INC_ENCABEZADOS = ['Codigo Recurso','Proyecto','ID','Cod Actividade','Tipo de Costo',
@@ -6461,6 +6462,12 @@ async function incCargarProyectos() {
 async function incCargarMes() {
   const mes = el('inc-mes').value;
   if (!mes) return;
+  /* El código de recurso NO viaja en la incidencia: se toma de la cuenta al
+     armar el archivo, así que un código corregido hoy sale bien en todo lo ya
+     registrado. Por eso la lista de cuentas se relee en cada consulta: si se
+     quedara la de cuando se abrió el panel, el archivo saldría con los
+     códigos viejos aunque la base ya tuviera los nuevos. */
+  await incCargarUsuarios();
   const [a, m] = mes.split('-').map(Number);
   const ultimo = String(new Date(a, m, 0).getDate()).padStart(2, '0');
   try {
@@ -7890,6 +7897,10 @@ async function usuarioCodigo(btn) {
     await apiUsuarios({ accion: 'actualizar', usuario: u, codigo_recurso: limpio });
     toast(`✅ Código de "${u}" actualizado a ${limpio}.`);
     renderUsuarios();
+    /* El panel de incidencias trae su propia copia de las cuentas; sin
+       refrescarla, el archivo de carga de este rato saldría con el código
+       viejo aunque la base ya tenga el nuevo. */
+    if (INC.listo) { await incCargarUsuarios(); incPintar(); }
   } catch (e) { alert('❌ ' + e.message); }
 }
 

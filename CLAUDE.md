@@ -581,7 +581,14 @@ genera siempre los 5 archivos cuando hay material.
 - Columnas, en este orden: `Codigo Recurso · Proyecto · ID · Cod Actividade ·
   Tipo de Costo · Fecha · Horas · Texto · Centro de Costo · FECHA OK`.
   Constantes del machote: **ID `000000`, Tipo de Costo `A`, Centro de Costo
-  `300`**. La hoja se llama `Sheet1`, como en el original.
+  `310`** (era `300` hasta noviembre de 2026; lo cambió el área). La hoja se
+  llama `Sheet1`, como en el original.
+- **El código de recurso NO viaja en la incidencia**: vive sólo en la cuenta
+  (`usuarios.codigo_recurso`) y se busca al armar el archivo. Por eso corregir
+  un código arregla de golpe todo lo ya registrado, sin tocar la base de
+  incidencias. Para que eso se cumpla, `incCargarMes()` **relee las cuentas**
+  en cada consulta y `usuarioCodigo()` refresca el panel: con la copia que se
+  cargó al abrir el panel, el archivo salía con los códigos viejos.
 - **Todas las celdas van como TEXTO** (`t:'s'`, formato `@`). El machote tiene
   cada columna de datos con `numFmtId="49"`, que es `@`. Si la fecha o las
   horas se escriben como número, `000000` pierde sus ceros y el cargador de
