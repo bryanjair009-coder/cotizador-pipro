@@ -6589,8 +6589,12 @@ async function incBorrar(id) {
    servicio asignado», de 7:30 a 18:00. Reglas:
      · Por persona del seguimiento (técnicos activos del área, o todo el
        personal si así está marcado), o sólo la persona del filtro.
-     · Sólo días LABORADOS según el calendario del seguimiento: un fin de
-       semana sin orden de trabajo o un festivo marcado no se llenan.
+     · Sólo de HOY al fin de mes. Los días ya pasados que alguien no registró
+       NO se llenan: pudieron ser vacaciones, incapacidad o una falta, y eso
+       lo tiene que capturar la persona, no inventarlo el portal.
+     · NUNCA sábado ni domingo: el fin de semana sólo aparece en el archivo
+       cuando la persona lo registró como trabajado. Tampoco un día entre
+       semana marcado como no laborado (festivo) en el calendario.
      · Un día en el que la persona ya tiene cualquier registro no se toca.
      · Vive SÓLO en el archivo: la base no cambia, así que el seguimiento
        sigue diciendo quién no capturó, y lo que el técnico registre después
@@ -6606,7 +6610,9 @@ function incRellenoMes() {
   const pers  = el('inc-filtro-pers').value;
   const gente = pers ? [pers] : incPersonalSeguimiento().map(u => u.usuario);
   const tiene = new Set(INC.filas.map(f => f.usuario + '|' + f.fecha));
-  const dias  = incDiasDelMes().filter(incEsLaborable);
+  const hoy   = incHoyISO();
+  const dias  = incDiasDelMes()
+    .filter(d => d >= hoy && !incFinDeSemana(d) && incEsLaborable(d));
   const out = [];
   for (const u of gente) for (const d of dias) {
     if (!tiene.has(u + '|' + d)) out.push({ ...INC_RELLENO, usuario: u, fecha: d, relleno: true });
@@ -6623,21 +6629,20 @@ function incDescargar() {
   if (!relleno.length) return incArmarCarga(filas);
 
   _incPendiente = { filas, relleno };
-  const hoy = incHoyISO();
-  const pasados = relleno.filter(f => f.fecha <  hoy).length;
-  const futuros = relleno.length - pasados;
   const personas = new Set(relleno.map(f => f.usuario)).size;
+  const dias = [...new Set(relleno.map(f => f.fecha))].sort();
   el('inc-relleno-cuerpo').innerHTML = `
-    <p style="margin:0 0 10px;">Los días laborados del mes que no tienen registro pueden salir en el
-      archivo como <b>NONPROJECT · Sin servicio asignado (SN)</b>, de <b>7:30 a 18:00</b> (10.5 h).</p>
+    <p style="margin:0 0 10px;">Los días que faltan del mes, <b>de hoy al día ${+dias[dias.length - 1].slice(8)}</b>,
+      pueden salir en el archivo como <b>NONPROJECT · Sin servicio asignado (SN)</b>,
+      de <b>7:30 a 18:00</b> (10.5 h).</p>
     <div class="info-box" style="margin-bottom:10px;">
-      Se agregarían <b>${relleno.length}</b> renglón(es) para <b>${personas}</b> persona(s):
-      <br>· <b>${futuros}</b> día(s) de hoy al fin de mes
-      <br>· <b>${pasados}</b> día(s) ya pasados que nadie registró
+      Se agregarían <b>${relleno.length}</b> renglón(es) para <b>${personas}</b> persona(s), en
+      ${dias.length} día(s): ${dias.map(d => `${d.slice(8)}/${d.slice(5, 7)}`).join(', ')}.
     </div>
     <div style="font-size:.8rem;color:var(--gd-text-mute);">
-      Fines de semana sin orden de trabajo y días marcados como no laborados en el calendario del
-      seguimiento no se llenan. El relleno sólo va en el archivo: no se guarda en el portal.
+      No se llenan los días ya pasados, ni sábados y domingos: un fin de semana sólo sale en el
+      archivo si la persona lo registró como trabajado. El relleno va sólo en el archivo, no se
+      guarda en el portal.
     </div>`;
   el('inc-relleno-modal').style.display = 'flex';
 }

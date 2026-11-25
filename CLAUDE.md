@@ -588,9 +588,14 @@ genera siempre los 5 archivos cuando hay material.
   (`#inc-relleno-modal`) si se llenan los días laborados sin registro con
   **NONPROJECT · NA003 «Sin servicio asignado (SN)» · 7:30–18:00 (10.5 h)**.
   Tres salidas: llenar y descargar, sólo lo registrado, cancelar.
-  - Por persona del seguimiento (o la del filtro); sólo días laborados según
-    el calendario del seguimiento (fin de semana sin orden o festivo marcado
-    no se llenan); un día con cualquier registro de esa persona no se toca.
+  - Por persona del seguimiento (o la del filtro), **sólo de HOY al fin de
+    mes** (regla del dueño, 2026-11-25): los días ya pasados sin registro NO
+    se llenan —pudieron ser vacaciones, incapacidad o falta, y eso lo captura
+    la persona—.
+  - **Nunca sábado ni domingo**: un fin de semana sólo sale en el archivo
+    cuando la persona lo registró como trabajado. Tampoco un día entre semana
+    marcado como no laborado (festivo). Un día con cualquier registro de esa
+    persona no se toca.
   - **Vive sólo en el archivo**: no se escribe en la base. El seguimiento
     sigue diciendo quién no capturó, y lo que se registre después sustituye
     al relleno en la siguiente descarga.
