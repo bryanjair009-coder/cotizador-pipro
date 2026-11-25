@@ -1568,6 +1568,27 @@ Precio de venta soportería = costo × 1.40"></button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL — ¿LLENAR EL RESTO DEL MES? (archivo de carga de iScala)
+     La carga se hace antes de que el mes termine; los días laborados sin
+     registro pueden salir como NONPROJECT · Sin servicio asignado. Sólo en el
+     archivo: la base no se toca.
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="inc-relleno-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)incCerrarRelleno()">
+  <div class="gd-modal" role="dialog" aria-modal="true" aria-labelledby="inc-relleno-title">
+    <div class="gd-modal-header">
+      <h3 id="inc-relleno-title">📅 ¿Llenar el resto del mes?</h3>
+      <button class="gd-modal-close" onclick="incCerrarRelleno()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="gd-modal-body" id="inc-relleno-cuerpo"></div>
+    <div class="gd-modal-foot">
+      <button class="btn btn-secondary btn-sm" onclick="incCerrarRelleno()">Cancelar</button>
+      <button class="btn btn-secondary btn-sm" onclick="incDescargarElegido(false)">Sólo lo registrado</button>
+      <button class="btn btn-primary btn-sm" onclick="incDescargarElegido(true)">Llenar y descargar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
      MODAL — MATERIAL RÁPIDO (temporal, NO se guarda en el catálogo/Supabase)
      ═══════════════════════════════════════════════════════════════════════════ -->
 <div id="quickmat-modal" class="gd-modal-overlay" style="display:none;" onclick="if(event.target===this)closeQuickMatModal()">
@@ -6562,13 +6583,86 @@ async function incBorrar(id) {
   } catch (e) { alert('No se pudo eliminar: ' + e.message); }
 }
 
+/* ── Relleno del resto del mes (2026-11) ─────────────────────────────────────
+   La carga a iScala se hace antes de que el mes termine, así que el archivo
+   puede cubrir los días laborados que nadie registró con NONPROJECT · «Sin
+   servicio asignado», de 7:30 a 18:00. Reglas:
+     · Por persona del seguimiento (técnicos activos del área, o todo el
+       personal si así está marcado), o sólo la persona del filtro.
+     · Sólo días LABORADOS según el calendario del seguimiento: un fin de
+       semana sin orden de trabajo o un festivo marcado no se llenan.
+     · Un día en el que la persona ya tiene cualquier registro no se toca.
+     · Vive SÓLO en el archivo: la base no cambia, así que el seguimiento
+       sigue diciendo quién no capturó, y lo que el técnico registre después
+       sustituye al relleno en la siguiente descarga.
+   Con filtro de empresa no se ofrece: un NONPROJECT no es de esa empresa. */
+const INC_RELLENO = {
+  folio: INC_SIN_PROYECTO, empresa: '',
+  actividad_cod: 'NA003', actividad_txt: 'Sin servicio asignado (SN)',
+  hora_entrada: '07:30', hora_salida: '18:00', horas: 10.5,
+};
+
+function incRellenoMes() {
+  const pers  = el('inc-filtro-pers').value;
+  const gente = pers ? [pers] : incPersonalSeguimiento().map(u => u.usuario);
+  const tiene = new Set(INC.filas.map(f => f.usuario + '|' + f.fecha));
+  const dias  = incDiasDelMes().filter(incEsLaborable);
+  const out = [];
+  for (const u of gente) for (const d of dias) {
+    if (!tiene.has(u + '|' + d)) out.push({ ...INC_RELLENO, usuario: u, fecha: d, relleno: true });
+  }
+  return out;
+}
+
+let _incPendiente = null;   // { filas, relleno } mientras el diálogo está abierto
+
+function incDescargar() {
+  const filas = incFiltradas();
+  const relleno = el('inc-filtro-emp').value ? [] : incRellenoMes();
+  if (!filas.length && !relleno.length) { alert('No hay registros para descargar en ese mes.'); return; }
+  if (!relleno.length) return incArmarCarga(filas);
+
+  _incPendiente = { filas, relleno };
+  const hoy = incHoyISO();
+  const pasados = relleno.filter(f => f.fecha <  hoy).length;
+  const futuros = relleno.length - pasados;
+  const personas = new Set(relleno.map(f => f.usuario)).size;
+  el('inc-relleno-cuerpo').innerHTML = `
+    <p style="margin:0 0 10px;">Los días laborados del mes que no tienen registro pueden salir en el
+      archivo como <b>NONPROJECT · Sin servicio asignado (SN)</b>, de <b>7:30 a 18:00</b> (10.5 h).</p>
+    <div class="info-box" style="margin-bottom:10px;">
+      Se agregarían <b>${relleno.length}</b> renglón(es) para <b>${personas}</b> persona(s):
+      <br>· <b>${futuros}</b> día(s) de hoy al fin de mes
+      <br>· <b>${pasados}</b> día(s) ya pasados que nadie registró
+    </div>
+    <div style="font-size:.8rem;color:var(--gd-text-mute);">
+      Fines de semana sin orden de trabajo y días marcados como no laborados en el calendario del
+      seguimiento no se llenan. El relleno sólo va en el archivo: no se guarda en el portal.
+    </div>`;
+  el('inc-relleno-modal').style.display = 'flex';
+}
+
+function incCerrarRelleno() {
+  el('inc-relleno-modal').style.display = 'none';
+  _incPendiente = null;
+}
+
+function incDescargarElegido(llenar) {
+  const p = _incPendiente;
+  incCerrarRelleno();
+  if (!p) return;
+  if (!llenar && !p.filas.length) { alert('No hay registros para descargar en ese mes.'); return; }
+  const todas = llenar ? [...p.filas, ...p.relleno] : p.filas;
+  // Por fecha y, dentro del día, por persona: como lo lee quien revisa la carga
+  todas.sort((a, b) => a.fecha.localeCompare(b.fecha) ||
+    String(incNombreDe(a.usuario)).localeCompare(String(incNombreDe(b.usuario)), 'es'));
+  incArmarCarga(todas, llenar ? p.relleno.length : 0);
+}
+
 /* El machote trae TODAS las columnas de datos en formato texto (numFmtId 49).
    Como número, «000000» pierde los ceros y la fecha deja de ser AAAAMMDD, y el
    cargador de iScala rechaza el renglón. Por eso cada celda se fuerza a texto. */
-function incDescargar() {
-  const filas = incFiltradas();
-  if (!filas.length) { alert('No hay registros para descargar en ese mes.'); return; }
-
+function incArmarCarga(filas, nRelleno = 0) {
   const sinCod = [...new Set(filas.filter(f => !incCodigoDe(f.usuario)).map(f => f.usuario))];
   if (sinCod.length && !confirm(
       `${sinCod.length} persona(s) sin código de recurso (${sinCod.map(incNombreDe).join(', ')}).\n` +
@@ -6588,6 +6682,7 @@ function incDescargar() {
   const pers = el('inc-filtro-pers').value;
   XLSX.writeFile(wb, `Carga_Incidencias_${el('inc-mes').value}${pers ? '_' + pers : ''}.xlsx`
     .replace(/[\/:*?"<>|]/g, '_'));
+  if (nRelleno) toast(`⬇️ Archivo con ${nRelleno} día(s) llenados como NONPROJECT`);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

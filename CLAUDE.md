@@ -583,6 +583,18 @@ genera siempre los 5 archivos cuando hay material.
   Constantes del machote: **ID `000000`, Tipo de Costo `A`, Centro de Costo
   `310`** (era `300` hasta noviembre de 2026; lo cambió el área). La hoja se
   llama `Sheet1`, como en el original.
+- **Relleno del resto del mes** (2026-11): la carga a iScala se hace antes de
+  que el mes termine, así que «Descargar archivo de carga» **pregunta primero**
+  (`#inc-relleno-modal`) si se llenan los días laborados sin registro con
+  **NONPROJECT · NA003 «Sin servicio asignado (SN)» · 7:30–18:00 (10.5 h)**.
+  Tres salidas: llenar y descargar, sólo lo registrado, cancelar.
+  - Por persona del seguimiento (o la del filtro); sólo días laborados según
+    el calendario del seguimiento (fin de semana sin orden o festivo marcado
+    no se llenan); un día con cualquier registro de esa persona no se toca.
+  - **Vive sólo en el archivo**: no se escribe en la base. El seguimiento
+    sigue diciendo quién no capturó, y lo que se registre después sustituye
+    al relleno en la siguiente descarga.
+  - Con filtro de empresa no se ofrece (un NONPROJECT no es de esa empresa).
 - **El código de recurso NO viaja en la incidencia**: vive sólo en la cuenta
   (`usuarios.codigo_recurso`) y se busca al armar el archivo. Por eso corregir
   un código arregla de golpe todo lo ya registrado, sin tocar la base de
