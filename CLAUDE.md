@@ -342,10 +342,14 @@ genera siempre los 5 archivos cuando hay material.
   (`COT_DATA_V1`, base64, desde `serializeCotizacion()`), y eso incluye el
   carrito entero — costo, origen del costo, precio manual, disponibilidad y
   categoría. Por eso el control interno sale con lo editado sin trabajo extra.
-  **La soportería NO se serializa** (vive en los inputs de su tabla, y no sale
-  en la cotización del cliente): al cargar un archivo no se restaura, pero
-  tampoco se borra la que ya esté capturada, y si se captura después entra al
-  control. Es el comportamiento acordado con el departamento.
+  **La soportería SÍ se serializa desde 2026-11** (antes no, y al cargar para
+  editar había que volver a capturarla). Vive en los inputs de su tabla, no en
+  `state`, así que va aparte en `soporteria`: abrazaderas por tipo y la
+  cantidad **final** de cada pieza por número de parte, también las que se
+  corrigieron a mano (`_sopSerializar` / `_sopRestaurar`). Al restaurar se
+  arma la tabla con las reglas y encima se ponen las cantidades guardadas.
+  Un archivo anterior no trae el campo y entonces no se toca lo que haya en
+  pantalla. También se guardan el **origen y destino de la ruta** (`ruta`).
 - **Nunca añadir `-EDITADO` al nombre de archivo.** `getFolio()` ya lo trae en
   modo edición, junto con `-v2`, `-v3`… Añadirlo otra vez producía
   `…-EDITADO-EDITADO.xlsx`.

@@ -2592,9 +2592,48 @@ function serializeCotizacion() {
     descuento_pct: el('descuento_pct') ? (+el('descuento_pct').value || 0) : 0,
     descuento_pct_ip: el('descuento_pct_ip') ? (+el('descuento_pct_ip').value || 0) : 0,
     mo: moInputs,
+    // Origen y destino de la ruta: el kilometraje sale de ahí y sin ellos no
+    // se puede volver a trazar al editar
+    ruta: {
+      origen:  el('gm-origin') ? el('gm-origin').value : '',
+      destino: el('gm-dest')   ? el('gm-dest').value   : '',
+    },
+    soporteria: _sopSerializar(),
     carrito: state.carrito,
     incluirPipro: !!state.incluirPipro,
   };
+}
+
+/* La soportería vive en los campos de su tabla, no en `state`, así que se
+   guarda aparte: cuántas abrazaderas de cada tipo y la cantidad FINAL de cada
+   pieza, también las que se corrigieron a mano. Las piezas van por número de
+   parte, no por renglón, para que sobrevivan a un cambio de orden del
+   catálogo de soportería. */
+function _sopSerializar() {
+  const n = id => el(id) ? (parseInt(el(id).value) || 0) : 0;
+  const cant = {};
+  _SOP_MAT.forEach((m, i) => {
+    const inp = document.getElementById(`sop-qty-${i}`);
+    const q = inp ? (parseInt(inp.value) || 0) : 0;
+    if (q > 0) cant[m.np] = q;
+  });
+  return { aerea: n('sop-aerea'), ptr: n('sop-ptr'), mens: n('sop-mens'), cant };
+}
+
+function _sopRestaurar(s) {
+  if (!s) return;
+  el('sop-aerea').value = s.aerea || 0;
+  el('sop-ptr').value   = s.ptr   || 0;
+  el('sop-mens').value  = s.mens  || 0;
+  calcSoporteria();                       // arma la tabla con las reglas…
+  const cant = s.cant || {};
+  if (el('sop-table-wrap').style.display === 'none') return;   // sin abrazaderas no hay tabla
+  _SOP_MAT.forEach((m, i) => {            // …y encima, lo que de verdad se cotizó
+    const inp = document.getElementById(`sop-qty-${i}`);
+    if (!inp) return;
+    inp.value = cant[m.np] || 0;
+    updateSopRow(i);
+  });
 }
 
 // Restaura el estado completo de la cotización desde un objeto previo
@@ -2652,6 +2691,11 @@ function restoreCotizacion(data) {
     setVal('maniobras_precio', data.mo.maniobras_precio);
     setVal('maniobras_desc', data.mo.maniobras_desc);
   }
+  // Ruta (origen / destino del cálculo de kilometraje)
+  if (data.ruta) {
+    if (el('gm-origin')) el('gm-origin').value = data.ruta.origen  || '';
+    if (el('gm-dest'))   el('gm-dest').value   = data.ruta.destino || '';
+  }
   // Carrito
   state.carrito = data.carrito || {};
   state.incluirPipro = !!data.incluirPipro;
@@ -2663,6 +2707,10 @@ function restoreCotizacion(data) {
   if (typeof updateMO === 'function') updateMO();
   if (typeof updateTotales === 'function') updateTotales();
   if (typeof updateFolio === 'function') updateFolio();
+  /* Soportería al final, cuando el carrito ya está pintado: su tabla alimenta
+     el control de material. Un archivo anterior a este cambio no la trae, y
+     entonces no se toca la que haya capturada en pantalla. */
+  if (data.soporteria) _sopRestaurar(data.soporteria);
 }
 
 // Decodifica el JSON embebido (lo guardamos como base64 para sobrevivir
